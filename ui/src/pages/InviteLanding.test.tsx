@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import "../i18n";
 import { InviteLandingPage } from "./InviteLanding";
 
 const getInviteMock = vi.hoisted(() => vi.fn());

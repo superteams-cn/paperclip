@@ -1,10 +1,14 @@
 import { useCallback } from "react";
 import { useMutation, useQueryClient, type UseMutationResult } from "@tanstack/react-query";
 import type { IssueRetryNowOutcome, IssueRetryNowResponse } from "@paperclipai/shared";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import { ApiError } from "../api/client";
 import { issuesApi } from "../api/issues";
 import { useToastActions } from "../context/ToastContext";
 import { queryKeys } from "../lib/queryKeys";
+import { formatApiError } from "../lib/api-error";
+import { formatIssueRetryNowMessage } from "../lib/api-feedback-format";
 
 export type RetryNowError = {
   message: string;
@@ -12,13 +16,14 @@ export type RetryNowError = {
   status: number | null;
 };
 
-function readErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (typeof error.message === "string" && error.message.trim().length > 0) return error.message;
-    return `Request failed (${error.status})`;
-  }
-  if (error instanceof Error && error.message) return error.message;
-  return "The request failed. Try again in a moment.";
+function readErrorMessage(error: unknown, t: TFunction): string {
+  const fallback = error instanceof ApiError
+    ? t("common.requestFailedWithStatus", {
+      status: error.status,
+      defaultValue: "Request failed ({{status}})",
+    })
+    : t("common.requestFailedTryAgain", { defaultValue: "The request failed. Try again in a moment." });
+  return formatApiError(error, t, fallback);
 }
 
 export const RETRY_NOW_OUTCOME_HEADLINE: Record<IssueRetryNowOutcome, string> = {
@@ -33,6 +38,7 @@ export function useRetryNowMutation(
 ): UseMutationResult<IssueRetryNowResponse, unknown, void, unknown> & {
   lastError: RetryNowError | null;
 } {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { pushToast } = useToastActions();
 
@@ -51,22 +57,26 @@ export function useRetryNowMutation(
       }
       if (response.outcome === "promoted") {
         pushToast({
-          title: RETRY_NOW_OUTCOME_HEADLINE.promoted,
-          body: response.message,
+          title: t("pages.issues.scheduledRetry.retryPromoted", {
+            defaultValue: RETRY_NOW_OUTCOME_HEADLINE.promoted,
+          }),
+          body: formatIssueRetryNowMessage(response, t),
           tone: "success",
         });
       } else if (response.outcome === "gate_suppressed") {
         pushToast({
-          title: RETRY_NOW_OUTCOME_HEADLINE.gate_suppressed,
-          body: response.message,
+          title: t("pages.issues.scheduledRetry.couldNotRetry", {
+            defaultValue: RETRY_NOW_OUTCOME_HEADLINE.gate_suppressed,
+          }),
+          body: formatIssueRetryNowMessage(response, t),
           tone: "error",
         });
       }
     },
     onError: (error) => {
       pushToast({
-        title: "Couldn't retry now",
-        body: readErrorMessage(error),
+        title: t("pages.issues.scheduledRetry.couldNotRetry", { defaultValue: "Couldn't retry now" }),
+        body: readErrorMessage(error, t),
         tone: "error",
       });
     },
@@ -79,15 +89,16 @@ export function useRetryNowMutation(
     if (mutation.error) {
       const apiError = mutation.error instanceof ApiError ? mutation.error : null;
       return {
-        message: readErrorMessage(mutation.error),
+        message: readErrorMessage(mutation.error, t),
         outcomeMessage: null,
         status: apiError?.status ?? null,
       };
     }
     if (mutation.data && mutation.data.outcome === "gate_suppressed") {
+      const message = formatIssueRetryNowMessage(mutation.data, t);
       return {
-        message: mutation.data.message,
-        outcomeMessage: mutation.data.message,
+        message,
+        outcomeMessage: message,
         status: null,
       };
     }

@@ -1,4 +1,5 @@
 import { memo, type ComponentType, type SVGProps } from "react";
+import { useTranslation } from "react-i18next";
 import { Bot, FileText, Hexagon, MessageSquare, Quote } from "lucide-react";
 import type { Agent, CompanySearchResult } from "@paperclipai/shared";
 import { Link } from "@/lib/router";
@@ -9,17 +10,17 @@ import { HighlightedText, type HighlightedTextProps } from "./HighlightedText";
 
 type SnippetStyle = {
   Icon: ComponentType<SVGProps<SVGSVGElement>>;
-  label: string;
+  labelKey: string;
 };
 
 const SNIPPET_STYLES: Record<string, SnippetStyle> = {
-  comment: { Icon: MessageSquare, label: "Comment" },
-  document: { Icon: FileText, label: "Doc" },
-  description: { Icon: Quote, label: "Description" },
+  comment: { Icon: MessageSquare, labelKey: "comment" },
+  document: { Icon: FileText, labelKey: "document" },
+  description: { Icon: Quote, labelKey: "description" },
 };
 
 function snippetStyle(field: string, fallbackLabel: string): SnippetStyle {
-  return SNIPPET_STYLES[field] ?? { Icon: Quote, label: fallbackLabel };
+  return SNIPPET_STYLES[field] ?? { Icon: Quote, labelKey: fallbackLabel };
 }
 
 function formatRelativeTime(input: string | null): string {
@@ -59,6 +60,7 @@ function SearchResultRowImpl({
   isActive,
   className,
 }: SearchResultRowProps) {
+  const { t } = useTranslation();
   if (result.type === "agent") {
     return (
       <Link
@@ -78,7 +80,7 @@ function SearchResultRowImpl({
               text={result.snippets[0]?.text ?? result.snippet}
               highlights={result.snippets[0]?.highlights}
               field="agent"
-              fallbackLabel={result.sourceLabel ?? "Agent"}
+              fallbackLabel={result.sourceLabel ?? t("pages.search.resultTypes.agent")}
             />
           ) : null}
         </div>
@@ -101,7 +103,7 @@ function SearchResultRowImpl({
               text={result.snippets[0]?.text ?? result.snippet}
               highlights={result.snippets[0]?.highlights}
               field="project"
-              fallbackLabel={result.sourceLabel ?? "Project"}
+              fallbackLabel={result.sourceLabel ?? t("pages.search.resultTypes.project")}
             />
           ) : null}
         </div>
@@ -194,7 +196,11 @@ interface SnippetLineProps {
 }
 
 function SnippetLine({ text, highlights, field, fallbackLabel, multiline = false }: SnippetLineProps) {
-  const { Icon, label } = snippetStyle(field, fallbackLabel);
+  const { t } = useTranslation();
+  const { Icon, labelKey } = snippetStyle(field, fallbackLabel);
+  const label = SNIPPET_STYLES[field]
+    ? t(`pages.search.snippetLabels.${labelKey}`)
+    : labelKey;
   return (
     <div
       className={cn(

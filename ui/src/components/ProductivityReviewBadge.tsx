@@ -1,5 +1,7 @@
 import { Eye } from "lucide-react";
 import type { IssueProductivityReview } from "@paperclipai/shared";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import { Link } from "../lib/router";
 import { cn } from "../lib/utils";
 import { createIssueDetailPath } from "../lib/issueDetailBreadcrumb";
@@ -26,6 +28,18 @@ export function productivityReviewTriggerLabel(
   return TRIGGER_LABELS[trigger] ?? "Productivity review";
 }
 
+export function translatedProductivityReviewTriggerLabel(
+  trigger: IssueProductivityReview["trigger"],
+  t: TFunction,
+): string {
+  if (!trigger) {
+    return t("components.productivityReview.triggerFallback", { defaultValue: "Productivity review" });
+  }
+  return t(`components.productivityReview.triggers.${trigger}`, {
+    defaultValue: TRIGGER_LABELS[trigger] ?? "Productivity review",
+  });
+}
+
 export function ProductivityReviewBadge({
   review,
   className,
@@ -35,10 +49,13 @@ export function ProductivityReviewBadge({
   className?: string;
   hideLabel?: boolean;
 }) {
-  const label = productivityReviewTriggerLabel(review.trigger);
+  const { t } = useTranslation();
+  const label = translatedProductivityReviewTriggerLabel(review.trigger, t);
   const reviewIdentifier = review.reviewIdentifier ?? review.reviewIssueId.slice(0, 8);
   const reviewPath = createIssueDetailPath(review.reviewIdentifier ?? review.reviewIssueId);
-  const statusLabel = REVIEW_STATUS_LABELS[review.status] ?? review.status.replace(/_/g, " ");
+  const statusLabel = t(`labels.status.${review.status}`, {
+    defaultValue: REVIEW_STATUS_LABELS[review.status] ?? review.status.replace(/_/g, " "),
+  });
 
   return (
     <Tooltip>
@@ -49,26 +66,44 @@ export function ProductivityReviewBadge({
             "inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300 shrink-0 hover:bg-amber-500/20 transition-colors",
             className,
           )}
-          aria-label={`Under review · productivity review ${reviewIdentifier} (${label})`}
+          aria-label={t("components.productivityReview.ariaLabel", {
+            defaultValue: "Under review · productivity review {{identifier}} ({{trigger}})",
+            identifier: reviewIdentifier,
+            trigger: label,
+          })}
         >
           <Eye className="h-3 w-3" aria-hidden />
-          {hideLabel ? null : <span>Under review</span>}
+          {hideLabel ? null : <span>{t("components.productivityReview.underReview", { defaultValue: "Under review" })}</span>}
         </Link>
       </TooltipTrigger>
       <TooltipContent>
         <div className="space-y-1 text-xs">
-          <div className="font-semibold">Productivity review open</div>
+          <div className="font-semibold">
+            {t("components.productivityReview.open", { defaultValue: "Productivity review open" })}
+          </div>
           <div>
-            <span className="text-muted-foreground">Trigger:</span> {label}
+            <span className="text-muted-foreground">
+              {t("components.productivityReview.trigger", { defaultValue: "Trigger:" })}
+            </span>{" "}
+            {label}
           </div>
           {typeof review.noCommentStreak === "number" && review.noCommentStreak > 0 ? (
             <div>
-              <span className="text-muted-foreground">No-comment streak:</span>{" "}
-              {review.noCommentStreak} runs
+              <span className="text-muted-foreground">
+                {t("components.productivityReview.noCommentStreak", { defaultValue: "No-comment streak:" })}
+              </span>{" "}
+              {t("components.productivityReview.runs", {
+                defaultValue_one: "{{count}} run",
+                defaultValue_other: "{{count}} runs",
+                count: review.noCommentStreak,
+              })}
             </div>
           ) : null}
           <div>
-            <span className="text-muted-foreground">Review:</span> {reviewIdentifier} ({statusLabel})
+            <span className="text-muted-foreground">
+              {t("components.productivityReview.review", { defaultValue: "Review:" })}
+            </span>{" "}
+            {reviewIdentifier} ({statusLabel})
           </div>
         </div>
       </TooltipContent>

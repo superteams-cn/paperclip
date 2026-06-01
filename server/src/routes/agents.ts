@@ -1071,7 +1071,7 @@ export function agentRoutes(
     adapterConfig: unknown;
   }>(
     agent: T,
-    input?: { files: Record<string, string>; entryFile?: string },
+    input?: { files?: Record<string, string>; entryFile?: string; locale?: "en" | "zh-CN" },
   ): Promise<T> {
     if (!adapterSupportsInstructionsBundle(agent.adapterType)) {
       return agent;
@@ -1098,7 +1098,10 @@ export function agentRoutes(
     }
 
     const files = input?.files
-      ?? await loadDefaultAgentInstructionsBundle(resolveDefaultAgentInstructionsBundleRole(agent.role));
+      ?? await loadDefaultAgentInstructionsBundle(
+        resolveDefaultAgentInstructionsBundleRole(agent.role),
+        input?.locale ?? "en",
+      );
     const materialized = await instructions.materializeManagedBundle(
       agent,
       files,
@@ -1949,6 +1952,7 @@ export function agentRoutes(
     const {
       desiredSkills: requestedDesiredSkills,
       instructionsBundle,
+      instructionsLocale,
       sourceIssueId: _sourceIssueId,
       sourceIssueIds: _sourceIssueIds,
       ...hireInput
@@ -2006,7 +2010,12 @@ export function agentRoutes(
       spentMonthlyCents: 0,
       lastHeartbeatAt: null,
     });
-    const agent = await materializeDefaultInstructionsBundleForNewAgent(createdAgent, instructionsBundle);
+    const agent = await materializeDefaultInstructionsBundleForNewAgent(
+      createdAgent,
+      instructionsBundle
+        ? { ...instructionsBundle }
+        : { locale: instructionsLocale ?? "en" },
+    );
 
     let approval: Awaited<ReturnType<typeof approvalsSvc.getById>> | null = null;
     const actor = getActorInfo(req);
@@ -2137,6 +2146,7 @@ export function agentRoutes(
     const {
       desiredSkills: requestedDesiredSkills,
       instructionsBundle,
+      instructionsLocale,
       ...createInput
     } = req.body;
     createInput.adapterType = assertKnownAdapterType(createInput.adapterType);
@@ -2182,7 +2192,12 @@ export function agentRoutes(
       spentMonthlyCents: 0,
       lastHeartbeatAt: null,
     });
-    const agent = await materializeDefaultInstructionsBundleForNewAgent(createdAgent, instructionsBundle);
+    const agent = await materializeDefaultInstructionsBundleForNewAgent(
+      createdAgent,
+      instructionsBundle
+        ? { ...instructionsBundle }
+        : { locale: instructionsLocale ?? "en" },
+    );
     const agentEnv = asRecord(agent.adapterConfig)?.env;
     if (agentEnv) {
       await secretsSvc.syncEnvBindingsForTarget?.(

@@ -8,12 +8,10 @@ import {
 } from "../../components/agent-config-primitives";
 import { ChoosePathButton } from "../../components/PathInstructionsModal";
 import { LocalWorkspaceRuntimeFields } from "../local-workspace-runtime-fields";
+import { useTranslation } from "react-i18next";
 
 const inputClass =
   "w-full rounded-md border border-border px-2.5 py-1.5 bg-transparent outline-none text-sm font-mono placeholder:text-muted-foreground/40";
-
-const instructionsFileHint =
-  "Absolute path to a markdown file (e.g. AGENTS.md) that defines this agent's behavior. Injected into the system prompt at runtime.";
 
 export function ClaudeLocalConfigFields({
   mode,
@@ -27,10 +25,14 @@ export function ClaudeLocalConfigFields({
   models,
   hideInstructionsFile,
 }: AdapterConfigFieldsProps) {
+  const { t } = useTranslation();
   return (
     <>
       {!hideInstructionsFile && (
-        <Field label="Agent instructions file" hint={instructionsFileHint}>
+        <Field
+          label={t("adapters.configFields.agentInstructionsFile")}
+          hint={t("adapters.configFields.agentInstructionsFileHint")}
+        >
           <div className="flex items-center gap-2">
             <DraftInput
               value={
@@ -78,11 +80,12 @@ export function ClaudeLocalAdvancedFields({
   eff,
   mark,
 }: AdapterConfigFieldsProps) {
+  const { t } = useTranslation();
   return (
     <>
       <ToggleField
-        label="Enable Chrome"
-        hint={help.chrome}
+        label={t("adapters.configFields.enableChrome")}
+        hint={t("pages.agents.config.help.chrome", { defaultValue: help.chrome })}
         checked={
           isCreate
             ? values!.chrome
@@ -95,8 +98,8 @@ export function ClaudeLocalAdvancedFields({
         }
       />
       <ToggleField
-        label="Skip permissions"
-        hint={help.dangerouslySkipPermissions}
+        label={t("adapters.configFields.skipPermissions")}
+        hint={t("pages.agents.config.help.dangerouslySkipPermissions", { defaultValue: help.dangerouslySkipPermissions })}
         checked={
           isCreate
             ? values!.dangerouslySkipPermissions
@@ -112,7 +115,7 @@ export function ClaudeLocalAdvancedFields({
             : mark("adapterConfig", "dangerouslySkipPermissions", v)
         }
       />
-      <Field label="Max turns per run" hint={help.maxTurnsPerRun}>
+      <Field label={t("pages.agents.config.maxTurnsPerRun")} hint={t("pages.agents.config.help.maxTurnsPerRun", { defaultValue: help.maxTurnsPerRun })}>
         {isCreate ? (
           <input
             type="number"

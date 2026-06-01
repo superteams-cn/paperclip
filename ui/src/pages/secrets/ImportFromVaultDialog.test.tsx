@@ -12,6 +12,7 @@ import type {
 } from "@paperclipai/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../api/client";
+import "../../i18n";
 
 const mockSecretsApi = vi.hoisted(() => ({
   remoteImportPreview: vi.fn(),

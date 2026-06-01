@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Agent } from "@paperclipai/shared";
 import {
   Popover,
@@ -16,8 +17,8 @@ export function ReportsToPicker({
   onChange,
   disabled = false,
   excludeAgentIds = [],
-  disabledEmptyLabel = "Reports to: N/A (CEO)",
-  chooseLabel = "Reports to...",
+  disabledEmptyLabel,
+  chooseLabel,
 }: {
   agents: Agent[];
   value: string | null;
@@ -27,6 +28,7 @@ export function ReportsToPicker({
   disabledEmptyLabel?: string;
   chooseLabel?: string;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const exclude = new Set(excludeAgentIds);
   const rows = agents.filter(
@@ -35,6 +37,8 @@ export function ReportsToPicker({
   const current = value ? agents.find((a) => a.id === value) : null;
   const terminatedManager = current?.status === "terminated";
   const unknownManager = Boolean(value && !current);
+  const resolvedDisabledEmptyLabel = disabledEmptyLabel ?? t("components.reportsToPicker.disabledEmpty");
+  const resolvedChooseLabel = chooseLabel ?? t("components.reportsToPicker.choose");
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -51,7 +55,7 @@ export function ReportsToPicker({
           {unknownManager ? (
             <>
               <User className="h-3 w-3 shrink-0 text-muted-foreground" />
-              <span className="min-w-0 truncate text-muted-foreground">Unknown manager (stale ID)</span>
+              <span className="min-w-0 truncate text-muted-foreground">{t("components.reportsToPicker.unknownManager")}</span>
             </>
           ) : current ? (
             <>
@@ -62,14 +66,16 @@ export function ReportsToPicker({
                   terminatedManager && "text-amber-900 dark:text-amber-200",
                 )}
               >
-                {`Reports to ${current.name}${terminatedManager ? " (terminated)" : ""}`}
+                {terminatedManager
+                  ? t("components.reportsToPicker.reportsToTerminated", { name: current.name })
+                  : t("components.reportsToPicker.reportsTo", { name: current.name })}
               </span>
             </>
           ) : (
             <>
               <User className="h-3 w-3 shrink-0 text-muted-foreground" />
               <span className="min-w-0 truncate">
-                {disabled ? disabledEmptyLabel : chooseLabel}
+                {disabled ? resolvedDisabledEmptyLabel : resolvedChooseLabel}
               </span>
             </>
           )}
@@ -87,19 +93,19 @@ export function ReportsToPicker({
             setOpen(false);
           }}
         >
-          No manager
+          {t("components.reportsToPicker.noManager")}
         </button>
         {terminatedManager && (
           <div className="flex min-w-0 items-center gap-2 overflow-hidden px-2 py-1.5 text-xs text-muted-foreground border-b border-border mb-0.5">
             <AgentIcon icon={current.icon} className="shrink-0 h-3 w-3" />
             <span className="min-w-0 truncate">
-              Current: {current.name} (terminated)
+              {t("components.reportsToPicker.currentTerminated", { name: current.name })}
             </span>
           </div>
         )}
         {unknownManager && (
           <div className="px-2 py-1.5 text-xs text-muted-foreground border-b border-border mb-0.5">
-            Saved manager is missing from this company. Choose a new manager or clear.
+            {t("components.reportsToPicker.missingManager")}
           </div>
         )}
         {rows.map((a) => (

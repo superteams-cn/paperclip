@@ -29,6 +29,46 @@ async function closeDbClient(db: ReturnType<typeof createDb> | undefined) {
   await db?.$client?.end?.({ timeout: 0 });
 }
 
+function runWakeReason(run: typeof heartbeatRuns.$inferSelect) {
+  const context = run.contextSnapshot;
+  return typeof context === "object" && context !== null && !Array.isArray(context)
+    ? typeof context.wakeReason === "string" ? context.wakeReason : null
+    : null;
+}
+
+function isTerminalRunStatus(status: string) {
+  return status === "succeeded" || status === "failed" || status === "timed_out" || status === "cancelled";
+}
+
+const PENDING_WAKE_STATUSES = new Set(["queued", "claimed", "deferred_issue_execution"]);
+
+async function waitForAgentExecutionIdle(
+  db: ReturnType<typeof createDb>,
+  agentId: string,
+  timeoutMs = 10_000,
+  quietMs = 5_000,
+) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    const isIdle = async () => {
+      const [runs, wakeups] = await Promise.all([
+        db.select().from(heartbeatRuns).where(eq(heartbeatRuns.agentId, agentId)),
+        db.select().from(agentWakeupRequests).where(eq(agentWakeupRequests.agentId, agentId)),
+      ]);
+      return runs.every((run) => isTerminalRunStatus(run.status)) &&
+        !wakeups.some((wakeup) => PENDING_WAKE_STATUSES.has(wakeup.status));
+    };
+
+    if (await isIdle()) {
+      await new Promise((resolve) => setTimeout(resolve, quietMs));
+      if (await isIdle()) return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error("Timed out waiting for agent execution to become idle");
+}
+
 async function createControlledGatewayServer() {
   const server = createServer();
   const wss = new WebSocketServer({ server });
@@ -441,11 +481,14 @@ describe("heartbeat comment wake batching", () => {
 
       gateway.releaseFirstWait();
 
-      await waitFor(() => gateway.getAgentPayloads().length === 2);
+      await waitFor(() => gateway.getAgentPayloads().length >= 2);
       await waitFor(async () => {
         const runs = await db.select().from(heartbeatRuns).where(eq(heartbeatRuns.agentId, agentId));
-        return runs.length === 2 && runs.every((run) => run.status === "succeeded");
+        const commentRuns = runs.filter((run) => runWakeReason(run) === "issue_commented");
+        return commentRuns.length === 2 && commentRuns.every((run) => run.status === "succeeded");
       }, 90_000);
+      await waitFor(() => gateway.getAgentPayloads().length >= 3, 1_000).catch(() => undefined);
+      await waitForAgentExecutionIdle(db, agentId);
 
       const secondPayload = gateway.getAgentPayloads()[1] ?? {};
       expect(secondPayload.paperclip).toMatchObject({
@@ -617,8 +660,16 @@ describe("heartbeat comment wake batching", () => {
       gateway.releaseFirstWait();
       await waitFor(async () => {
         const runs = await db.select().from(heartbeatRuns).where(eq(heartbeatRuns.agentId, agentId));
-        return runs.length === 2 && runs.every((run) => ["cancelled", "succeeded"].includes(run.status));
+        const first = runs.find((run) => run.id === firstRun!.id);
+        const promotedCommentRun = runs.find((run) => (
+          run.id !== firstRun!.id
+          && runWakeReason(run) === "issue_commented"
+          && run.status === "succeeded"
+        ));
+        return first?.status === "cancelled" && Boolean(promotedCommentRun);
       }, 90_000);
+      await waitFor(() => gateway.getAgentPayloads().length >= 3, 1_000).catch(() => undefined);
+      await waitForAgentExecutionIdle(db, agentId);
     } finally {
       gateway.releaseFirstWait();
       await gateway.close();

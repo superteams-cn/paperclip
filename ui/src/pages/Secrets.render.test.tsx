@@ -12,6 +12,7 @@ import type {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProviderVaultsTab, Secrets } from "./Secrets";
 import { ApiError } from "../api/client";
+import "../i18n";
 
 const mockSecretsApi = vi.hoisted(() => ({
   list: vi.fn(),

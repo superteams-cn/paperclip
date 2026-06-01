@@ -161,20 +161,30 @@ function OnboardingRoutePage() {
   const { companies } = useCompany();
   const { openOnboarding } = useDialogActions();
   const { companyPrefix } = useParams<{ companyPrefix?: string }>();
+  const { t } = useTranslation();
   const matchedCompany = companyPrefix
     ? companies.find((company) => company.issuePrefix.toUpperCase() === companyPrefix.toUpperCase()) ?? null
     : null;
 
   const title = matchedCompany
-    ? `Add another agent to ${matchedCompany.name}`
+    ? t("app.onboardingRoute.addAgentTitle", {
+        company: matchedCompany.name,
+        defaultValue: "Add another agent to {{company}}",
+      })
     : companies.length > 0
-      ? "Create another company"
-      : "Create your first company";
+      ? t("app.onboardingRoute.anotherCompanyTitle", { defaultValue: "Create another company" })
+      : t("app.onboardingRoute.firstCompanyTitle", { defaultValue: "Create your first company" });
   const description = matchedCompany
-    ? "Run onboarding again to add an agent and a starter task for this company."
+    ? t("app.onboardingRoute.addAgentDescription", {
+        defaultValue: "Run onboarding again to add an agent and a starter task for this company.",
+      })
     : companies.length > 0
-      ? "Run onboarding again to create another company and seed its first agent."
-      : "Get started by creating a company and your first agent.";
+      ? t("app.onboardingRoute.anotherCompanyDescription", {
+          defaultValue: "Run onboarding again to create another company and seed its first agent.",
+        })
+      : t("app.onboardingRoute.firstCompanyDescription", {
+          defaultValue: "Get started by creating a company and your first agent.",
+        });
 
   return (
     <div className="mx-auto max-w-xl py-10">
@@ -189,7 +199,9 @@ function OnboardingRoutePage() {
                 : openOnboarding()
             }
           >
-            {matchedCompany ? "Add Agent" : "Start Onboarding"}
+            {matchedCompany
+              ? t("app.onboardingRoute.addAgent", { defaultValue: "Add Agent" })
+              : t("app.onboardingRoute.startOnboarding", { defaultValue: "Start Onboarding" })}
           </Button>
         </div>
       </div>
@@ -200,9 +212,14 @@ function OnboardingRoutePage() {
 function CompanyRootRedirect() {
   const { companies, selectedCompany, loading } = useCompany();
   const location = useLocation();
+  const { t } = useTranslation();
 
   if (loading) {
-    return <div className="mx-auto max-w-xl py-10 text-sm text-muted-foreground">Loading...</div>;
+    return (
+      <div className="mx-auto max-w-xl py-10 text-sm text-muted-foreground">
+        {t("common.loading", { defaultValue: "Loading..." })}
+      </div>
+    );
   }
 
   const targetCompany = selectedCompany ?? companies[0] ?? null;
@@ -224,9 +241,10 @@ function CompanyRootRedirect() {
 function UnprefixedBoardRedirect() {
   const location = useLocation();
   const { companies, selectedCompany, loading } = useCompany();
+  const { t } = useTranslation();
 
   if (loading) {
-    return <div className="mx-auto max-w-xl py-10 text-sm text-muted-foreground">Loading...</div>;
+    return <div className="mx-auto max-w-xl py-10 text-sm text-muted-foreground">{t("common.loading")}</div>;
   }
 
   const targetCompany = selectedCompany ?? companies[0] ?? null;

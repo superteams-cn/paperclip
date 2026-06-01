@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
+import type { TFunction } from "i18next";
+import { i18n } from "@/i18n";
 import { describeRunRetryState, formatRetryReason } from "./runRetryState";
+
+const zhT = i18n.getFixedT("zh-CN") as unknown as TFunction;
 
 describe("runRetryState", () => {
   it("formats internal retry reasons for operators", () => {
@@ -55,6 +59,38 @@ describe("runRetryState", () => {
       badgeLabel: "Retry exhausted",
       detail: "Attempt 4 · Transient failure · Automatic retries exhausted",
       secondary: "Bounded retry exhausted after 4 scheduled attempts; no further automatic retry will be queued Manual intervention required.",
+    });
+  });
+
+  it("localizes retry state summaries", () => {
+    expect(formatRetryReason("transient_failure", zhT)).toBe("瞬时失败");
+    expect(
+      describeRunRetryState({
+        status: "scheduled_retry",
+        retryOfRunId: "run-1",
+        scheduledRetryAttempt: 2,
+        scheduledRetryReason: "transient_failure",
+        scheduledRetryAt: "2026-04-18T20:15:00.000Z",
+      }, zhT),
+    ).toMatchObject({
+      kind: "scheduled",
+      badgeLabel: "已计划重试",
+      detail: "第 2 次尝试 · 瞬时失败",
+    });
+
+    expect(
+      describeRunRetryState({
+        status: "failed",
+        retryOfRunId: "run-1",
+        scheduledRetryAttempt: 4,
+        scheduledRetryReason: "transient_failure",
+        retryExhaustedReason: "Bounded retry exhausted after 4 scheduled attempts; no further automatic retry will be queued",
+      }, zhT),
+    ).toMatchObject({
+      kind: "exhausted",
+      badgeLabel: "重试已耗尽",
+      detail: "第 4 次尝试 · 瞬时失败 · 自动重试已耗尽",
+      secondary: "有界重试在 4 次计划尝试后已耗尽，不会再排队自动重试。 需要人工介入。",
     });
   });
 });

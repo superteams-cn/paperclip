@@ -308,7 +308,7 @@ describe("CloudUpstream", () => {
     await flushReact();
     await flushReact();
 
-    expect(container.textContent).toContain("Retry");
+    expect(container.textContent).toContain("Try again");
     expect(container.textContent).not.toContain("Re-run");
     expect(container.textContent).not.toContain("Activation checklist");
 

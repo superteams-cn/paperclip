@@ -23,6 +23,7 @@ import {
 } from "./bridge.js";
 import { Component, createElement, useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { User } from "lucide-react";
 import {
   FileTree,
@@ -57,6 +58,7 @@ import {
   trackRecentAssigneeUser,
 } from "@/lib/recent-assignees";
 import { getRecentProjectIds, trackRecentProject } from "@/lib/recent-projects";
+import { t as translate } from "@/i18n";
 
 // ---------------------------------------------------------------------------
 // Global bridge registry
@@ -245,6 +247,7 @@ function PluginSdkIssuesList({
   createIssueLabel,
   searchWithinLoadedIssues = true,
 }: PluginIssuesListProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const issueFilters = useMemo(
     () => compactIssueFilters({
@@ -303,7 +306,7 @@ function PluginSdkIssuesList({
   });
 
   if (!companyId) {
-    return createElement("div", { className: "text-sm text-muted-foreground" }, "Select a company to view issues.");
+    return createElement("div", { className: "text-sm text-muted-foreground" }, t("components.pluginSdk.selectCompanyToViewIssues"));
   }
 
   return createElement(HostIssuesList, {
@@ -326,15 +329,20 @@ function PluginSdkAssigneePicker({
   companyId,
   value,
   onChange,
-  placeholder = "Assignee",
-  noneLabel = "No assignee",
-  searchPlaceholder = "Search assignees...",
-  emptyMessage = "No assignees found.",
+  placeholder,
+  noneLabel,
+  searchPlaceholder,
+  emptyMessage,
   includeUsers = true,
   includeTerminatedAgents = false,
   className,
   onConfirm,
 }: PluginAssigneePickerProps) {
+  const { t } = useTranslation();
+  const resolvedPlaceholder = placeholder ?? t("components.pluginSdk.assignee");
+  const resolvedNoneLabel = noneLabel ?? t("components.pluginSdk.noAssignee");
+  const resolvedSearchPlaceholder = searchPlaceholder ?? t("components.pluginSdk.searchAssignees");
+  const resolvedEmptyMessage = emptyMessage ?? t("components.pluginSdk.noAssigneesFound");
   const hostContext = useHostContext();
   const resolvedCompanyId = companyId ?? hostContext.companyId ?? null;
   const { data: session } = useQuery({
@@ -369,7 +377,12 @@ function PluginSdkAssigneePicker({
   );
   const options = useMemo<InlineEntityOption[]>(
     () => [
-      ...(includeUsers ? currentUserAssigneeOption(currentUserId) : []),
+      ...(includeUsers
+        ? currentUserAssigneeOption(currentUserId, {
+          me: t("common.me"),
+          board: t("common.board"),
+        })
+        : []),
       ...(includeUsers
         ? buildCompanyUserInlineOptions(companyMembers?.users, { excludeUserIds: [currentUserId] })
         : []),
@@ -379,7 +392,7 @@ function PluginSdkAssigneePicker({
         searchText: `${agent.name} ${agent.role} ${agent.title ?? ""}`,
       })),
     ],
-    [companyMembers?.users, currentUserId, includeUsers, sortedAgents],
+    [companyMembers?.users, currentUserId, includeUsers, sortedAgents, t],
   );
   const selectedAssignee = parseAssigneeValue(value);
   const selectedAgent = selectedAssignee.assigneeAgentId
@@ -390,10 +403,10 @@ function PluginSdkAssigneePicker({
     value,
     options,
     recentOptionIds: recentAssigneeSelectionIds,
-    placeholder,
-    noneLabel,
-    searchPlaceholder,
-    emptyMessage,
+    placeholder: resolvedPlaceholder,
+    noneLabel: resolvedNoneLabel,
+    searchPlaceholder: resolvedSearchPlaceholder,
+    emptyMessage: resolvedEmptyMessage,
     className,
     onConfirm,
     onChange: (nextValue: string) => {
@@ -403,7 +416,7 @@ function PluginSdkAssigneePicker({
       onChange(nextValue, selection);
     },
     renderTriggerValue: (option: InlineEntityOption | null) => {
-      if (!option) return createElement("span", { className: "text-muted-foreground" }, placeholder);
+      if (!option) return createElement("span", { className: "text-muted-foreground" }, resolvedPlaceholder);
       if (selectedAgent) {
         return createElement(
           FragmentSafe,
@@ -436,14 +449,19 @@ function PluginSdkProjectPicker({
   companyId,
   value,
   onChange,
-  placeholder = "Project",
-  noneLabel = "No project",
-  searchPlaceholder = "Search projects...",
-  emptyMessage = "No projects found.",
+  placeholder,
+  noneLabel,
+  searchPlaceholder,
+  emptyMessage,
   includeArchived = false,
   className,
   onConfirm,
 }: PluginProjectPickerProps) {
+  const { t } = useTranslation();
+  const resolvedPlaceholder = placeholder ?? t("components.pluginSdk.project");
+  const resolvedNoneLabel = noneLabel ?? t("components.pluginSdk.noProject");
+  const resolvedSearchPlaceholder = searchPlaceholder ?? t("components.pluginSdk.searchProjects");
+  const resolvedEmptyMessage = emptyMessage ?? t("components.pluginSdk.noProjectsFound");
   const hostContext = useHostContext();
   const resolvedCompanyId = companyId ?? hostContext.companyId ?? null;
   const { data: session } = useQuery({
@@ -480,10 +498,10 @@ function PluginSdkProjectPicker({
     value,
     options,
     recentOptionIds: recentProjectIds,
-    placeholder,
-    noneLabel,
-    searchPlaceholder,
-    emptyMessage,
+    placeholder: resolvedPlaceholder,
+    noneLabel: resolvedNoneLabel,
+    searchPlaceholder: resolvedSearchPlaceholder,
+    emptyMessage: resolvedEmptyMessage,
     className,
     onConfirm,
     onChange: (nextProjectId: string) => {
@@ -492,7 +510,7 @@ function PluginSdkProjectPicker({
     },
     renderTriggerValue: (option: InlineEntityOption | null) => {
       if (!option || !selectedProject) {
-        return createElement("span", { className: "text-muted-foreground" }, placeholder);
+        return createElement("span", { className: "text-muted-foreground" }, resolvedPlaceholder);
       }
       return createElement(
         FragmentSafe,
@@ -558,9 +576,11 @@ type PluginDataTableProps = {
   emptyMessage?: string;
 };
 
-function PluginSdkDataTable({ columns, rows, loading, emptyMessage = "No rows." }: PluginDataTableProps) {
-  if (loading) return createElement("div", { className: "text-sm text-muted-foreground" }, "Loading...");
-  if (!rows.length) return createElement("div", { className: "text-sm text-muted-foreground" }, emptyMessage);
+function PluginSdkDataTable({ columns, rows, loading, emptyMessage }: PluginDataTableProps) {
+  const { t } = useTranslation();
+  const resolvedEmptyMessage = emptyMessage ?? t("components.pluginSdk.noRows");
+  if (loading) return createElement("div", { className: "text-sm text-muted-foreground" }, t("components.pluginSdk.loading"));
+  if (!rows.length) return createElement("div", { className: "text-sm text-muted-foreground" }, resolvedEmptyMessage);
   const gridColumns = columns.map((column) => column.width ?? "minmax(0, 1fr)").join(" ");
   return createElement(
     "div",
@@ -622,11 +642,13 @@ function PluginSdkJsonTree({ data }: { data: unknown }) {
   return createElement("pre", { className: "max-h-80 overflow-auto rounded-md border bg-muted/30 p-2 text-xs" }, JSON.stringify(data, null, 2));
 }
 
-function PluginSdkSpinner({ label = "Loading" }: { size?: "sm" | "md" | "lg"; label?: string }) {
+function PluginSdkSpinner({ label }: { size?: "sm" | "md" | "lg"; label?: string }) {
+  const { t } = useTranslation();
+  const resolvedLabel = label ?? t("components.pluginSdk.spinnerLabel");
   return createElement("span", {
     className: "inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-foreground align-middle",
     role: "status",
-    "aria-label": label,
+    "aria-label": resolvedLabel,
   });
 }
 
@@ -639,7 +661,7 @@ class PluginSdkErrorBoundary extends Component<{ children: ReactNode; fallback?:
 
   override render() {
     if (this.state.hasError) {
-      return this.props.fallback ?? createElement("div", { className: "rounded-md border border-destructive/30 p-3 text-sm text-destructive" }, "Plugin UI failed to render.");
+      return this.props.fallback ?? createElement("div", { className: "rounded-md border border-destructive/30 p-3 text-sm text-destructive" }, translate("components.pluginSdk.pluginUiFailed"));
     }
     return this.props.children;
   }

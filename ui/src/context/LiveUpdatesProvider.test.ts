@@ -790,4 +790,77 @@ describe("LiveUpdatesProvider run lifecycle toasts", () => {
       tone: "error",
     });
   });
+
+  it("localizes issue update toasts and run cancellation reasons", () => {
+    const translations: Record<string, string> = {
+      "components.liveUpdates.system": "系统",
+      "components.liveUpdates.issueUpdated": "{{actor}}更新了 {{ref}}",
+      "components.liveUpdates.viewIssue": "查看 {{ref}}",
+      "components.liveUpdates.issueChanges.status": "状态 → {{status}}",
+      "components.liveUpdates.issueChanges.reopenedFrom": "从{{status}}重新打开",
+      "components.liveUpdates.runStatusTitle": "{{name}} 运行{{status}}",
+      "components.liveUpdates.runStatuses.cancelled": "已取消",
+      "components.liveUpdates.runErrors.cancelledDueToAgentPause": "由于智能体暂停而取消",
+      "labels.status.todo": "待处理",
+      "labels.status.done": "已完成",
+    };
+    const t = ((key: string, options?: Record<string, unknown>) => {
+      const template = translations[key] ?? String(options?.defaultValue ?? key);
+      return template.replace(/\{\{(\w+)\}\}/g, (_, name: string) => String(options?.[name] ?? ""));
+    }) as never;
+    const queryClient = {
+      getQueryData: (key: unknown) => {
+        if (JSON.stringify(key) === JSON.stringify(queryKeys.issues.detail("CMP-19"))) {
+          return {
+            id: "issue-1",
+            identifier: "CMP-19",
+            title: "Validate CMP-14 closure for CMP-18 review",
+          };
+        }
+        return undefined;
+      },
+    };
+
+    expect(
+      __liveUpdatesTestUtils.buildActivityToast(
+        queryClient as never,
+        "company-1",
+        {
+          entityType: "issue",
+          entityId: "issue-1",
+          action: "issue.updated",
+          actorType: "system",
+          details: {
+            identifier: "CMP-19",
+            status: "todo",
+            reopened: true,
+            reopenedFrom: "done",
+          },
+        },
+        { userId: null, agentId: null },
+        t,
+      ),
+    ).toMatchObject({
+      title: "系统更新了 CMP-19",
+      body: "Validate CMP-14 closure for CMP-18 review - 状态 → 待处理, 从已完成重新打开",
+      action: { label: "查看 CMP-19" },
+    });
+
+    expect(
+      __liveUpdatesTestUtils.buildRunStatusToast(
+        {
+          runId: "run-1",
+          agentId: "agent-1",
+          status: "cancelled",
+          error: "Cancelled due to agent pause",
+        },
+        () => "CEO",
+        t,
+      ),
+    ).toMatchObject({
+      title: "CEO 运行已取消",
+      body: "由于智能体暂停而取消",
+      tone: "warn",
+    });
+  });
 });

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -20,6 +22,7 @@ import type {
 } from "@paperclipai/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ApiError } from "@/api/client";
 import { cloudUpstreamsApi } from "@/api/cloudUpstreams";
 import { instanceSettingsApi } from "@/api/instanceSettings";
 import { useBreadcrumbs } from "@/context/BreadcrumbContext";
@@ -27,43 +30,46 @@ import { useCompany } from "@/context/CompanyContext";
 import { applyCompanyPrefix, extractCompanyPrefixFromPath } from "@/lib/company-routes";
 import { Link, useLocation } from "@/lib/router";
 import { queryKeys } from "@/lib/queryKeys";
+import { formatApiError } from "@/lib/api-error";
+import {
+  formatCloudUpstreamConflictEntityType,
+  formatCloudUpstreamConflictPlannedAction,
+  formatCloudUpstreamRunEventMessage,
+  formatCloudUpstreamWarningDetail,
+  formatCloudUpstreamWarningTitle,
+} from "@/lib/api-feedback-format";
 
 const PENDING_CONNECTION_KEY = "paperclip-cloud-upstream-pending-connection";
-const STEPS: Array<{ key: CloudUpstreamStep; label: string }> = [
-  { key: "connect", label: "Connect" },
-  { key: "scan", label: "Scan" },
-  { key: "preview", label: "Preview" },
-  { key: "push", label: "Push" },
-  { key: "verify", label: "Verify" },
-  { key: "activate", label: "Activate" },
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+const STEPS: Array<{ key: CloudUpstreamStep }> = [
+  { key: "connect" },
+  { key: "scan" },
+  { key: "preview" },
+  { key: "push" },
+  { key: "verify" },
+  { key: "activate" },
 ];
 const ACTIVATION_CATEGORIES: Array<{
   key: CloudUpstreamActivationEntityType;
-  label: string;
   singular: string;
-  detail: string;
 }> = [
   {
     key: "agents",
-    label: "Agents",
     singular: "agent",
-    detail: "Confirm cloud secrets and adapter credentials before unpausing imported agents.",
   },
   {
     key: "routines",
-    label: "Routines",
     singular: "routine",
-    detail: "Review schedules and trigger settings before enabling imported routines.",
   },
   {
     key: "monitors",
-    label: "Monitors",
     singular: "monitor",
-    detail: "Activate after the target stack has been smoke tested.",
   },
 ];
 
 export function CloudUpstream() {
+  const { t } = useTranslation();
   const { selectedCompany, selectedCompanyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
   const queryClient = useQueryClient();
@@ -76,11 +82,11 @@ export function CloudUpstream() {
 
   useEffect(() => {
     setBreadcrumbs([
-      { label: selectedCompany?.name ?? "Company", href: "/dashboard" },
-      { label: "Settings", href: "/company/settings" },
-      { label: "Cloud upstream" },
+      { label: selectedCompany?.name ?? t("common.company", { defaultValue: "Company" }), href: "/dashboard" },
+      { label: t("nav.settings", { defaultValue: "Settings" }), href: "/company/settings" },
+      { label: t("pages.cloudUpstream.title", { defaultValue: "Cloud upstream" }) },
     ]);
-  }, [selectedCompany?.name, setBreadcrumbs]);
+  }, [selectedCompany?.name, setBreadcrumbs, t]);
 
   const experimentalQuery = useQuery({
     queryKey: queryKeys.instance.experimentalSettings,
@@ -112,12 +118,12 @@ export function CloudUpstream() {
       cloudUpstreamsApi.finishConnect(input),
     onSuccess: async () => {
       localStorage.removeItem(PENDING_CONNECTION_KEY);
-      setNotice("Cloud upstream connection approved.");
+      setNotice(t("pages.cloudUpstream.connectionApproved", { defaultValue: "Cloud upstream connection approved." }));
       setActionError(null);
       await invalidateUpstreams();
       window.history.replaceState(null, "", settingsPath);
     },
-    onError: (error) => setActionError(error instanceof Error ? error.message : "Failed to finish connection."),
+    onError: (error) => setActionError(formatApiError(error, t, t("pages.cloudUpstream.finishConnectionFailed", { defaultValue: "Failed to finish connection." }))),
   });
   const {
     mutate: finishConnect,
@@ -130,17 +136,20 @@ export function CloudUpstream() {
     if (!cloudSyncEnabled || !code || !state || finishConnectPending || finishConnectSucceeded || finishConnectFailed) return;
     const pendingConnectionId = localStorage.getItem(PENDING_CONNECTION_KEY);
     if (!pendingConnectionId) {
-      setActionError("No pending cloud upstream connection was found. Start the connection again.");
+      setActionError(t("pages.cloudUpstream.noPendingConnection", { defaultValue: "No pending cloud upstream connection was found. Start the connection again." }));
       return;
     }
     finishConnect({ pendingConnectionId, code, state });
-  }, [cloudSyncEnabled, code, finishConnect, finishConnectFailed, finishConnectPending, finishConnectSucceeded, state]);
+  }, [cloudSyncEnabled, code, finishConnect, finishConnectFailed, finishConnectPending, finishConnectSucceeded, state, t]);
 
   useEffect(() => {
     if (callbackError) {
-      setActionError(`Cloud upstream connection was not approved: ${callbackError}`);
+      setActionError(t("pages.cloudUpstream.connectionNotApproved", {
+        defaultValue: "Cloud upstream connection was not approved: {{error}}",
+        error: callbackError,
+      }));
     }
-  }, [callbackError]);
+  }, [callbackError, t]);
 
   const startMutation = useMutation({
     mutationFn: () =>
@@ -154,7 +163,7 @@ export function CloudUpstream() {
       setActionError(null);
       window.location.assign(result.authorizationUrl);
     },
-    onError: (error) => setActionError(error instanceof Error ? error.message : "Failed to start connection."),
+    onError: (error) => setActionError(formatApiError(error, t, t("pages.cloudUpstream.startConnectionFailed", { defaultValue: "Failed to start connection." }))),
   });
 
   const previewMutation = useMutation({
@@ -164,7 +173,7 @@ export function CloudUpstream() {
       setPreview(nextPreview);
       setActionError(null);
     },
-    onError: (error) => setActionError(previewErrorMessage(error)),
+    onError: (error) => setActionError(previewErrorMessage(error, t)),
   });
 
   const runMutation = useMutation({
@@ -176,12 +185,12 @@ export function CloudUpstream() {
     onSuccess: async (run) => {
       setActiveRun(run);
       setNotice(run.status === "succeeded"
-        ? "Push run completed. Review activation before unpausing automations."
-        : "Push run failed. Review the run events and retry after correcting the issue.");
+        ? t("pages.cloudUpstream.pushRunCompleted", { defaultValue: "Push run completed. Review activation before unpausing automations." })
+        : t("pages.cloudUpstream.pushRunFailed", { defaultValue: "Push run failed. Review the run events and retry after correcting the issue." }));
       setActionError(null);
       await invalidateUpstreams();
     },
-    onError: (error) => setActionError(error instanceof Error ? error.message : "Failed to run push."),
+    onError: (error) => setActionError(formatApiError(error, t, t("pages.cloudUpstream.failedToRunPush", { defaultValue: "Failed to run push." }))),
   });
   const activationMutation = useMutation({
     mutationFn: (input: { run: CloudUpstreamRun; entityType: CloudUpstreamActivationEntityType }) =>
@@ -191,11 +200,11 @@ export function CloudUpstream() {
       }),
     onSuccess: async (run) => {
       setActiveRun(run);
-      setNotice("Activation checklist updated.");
+      setNotice(t("pages.cloudUpstream.activationChecklistUpdated", { defaultValue: "Activation checklist updated." }));
       setActionError(null);
       await invalidateUpstreams();
     },
-    onError: (error) => setActionError(error instanceof Error ? error.message : "Failed to activate imported entities."),
+    onError: (error) => setActionError(formatApiError(error, t, t("pages.cloudUpstream.failedToActivate", { defaultValue: "Failed to activate imported entities." }))),
   });
 
   async function invalidateUpstreams() {
@@ -204,11 +213,11 @@ export function CloudUpstream() {
   }
 
   if (!selectedCompanyId || !selectedCompany) {
-    return <div className="text-sm text-muted-foreground">Select a company to configure cloud upstream.</div>;
+    return <div className="text-sm text-muted-foreground">{t("pages.cloudUpstream.selectCompany", { defaultValue: "Select a company to configure cloud upstream." })}</div>;
   }
 
   if (experimentalQuery.isLoading) {
-    return <div className="text-sm text-muted-foreground">Loading experimental settings...</div>;
+    return <div className="text-sm text-muted-foreground">{t("pages.cloudUpstream.loadingExperimentalSettings", { defaultValue: "Loading experimental settings..." })}</div>;
   }
 
   if (!cloudSyncEnabled) {
@@ -216,14 +225,14 @@ export function CloudUpstream() {
       <div className="max-w-2xl space-y-4">
         <div className="flex items-center gap-2">
           <CloudUpload className="h-5 w-5 text-muted-foreground" />
-          <h1 className="text-lg font-semibold">Cloud upstream</h1>
+          <h1 className="text-lg font-semibold">{t("pages.cloudUpstream.title", { defaultValue: "Cloud upstream" })}</h1>
         </div>
         <div className="rounded-md border border-border px-4 py-4 text-sm text-muted-foreground">
-          Cloud sync is disabled. Enable it in{" "}
+          {t("pages.cloudUpstream.disabledPrefix", { defaultValue: "Cloud sync is disabled. Enable it in" })}{" "}
           <Link className="text-primary underline-offset-2 hover:underline" to="/instance/settings/experimental">
-            Instance Settings
+            {t("pages.cloudUpstream.instanceSettings", { defaultValue: "Instance Settings" })}
           </Link>{" "}
-          to show upstream connection and push tools.
+          {t("pages.cloudUpstream.disabledSuffix", { defaultValue: "to show upstream connection and push tools." })}
         </div>
       </div>
     );
@@ -235,17 +244,20 @@ export function CloudUpstream() {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <CloudUpload className="h-5 w-5 text-muted-foreground" />
-            <h1 className="text-lg font-semibold">Cloud upstream</h1>
+            <h1 className="text-lg font-semibold">{t("pages.cloudUpstream.title", { defaultValue: "Cloud upstream" })}</h1>
           </div>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Push {selectedCompany.name} into a Paperclip Cloud stack. Automations stay paused until activation.
+            {t("pages.cloudUpstream.description", {
+              defaultValue: "Push {{company}} into a Paperclip Cloud stack. Automations stay paused until activation.",
+              company: selectedCompany.name,
+            })}
           </p>
         </div>
         {connection?.target.origin ? (
           <Button variant="outline" size="sm" asChild>
             <a href={connection.target.origin} target="_blank" rel="noreferrer">
               <ExternalLink className="h-4 w-4" />
-              Open cloud
+              {t("pages.cloudUpstream.openCloud", { defaultValue: "Open cloud" })}
             </a>
           </Button>
         ) : null}
@@ -265,7 +277,7 @@ export function CloudUpstream() {
       <Stepper activeStep={latestRun?.activeStep ?? (preview ? "preview" : connection?.tokenStatus === "connected" ? "scan" : "connect")} />
 
       <section className="space-y-3">
-        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Connection</div>
+        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("pages.cloudUpstream.connection", { defaultValue: "Connection" })}</div>
         <div className="rounded-md border border-border px-4 py-4">
           {connection ? (
             <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-start">
@@ -277,7 +289,11 @@ export function CloudUpstream() {
                   {connection.target.product} · {connection.target.origin} · token {connection.tokenStatus}
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
-                  Schema {connection.target.schemaMajor}. Max chunk {formatBytes(connection.target.maxChunkBytes)}.
+                  {t("pages.cloudUpstream.schemaMaxChunk", {
+                    defaultValue: "Schema {{schema}}. Max chunk {{chunk}}.",
+                    schema: connection.target.schemaMajor,
+                    chunk: formatBytes(connection.target.maxChunkBytes),
+                  })}
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1">
@@ -288,7 +304,7 @@ export function CloudUpstream() {
                   disabled={previewMutation.isPending || connection.tokenStatus !== "connected"}
                 >
                   {previewMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-                  Preview push
+                  {t("pages.cloudUpstream.previewPush", { defaultValue: "Preview push" })}
                 </Button>
                 {previewMutation.isPending ? <PreviewProgressHint /> : null}
               </div>
@@ -299,11 +315,11 @@ export function CloudUpstream() {
                 value={remoteUrl}
                 onChange={(event) => setRemoteUrl(event.target.value)}
                 placeholder="https://paperclip.paperclip.app/PC521D/dashboard"
-                aria-label="Paperclip Cloud stack URL"
+                aria-label={t("pages.cloudUpstream.stackUrlAria", { defaultValue: "Paperclip Cloud stack URL" })}
               />
               <Button onClick={() => startMutation.mutate()} disabled={startMutation.isPending || !remoteUrl.trim()}>
                 {startMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudUpload className="h-4 w-4" />}
-                Connect
+                {t("pages.cloudUpstream.connect", { defaultValue: "Connect" })}
               </Button>
             </div>
           )}
@@ -313,13 +329,13 @@ export function CloudUpstream() {
       {preview ? (
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preview</div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("pages.cloudUpstream.preview", { defaultValue: "Preview" })}</div>
             <Button
               onClick={() => runMutation.mutate({ connectionId: preview.connectionId, companyId: preview.sourceCompanyId })}
               disabled={runMutation.isPending || !preview.schemaCompatible}
             >
               {runMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudUpload className="h-4 w-4" />}
-              Push to cloud
+              {t("pages.cloudUpstream.pushToCloud", { defaultValue: "Push to cloud" })}
             </Button>
           </div>
           <SummaryGrid summary={preview.summary} />
@@ -331,11 +347,11 @@ export function CloudUpstream() {
       {latestRun ? (
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Progress and finish</div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("pages.cloudUpstream.progressAndFinish", { defaultValue: "Progress and finish" })}</div>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={() => downloadRunReport(latestRun)}>
                 <FileJson className="h-4 w-4" />
-                Download report
+                {t("pages.cloudUpstream.downloadReport", { defaultValue: "Download report" })}
               </Button>
               {latestRun.status === "failed" || latestRun.status === "cancelled" ? (
                 <Button
@@ -349,7 +365,7 @@ export function CloudUpstream() {
                   disabled={runMutation.isPending}
                 >
                   <RefreshCcw className="h-4 w-4" />
-                  Retry
+                  {t("common.tryAgain", { defaultValue: "Try again" })}
                 </Button>
               ) : latestRun.status === "succeeded" ? (
                 <Button
@@ -359,7 +375,7 @@ export function CloudUpstream() {
                   disabled={runMutation.isPending}
                 >
                   <RefreshCcw className="h-4 w-4" />
-                  Re-run
+                  {t("pages.cloudUpstream.rerun", { defaultValue: "Re-run" })}
                 </Button>
               ) : null}
             </div>
@@ -367,9 +383,17 @@ export function CloudUpstream() {
           <div className="rounded-md border border-border px-4 py-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-sm font-medium capitalize">{latestRun.status}</div>
+                <div className="text-sm font-medium">
+                  {t(`pages.cloudUpstream.runStatuses.${latestRun.status}`, { defaultValue: latestRun.status })}
+                </div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                  Run {latestRun.id.slice(0, 8)} · {latestRun.completedAt ? `completed ${formatDate(latestRun.completedAt)}` : "in progress"}
+                  {t("pages.cloudUpstream.runStatusLine", {
+                    defaultValue: "Run {{id}} - {{status}}",
+                    id: latestRun.id.slice(0, 8),
+                    status: latestRun.completedAt
+                      ? t("pages.cloudUpstream.completedAt", { defaultValue: "completed {{date}}", date: formatDate(latestRun.completedAt) })
+                      : t("pages.cloudUpstream.inProgress", { defaultValue: "in progress" }),
+                  })}
                 </div>
               </div>
               <div className="text-sm tabular-nums">{latestRun.progressPercent}%</div>
@@ -381,8 +405,10 @@ export function CloudUpstream() {
               {latestRun.events.map((event) => (
                 <div key={event.id} className="grid gap-2 py-2 text-sm sm:grid-cols-[7rem_8rem_1fr]">
                   <span className="text-xs text-muted-foreground">{formatDate(event.at)}</span>
-                  <span className="text-xs capitalize text-muted-foreground">{event.phase}</span>
-                  <span>{event.message}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {t(`pages.cloudUpstream.phases.${event.phase}`, { defaultValue: event.phase })}
+                  </span>
+                  <span>{formatCloudUpstreamRunEventMessage(event, t)}</span>
                 </div>
               ))}
             </div>
@@ -403,7 +429,7 @@ export function CloudUpstream() {
         <section className="space-y-3">
           <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             <History className="h-3.5 w-3.5" />
-            History
+            {t("pages.cloudUpstream.history", { defaultValue: "History" })}
           </div>
           <div className="divide-y divide-border rounded-md border border-border">
             {upstreamQuery.data.runs.map((run) => (
@@ -413,7 +439,11 @@ export function CloudUpstream() {
                 className="grid w-full gap-1 px-4 py-3 text-left text-sm hover:bg-accent/40 sm:grid-cols-[1fr_auto]"
                 onClick={() => setActiveRun(run)}
               >
-                <span>Run {run.id.slice(0, 8)} · {run.status}</span>
+                <span>{t("pages.cloudUpstream.historyRun", {
+                  defaultValue: "Run {{id}} - {{status}}",
+                  id: run.id.slice(0, 8),
+                  status: t(`pages.cloudUpstream.runStatuses.${run.status}`, { defaultValue: run.status }),
+                })}</span>
                 <span className="text-xs text-muted-foreground">{formatDate(run.createdAt)}</span>
               </button>
             ))}
@@ -425,6 +455,7 @@ export function CloudUpstream() {
 }
 
 function PreviewProgressHint() {
+  const { t } = useTranslation();
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     const startedAt = Date.now();
@@ -432,14 +463,21 @@ function PreviewProgressHint() {
     return () => window.clearInterval(interval);
   }, []);
   const message = elapsed < 15
-    ? "Building manifest..."
+    ? t("pages.cloudUpstream.buildingManifest", { defaultValue: "Building manifest..." })
     : elapsed < 45
-      ? `Building manifest... ${elapsed}s. Large companies can take up to a minute.`
-      : `Still building manifest... ${elapsed}s. PAP-scale companies routinely take ~60s.`;
+      ? t("pages.cloudUpstream.buildingManifestElapsed", {
+          defaultValue: "Building manifest... {{elapsed}}s. Large companies can take up to a minute.",
+          elapsed,
+        })
+      : t("pages.cloudUpstream.stillBuildingManifest", {
+          defaultValue: "Still building manifest... {{elapsed}}s. PAP-scale companies routinely take ~60s.",
+          elapsed,
+        });
   return <div className="text-xs text-muted-foreground">{message}</div>;
 }
 
 function Stepper({ activeStep }: { activeStep: CloudUpstreamStep }) {
+  const { t } = useTranslation();
   const activeIndex = STEPS.findIndex((step) => step.key === activeStep);
   return (
     <div className="grid gap-2 rounded-md border border-border px-3 py-3 sm:grid-cols-6">
@@ -453,7 +491,9 @@ function Stepper({ activeStep }: { activeStep: CloudUpstreamStep }) {
             ) : (
               <span className={active ? "h-4 w-4 rounded-full border-2 border-primary" : "h-4 w-4 rounded-full border border-border"} />
             )}
-            <span className={active ? "font-medium text-foreground" : "text-muted-foreground"}>{step.label}</span>
+            <span className={active ? "font-medium text-foreground" : "text-muted-foreground"}>
+              {t(`pages.cloudUpstream.steps.${step.key}`, { defaultValue: step.key })}
+            </span>
           </div>
         );
       })}
@@ -475,18 +515,19 @@ function SummaryGrid({ summary }: { summary: CloudUpstreamPreview["summary"] }) 
 }
 
 function WarningsPanel({ warnings }: { warnings: CloudUpstreamPreview["warnings"] }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-md border border-border px-4 py-3">
       <div className="mb-2 flex items-center gap-2 text-sm font-medium">
         <ShieldAlert className="h-4 w-4 text-muted-foreground" />
-        Warnings
+        {t("pages.cloudUpstream.warnings", { defaultValue: "Warnings" })}
       </div>
       <div className="divide-y divide-border">
         {warnings.map((warning) => (
           <div key={warning.code} className="grid gap-2 py-2 sm:grid-cols-[1.25rem_12rem_1fr]">
             <AlertTriangle className={warning.severity === "blocker" ? "h-4 w-4 text-destructive" : "h-4 w-4 text-amber-600"} />
-            <div className="text-sm font-medium">{warning.title}</div>
-            <div className="text-sm text-muted-foreground">{warning.detail}</div>
+            <div className="text-sm font-medium">{formatCloudUpstreamWarningTitle(warning, t)}</div>
+            <div className="text-sm text-muted-foreground">{formatCloudUpstreamWarningDetail(warning, t)}</div>
           </div>
         ))}
       </div>
@@ -495,19 +536,20 @@ function WarningsPanel({ warnings }: { warnings: CloudUpstreamPreview["warnings"
 }
 
 function ConflictTable({ conflicts }: { conflicts: CloudUpstreamPreview["conflicts"] }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-md border border-border px-4 py-3">
-      <div className="mb-2 text-sm font-medium">Conflicts</div>
+      <div className="mb-2 text-sm font-medium">{t("pages.cloudUpstream.conflicts", { defaultValue: "Conflicts" })}</div>
       {conflicts.length === 0 ? (
-        <div className="text-sm text-muted-foreground">No target conflicts detected for this preview.</div>
+        <div className="text-sm text-muted-foreground">{t("pages.cloudUpstream.noTargetConflicts", { defaultValue: "No target conflicts detected for this preview." })}</div>
       ) : (
         <div className="divide-y divide-border">
           {conflicts.map((conflict) => (
             <div key={conflict.id} className="grid gap-2 py-2 text-sm sm:grid-cols-[8rem_1fr_1fr_8rem]">
-              <span className="text-muted-foreground">{conflict.entityType}</span>
+              <span className="text-muted-foreground">{formatCloudUpstreamConflictEntityType(conflict, t)}</span>
               <span>{conflict.sourceLabel}</span>
               <span>{conflict.targetLabel}</span>
-              <span className="capitalize">{conflict.plannedAction}</span>
+              <span>{formatCloudUpstreamConflictPlannedAction(conflict, t)}</span>
             </div>
           ))}
         </div>
@@ -527,10 +569,11 @@ function ActivationChecklist({
   isPending: boolean;
   onActivate: (entityType: CloudUpstreamActivationEntityType) => void;
 }) {
-  const rows = buildActivationRows(run);
+  const { t } = useTranslation();
+  const rows = buildActivationRows(run, t);
   return (
     <div className="rounded-md border border-border px-4 py-3">
-      <div className="mb-2 text-sm font-medium">Activation checklist</div>
+      <div className="mb-2 text-sm font-medium">{t("pages.cloudUpstream.activationChecklist", { defaultValue: "Activation checklist" })}</div>
       <div className="divide-y divide-border">
         {rows.map((row) => {
           const pending = isPending && pendingEntityType === row.key;
@@ -542,7 +585,12 @@ function ActivationChecklist({
                 <div className="text-xs text-muted-foreground">{row.statusLabel}</div>
               </div>
               <div className="text-muted-foreground">
-                {row.count === 0 ? `0 imported ${row.pluralLabel} in this run.` : row.detail}
+                {row.count === 0
+                  ? t("pages.cloudUpstream.activation.noneImported", {
+                      defaultValue: "0 imported {{entity}} in this run.",
+                      entity: row.pluralLabel,
+                    })
+                  : row.detail}
               </div>
               <div className="flex flex-wrap gap-2 sm:justify-end">
                 <Button
@@ -552,10 +600,12 @@ function ActivationChecklist({
                   disabled={row.count === 0 || activated || isPending}
                 >
                   {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  {activated ? "Activated" : "Activate"}
+                  {activated
+                    ? t("pages.cloudUpstream.activated", { defaultValue: "Activated" })
+                    : t("pages.cloudUpstream.activate", { defaultValue: "Activate" })}
                 </Button>
                 <Button variant="ghost" size="sm" disabled={activated || isPending}>
-                  Keep paused
+                  {t("pages.cloudUpstream.keepPaused", { defaultValue: "Keep paused" })}
                 </Button>
               </div>
             </div>
@@ -566,24 +616,45 @@ function ActivationChecklist({
   );
 }
 
-export function buildActivationRows(run: CloudUpstreamRun) {
+export function buildActivationRows(run: CloudUpstreamRun, t?: Translate) {
   const activationChecklist = activationChecklistFromReport(run.report);
   return ACTIVATION_CATEGORIES.map((category) => {
     const decision = activationChecklist[category.key];
     const count = summaryCount(run.summary, category.key);
     const status = decision?.status === "activated" ? "activated" : "paused";
-    const pluralLabel = `${category.singular}${count === 1 ? "" : "s"}`;
+    const singularLabel = t?.(`pages.cloudUpstream.activation.entities.${category.key}.singular`, { defaultValue: category.singular })
+      ?? category.singular;
+    const pluralLabel = t?.(`pages.cloudUpstream.activation.entities.${category.key}.plural`, { defaultValue: `${category.singular}s` })
+      ?? `${category.singular}${count === 1 ? "" : "s"}`;
+    const entityLabel = count === 1 ? singularLabel : pluralLabel;
+    const categoryLabel = t?.(`pages.cloudUpstream.activation.entities.${category.key}.label`, { defaultValue: category.key })
+      ?? category.key;
+    const categoryDetail = t?.(`pages.cloudUpstream.activation.entities.${category.key}.detail`, {
+      defaultValue: "",
+    }) ?? "";
     return {
       ...category,
+      label: categoryLabel,
       count,
-      pluralLabel,
+      pluralLabel: entityLabel,
       status,
-      detail: `${count} imported ${pluralLabel} are paused by default. ${category.detail}`,
+      detail: t?.("pages.cloudUpstream.activation.pausedDetail", {
+        defaultValue: "{{count}} imported {{entity}} are paused by default. {{detail}}",
+        count,
+        entity: entityLabel,
+        detail: categoryDetail,
+      }) ?? `${count} imported ${entityLabel} are paused by default. ${categoryDetail}`,
       statusLabel: status === "activated"
-        ? `${count} activated`
+        ? (t?.("pages.cloudUpstream.activation.statusActivated", {
+            defaultValue: "{{count}} activated",
+            count,
+          }) ?? `${count} activated`)
         : count === 0
-          ? "0 imported"
-          : `${count} paused`,
+          ? (t?.("pages.cloudUpstream.activation.statusImportedZero", { defaultValue: "0 imported" }) ?? "0 imported")
+          : (t?.("pages.cloudUpstream.activation.statusPaused", {
+              defaultValue: "{{count}} paused",
+              count,
+            }) ?? `${count} paused`),
     };
   });
 }
@@ -637,10 +708,13 @@ function formatBytes(value: number) {
   return `${value} B`;
 }
 
-function previewErrorMessage(error: unknown): string {
-  const code = error instanceof Error ? error.message : null;
+function previewErrorMessage(error: unknown, t?: Translate): string {
+  const code = error instanceof ApiError ? error.code ?? error.message : error instanceof Error ? error.message : null;
   if (code === "payload_too_large" || code === "bad_request") {
-    return "Local company is too large to preview as a single request. Click Push to continue (the Push step uploads in chunks), or see the docs for chunked-preview options.";
+    return t?.("pages.cloudUpstream.previewPayloadTooLarge", {
+      defaultValue: "Local company is too large to preview as a single request. Click Push to continue (the Push step uploads in chunks), or see the docs for chunked-preview options.",
+    }) ?? "Local company is too large to preview as a single request. Click Push to continue (the Push step uploads in chunks), or see the docs for chunked-preview options.";
   }
-  return code ?? "Failed to preview push.";
+  if (!t) return code ?? "Failed to preview push.";
+  return formatApiError(error, t as TFunction, t?.("pages.cloudUpstream.previewFailed", { defaultValue: "Failed to preview push." }) ?? "Failed to preview push.");
 }

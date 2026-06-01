@@ -21,6 +21,7 @@ export type {
   SuggestTasksResult,
   SuggestTasksResultCreatedTask,
 } from "@paperclipai/shared";
+import type { TFunction } from "i18next";
 import type {
   AskUserQuestionsAnswer,
   AskUserQuestionsInteraction,
@@ -54,6 +55,7 @@ export function isIssueThreadInteraction(
 
 export function buildIssueThreadInteractionSummary(
   interaction: IssueThreadInteraction,
+  t?: TFunction,
 ) {
   if (interaction.kind === "suggest_tasks") {
     const count = interaction.payload.tasks.length;
@@ -61,36 +63,58 @@ export function buildIssueThreadInteractionSummary(
       const createdCount = interaction.result?.createdTasks?.length ?? 0;
       const skippedCount = interaction.result?.skippedClientKeys?.length ?? 0;
       if (skippedCount > 0) {
-        return `Accepted ${createdCount} of ${count} tasks`;
+        return t?.("components.issueChat.interactions.acceptedSomeTasks", {
+          createdCount,
+          count,
+          defaultValue: "Accepted {{createdCount}} of {{count}} tasks",
+        }) ?? `Accepted ${createdCount} of ${count} tasks`;
       }
-      return createdCount === 1 ? "Accepted 1 task" : `Accepted ${createdCount} tasks`;
+      return t?.("components.issueChat.interactions.acceptedTasks", {
+        count: createdCount,
+        defaultValue: createdCount === 1 ? "Accepted 1 task" : `Accepted ${createdCount} tasks`,
+      }) ?? (createdCount === 1 ? "Accepted 1 task" : `Accepted ${createdCount} tasks`);
     }
     if (interaction.status === "rejected") {
-      return count === 1 ? "Rejected 1 task" : `Rejected ${count} tasks`;
+      return t?.("components.issueChat.interactions.rejectedTasks", {
+        count,
+        defaultValue: count === 1 ? "Rejected 1 task" : `Rejected ${count} tasks`,
+      }) ?? (count === 1 ? "Rejected 1 task" : `Rejected ${count} tasks`);
     }
-    return count === 1 ? "Suggested 1 task" : `Suggested ${count} tasks`;
+    return t?.("components.issueChat.interactions.suggestedTasks", {
+      count,
+      defaultValue: count === 1 ? "Suggested 1 task" : `Suggested ${count} tasks`,
+    }) ?? (count === 1 ? "Suggested 1 task" : `Suggested ${count} tasks`);
   }
 
   if (interaction.kind === "request_confirmation") {
-    if (interaction.status === "accepted") return "Confirmed request";
-    if (interaction.status === "rejected") return "Declined request";
+    if (interaction.status === "accepted") return t?.("components.issueChat.interactions.confirmedRequest", { defaultValue: "Confirmed request" }) ?? "Confirmed request";
+    if (interaction.status === "rejected") return t?.("components.issueChat.interactions.declinedRequest", { defaultValue: "Declined request" }) ?? "Declined request";
     if (interaction.status === "expired") {
       const outcome = interaction.result?.outcome;
-      if (outcome === "superseded_by_comment") return "Confirmation expired after comment";
-      if (outcome === "stale_target") return "Confirmation expired after target changed";
-      return "Confirmation expired";
+      if (outcome === "superseded_by_comment") return t?.("components.issueChat.interactions.confirmationExpiredAfterComment", { defaultValue: "Confirmation expired after comment" }) ?? "Confirmation expired after comment";
+      if (outcome === "stale_target") return t?.("components.issueChat.interactions.confirmationExpiredAfterTargetChanged", { defaultValue: "Confirmation expired after target changed" }) ?? "Confirmation expired after target changed";
+      return t?.("components.issueChat.interactions.confirmationExpired", { defaultValue: "Confirmation expired" }) ?? "Confirmation expired";
     }
-    return "Requested confirmation";
+    return t?.("components.issueChat.interactions.requestedConfirmation", { defaultValue: "Requested confirmation" }) ?? "Requested confirmation";
   }
 
   const count = interaction.payload.questions.length;
   if (interaction.status === "answered") {
-    return count === 1 ? "Answered 1 question" : `Answered ${count} questions`;
+    return t?.("components.issueChat.interactions.answeredQuestions", {
+      count,
+      defaultValue: count === 1 ? "Answered 1 question" : `Answered ${count} questions`,
+    }) ?? (count === 1 ? "Answered 1 question" : `Answered ${count} questions`);
   }
   if (interaction.status === "cancelled") {
-    return count === 1 ? "Cancelled 1 question" : `Cancelled ${count} questions`;
+    return t?.("components.issueChat.interactions.cancelledQuestions", {
+      count,
+      defaultValue: count === 1 ? "Cancelled 1 question" : `Cancelled ${count} questions`,
+    }) ?? (count === 1 ? "Cancelled 1 question" : `Cancelled ${count} questions`);
   }
-  return count === 1 ? "Asked 1 question" : `Asked ${count} questions`;
+  return t?.("components.issueChat.interactions.askedQuestions", {
+    count,
+    defaultValue: count === 1 ? "Asked 1 question" : `Asked ${count} questions`,
+  }) ?? (count === 1 ? "Asked 1 question" : `Asked ${count} questions`);
 }
 
 export function buildSuggestedTaskTree(

@@ -4,6 +4,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import "../i18n";
 import { CompanyAccess, CompanyAccessLegacyRoute } from "./CompanyAccess";
 
 const listMembersMock = vi.hoisted(() => vi.fn());

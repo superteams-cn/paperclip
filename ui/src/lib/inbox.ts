@@ -144,6 +144,12 @@ export interface InboxWorkspaceGroupingOptions {
   agentById?: ReadonlyMap<string, string | null | undefined>;
   userLabelById?: ReadonlyMap<string, string>;
   currentUserId?: string | null;
+  assigneeLabels?: {
+    you?: string;
+    board?: string;
+    user?: string;
+    unassigned?: string;
+  };
 }
 
 export interface InboxIssueGroupCreateDefaults {
@@ -833,7 +839,8 @@ function resolveIssueAssigneeGroup(
     agentById,
     currentUserId,
     userLabelById,
-  }: Pick<InboxWorkspaceGroupingOptions, "agentById" | "currentUserId" | "userLabelById">,
+    assigneeLabels,
+  }: Pick<InboxWorkspaceGroupingOptions, "agentById" | "currentUserId" | "userLabelById" | "assigneeLabels">,
 ): { key: string; label: string } {
   if (issue.assigneeAgentId) {
     const agentName = agentById?.get(issue.assigneeAgentId)?.trim();
@@ -846,11 +853,11 @@ function resolveIssueAssigneeGroup(
   if (issue.assigneeUserId) {
     return {
       key: `assignee:user:${issue.assigneeUserId}`,
-      label: formatAssigneeUserLabel(issue.assigneeUserId, currentUserId, userLabelById) ?? "User",
+      label: formatAssigneeUserLabel(issue.assigneeUserId, currentUserId, userLabelById, assigneeLabels) ?? assigneeLabels?.user ?? "User",
     };
   }
 
-  return { key: "assignee:none", label: "Unassigned" };
+  return { key: "assignee:none", label: assigneeLabels?.unassigned ?? "Unassigned" };
 }
 
 function resolveIssueProjectGroup(

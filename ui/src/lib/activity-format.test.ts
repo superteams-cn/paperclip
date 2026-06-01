@@ -74,4 +74,21 @@ describe("activity formatting", () => {
       "Run finished without a next step - recovery escalated",
     );
   });
+
+  it("formats environment lease activity instead of exposing raw action names", () => {
+    expect(formatActivityVerb("environment.lease_acquired")).toBe("acquired environment lease");
+    expect(formatActivityVerb("environment.lease_released")).toBe("released environment lease");
+    expect(formatIssueActivityAction("environment.lease_acquired")).toBe("acquired environment lease");
+  });
+
+  it("uses translated environment activity labels when a translator is provided", () => {
+    const translations: Record<string, string> = {
+      "pages.activity.format.rowVerbs.environment_lease_acquired": "获取了环境租约",
+      "pages.activity.format.rowVerbs.environment_lease_released": "释放了环境租约",
+    };
+    const t = ((key: string, options?: { defaultValue?: string }) => translations[key] ?? options?.defaultValue ?? key) as never;
+
+    expect(formatActivityVerb("environment.lease_acquired", null, { t })).toBe("获取了环境租约");
+    expect(formatActivityVerb("environment.lease_released", null, { t })).toBe("释放了环境租约");
+  });
 });

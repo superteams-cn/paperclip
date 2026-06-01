@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import type {
   CompanyPortabilityCollisionStrategy,
   CompanyPortabilityFileEntry,
@@ -16,6 +17,11 @@ import { agentsApi } from "../api/agents";
 import { sidebarPreferencesApi } from "../api/sidebarPreferences";
 import { queryKeys } from "../lib/queryKeys";
 import { getAgentOrderStorageKey, writeAgentOrder } from "../lib/agent-order";
+import { formatApiError } from "../lib/api-error";
+import {
+  formatCompanyPortabilityError,
+  formatCompanyPortabilityWarning,
+} from "../lib/api-feedback-format";
 import { MarkdownBody } from "../components/MarkdownBody";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "../components/EmptyState";
@@ -191,9 +197,13 @@ function ImportPreviewPane({
   action: string | null;
   renamedTo: string | null;
 }) {
+  const { t } = useTranslation();
   if (!selectedFile || content === null) {
     return (
-      <EmptyState icon={Package} message="Select a file to preview its contents." />
+      <EmptyState
+        icon={Package}
+        message={t("pages.companyImport.selectFileToPreview", { defaultValue: "Select a file to preview its contents." })}
+      />
     );
   }
 
@@ -255,7 +265,7 @@ function ImportPreviewPane({
           </pre>
         ) : (
           <div className="rounded-lg border border-border bg-accent/10 px-4 py-3 text-sm text-muted-foreground">
-            Binary asset preview is not available for this file type.
+            {t("pages.companyImport.binaryPreviewUnavailable", { defaultValue: "Binary asset preview is not available for this file type." })}
           </div>
         )}
       </div>
@@ -404,6 +414,7 @@ function ConflictResolutionList({
   onToggleSkip: (slug: string, filePath: string | null) => void;
   onToggleConfirm: (slug: string) => void;
 }) {
+  const { t } = useTranslation();
   if (conflicts.length === 0) return null;
 
   return (
@@ -411,10 +422,14 @@ function ConflictResolutionList({
       <div className="rounded-md border border-border">
         <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
           <h3 className="text-sm font-medium">
-            Renames
+            {t("pages.companyImport.renames", { defaultValue: "Renames" })}
           </h3>
           <span className="text-xs text-muted-foreground">
-            {conflicts.length} item{conflicts.length === 1 ? "" : "s"}
+            {t("pages.companyImport.itemsCount", {
+              defaultValue: "{{count}} item",
+              defaultValue_plural: "{{count}} items",
+              count: conflicts.length,
+            })}
           </span>
         </div>
         <div className="divide-y divide-border">
@@ -442,7 +457,9 @@ function ConflictResolutionList({
                   )}
                   onClick={() => onToggleSkip(item.slug, item.filePath)}
                 >
-                  {isSkipped ? "skipped" : "skip"}
+                  {isSkipped
+                    ? t("pages.companyImport.skipped", { defaultValue: "skipped" })
+                    : t("pages.companyImport.skip", { defaultValue: "skip" })}
                 </button>
 
                 <span className={cn(
@@ -495,10 +512,10 @@ function ConflictResolutionList({
                     {isConfirmed ? (
                       <>
                         <Check className="h-3 w-3" />
-                        confirmed
+                        {t("pages.companyImport.confirmed", { defaultValue: "confirmed" })}
                       </>
                     ) : (
-                      "confirm rename"
+                      t("pages.companyImport.confirmRename", { defaultValue: "confirm rename" })
                     )}
                   </button>
                 )}
@@ -543,15 +560,20 @@ function AdapterPickerList({
   onToggleExpand: (slug: string) => void;
   onChangeConfig: (slug: string, patch: Partial<CreateConfigValues>) => void;
 }) {
+  const { t } = useTranslation();
   if (agents.length === 0) return null;
 
   return (
     <div className="mx-5 mt-3">
       <div className="rounded-md border border-border">
         <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
-          <h3 className="text-sm font-medium">Adapters</h3>
+          <h3 className="text-sm font-medium">{t("pages.companyImport.adapters", { defaultValue: "Adapters" })}</h3>
           <span className="text-xs text-muted-foreground">
-            {agents.length} agent{agents.length === 1 ? "" : "s"}
+            {t("pages.companyImport.agentsCount", {
+              defaultValue: "{{count}} agent",
+              defaultValue_plural: "{{count}} agents",
+              count: agents.length,
+            })}
           </span>
         </div>
         <div className="divide-y divide-border">
@@ -567,7 +589,7 @@ function AdapterPickerList({
                     "shrink-0 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide",
                     "text-blue-500 border-blue-500/30",
                   )}>
-                    agent
+                    {t("pages.companyImport.agent", { defaultValue: "agent" })}
                   </span>
                   <span className="shrink-0 font-mono text-xs text-muted-foreground">
                     {agent.name}
@@ -595,7 +617,7 @@ function AdapterPickerList({
                     onClick={() => onToggleExpand(agent.slug)}
                   >
                     <ChevronRight className={cn("h-3 w-3 transition-transform", isExpanded && "rotate-90")} />
-                    configure adapter
+                    {t("pages.companyImport.configureAdapter", { defaultValue: "configure adapter" })}
                   </button>
                 </div>
                 {isExpanded && (
@@ -623,17 +645,20 @@ function AdapterPickerList({
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
-async function readLocalPackageZip(file: File): Promise<{
+async function readLocalPackageZip(
+  file: File,
+  messages?: { invalidZip?: string; emptyArchive?: string },
+): Promise<{
   name: string;
   rootPath: string | null;
   files: Record<string, CompanyPortabilityFileEntry>;
 }> {
   if (!/\.zip$/i.test(file.name)) {
-    throw new Error("Select a .zip company package.");
+    throw new Error(messages?.invalidZip ?? "Select a .zip company package.");
   }
   const archive = await readZipArchive(await file.arrayBuffer());
   if (Object.keys(archive.files).length === 0) {
-    throw new Error("No package files were found in the selected zip archive.");
+    throw new Error(messages?.emptyArchive ?? "No package files were found in the selected zip archive.");
   }
   return {
     name: file.name,
@@ -645,6 +670,7 @@ async function readLocalPackageZip(file: File): Promise<{
 // ── Main page ─────────────────────────────────────────────────────────
 
 export function CompanyImport() {
+  const { t } = useTranslation();
   const {
     selectedCompanyId,
     selectedCompany,
@@ -704,14 +730,14 @@ export function CompanyImport() {
   }, [companyAgents]);
 
   const localZipHelpText =
-    "Upload a .zip exported directly from Paperclip. Re-zipped archives created by Finder, Explorer, or other zip tools may not import correctly.";
+    t("pages.companyImport.localZipHelp", { defaultValue: "Upload a .zip exported directly from Paperclip. Re-zipped archives created by Finder, Explorer, or other zip tools may not import correctly." });
 
   useEffect(() => {
     setBreadcrumbs([
-      { label: "Org Chart", href: "/org" },
-      { label: "Import" },
+      { label: t("nav.org", { defaultValue: "Org" }), href: "/org" },
+      { label: t("pages.companyImport.import", { defaultValue: "Import" }) },
     ]);
-  }, [setBreadcrumbs]);
+  }, [setBreadcrumbs, t]);
 
   function buildSource(): CompanyPortabilitySource | null {
     if (sourceMode === "local") {
@@ -727,7 +753,7 @@ export function CompanyImport() {
   const previewMutation = useMutation({
     mutationFn: () => {
       const source = buildSource();
-      if (!source) throw new Error("No source configured.");
+      if (!source) throw new Error(t("pages.companyImport.noSourceConfigured", { defaultValue: "No source configured." }));
       return companiesApi.importPreview({
         source,
         include: { company: true, agents: true, projects: true, issues: true },
@@ -804,8 +830,8 @@ export function CompanyImport() {
     onError: (err) => {
       pushToast({
         tone: "error",
-        title: "Preview failed",
-        body: err instanceof Error ? err.message : "Failed to preview import.",
+        title: t("pages.companyImport.previewFailed", { defaultValue: "Preview failed" }),
+        body: formatApiError(err, t, t("pages.companyImport.previewImportFailed", { defaultValue: "Failed to preview import." })),
       });
     },
   });
@@ -831,7 +857,7 @@ export function CompanyImport() {
   const importMutation = useMutation({
     mutationFn: () => {
       const source = buildSource();
-      if (!source) throw new Error("No source configured.");
+      if (!source) throw new Error(t("pages.companyImport.noSourceConfigured", { defaultValue: "No source configured." }));
       return companiesApi.importBundle({
         source,
         include: { company: true, agents: true, projects: true, issues: true },
@@ -863,8 +889,13 @@ export function CompanyImport() {
       setSelectedCompanyId(importedCompany.id);
       pushToast({
         tone: "success",
-        title: "Import complete",
-        body: `${result.company.name}: ${result.agents.length} agent${result.agents.length === 1 ? "" : "s"} processed.`,
+        title: t("pages.companyImport.importComplete", { defaultValue: "Import complete" }),
+        body: t("pages.companyImport.importCompleteBody", {
+          defaultValue_one: "{{company}}: {{count}} agent processed.",
+          defaultValue_other: "{{company}}: {{count}} agents processed.",
+          company: result.company.name,
+          count: result.agents.length,
+        }),
       });
       // Force a fresh dashboard load so newly imported agents are immediately visible.
       window.location.assign(`/${importedCompany.issuePrefix}/dashboard`);
@@ -872,8 +903,8 @@ export function CompanyImport() {
     onError: (err) => {
       pushToast({
         tone: "error",
-        title: "Import failed",
-        body: err instanceof Error ? err.message : "Failed to apply import.",
+        title: t("pages.companyImport.importFailed", { defaultValue: "Import failed" }),
+        body: formatApiError(err, t, t("pages.companyImport.applyImportFailed", { defaultValue: "Failed to apply import." })),
       });
     },
   });
@@ -882,14 +913,17 @@ export function CompanyImport() {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
     try {
-      const pkg = await readLocalPackageZip(fileList[0]!);
+      const pkg = await readLocalPackageZip(fileList[0]!, {
+        invalidZip: t("pages.companyImport.selectZipPackage", { defaultValue: "Select a .zip company package." }),
+        emptyArchive: t("pages.companyImport.emptyZipArchive", { defaultValue: "No package files were found in the selected zip archive." }),
+      });
       setLocalPackage(pkg);
       setImportPreview(null);
     } catch (err) {
       pushToast({
         tone: "error",
-        title: "Package read failed",
-        body: err instanceof Error ? err.message : "Failed to read folder.",
+        title: t("pages.companyImport.packageReadFailed", { defaultValue: "Package read failed" }),
+        body: formatApiError(err, t, t("pages.companyImport.readFolderFailed", { defaultValue: "Failed to read folder." })),
       });
     }
   }
@@ -1086,7 +1120,7 @@ export function CompanyImport() {
   const selectedAction = selectedFile ? (actionMap.get(selectedFile) ?? null) : null;
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={Download} message="Select a company to import into." />;
+    return <EmptyState icon={Download} message={t("pages.companyImport.selectCompany", { defaultValue: "Select a company to import into." })} />;
   }
 
   return (
@@ -1094,17 +1128,17 @@ export function CompanyImport() {
       {/* Source form section */}
       <div className="border-b border-border px-5 py-5 space-y-4">
         <div>
-          <h2 className="text-base font-semibold">Import source</h2>
+          <h2 className="text-base font-semibold">{t("pages.companyImport.importSource", { defaultValue: "Import source" })}</h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Choose a GitHub repo or upload a local Paperclip zip package.
+            {t("pages.companyImport.importSourceDescription", { defaultValue: "Choose a GitHub repo or upload a local Paperclip zip package." })}
           </p>
         </div>
 
         <div className="grid gap-2 md:grid-cols-2">
           {(
             [
-              { key: "github", icon: Github, label: "GitHub repo" },
-              { key: "local", icon: Upload, label: "Local zip" },
+              { key: "github", icon: Github, label: t("pages.companyImport.githubRepo", { defaultValue: "GitHub repo" }) },
+              { key: "local", icon: Upload, label: t("pages.companyImport.localZip", { defaultValue: "Local zip" }) },
             ] as const
           ).map(({ key, icon: Icon, label }) => (
             <button
@@ -1144,13 +1178,16 @@ export function CompanyImport() {
                 variant="outline"
                 onClick={() => packageInputRef.current?.click()}
               >
-                Choose zip
+                {t("pages.companyImport.chooseZip", { defaultValue: "Choose zip" })}
               </Button>
               {localPackage && (
                 <span className="text-xs text-muted-foreground">
-                  {localPackage.name} with{" "}
-                  {Object.keys(localPackage.files).length} file
-                  {Object.keys(localPackage.files).length === 1 ? "" : "s"}
+                  {t("pages.companyImport.packageFileCount", {
+                    defaultValue: "{{name}} with {{count}} file",
+                    defaultValue_plural: "{{name}} with {{count}} files",
+                    name: localPackage.name,
+                    count: Object.keys(localPackage.files).length,
+                  })}
                 </span>
               )}
             </div>
@@ -1162,8 +1199,8 @@ export function CompanyImport() {
           </div>
         ) : (
           <Field
-            label="GitHub URL"
-            hint="Repo tree path or blob URL to COMPANY.md (e.g. github.com/owner/repo/tree/main/company)."
+            label={t("pages.companyImport.githubUrl", { defaultValue: "GitHub URL" })}
+            hint={t("pages.companyImport.githubUrlHint", { defaultValue: "Repo tree path or blob URL to COMPANY.md (e.g. github.com/owner/repo/tree/main/company)." })}
           >
             <input
               className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
@@ -1178,7 +1215,7 @@ export function CompanyImport() {
           </Field>
         )}
 
-        <Field label="Target" hint="Import into this company or create a new one.">
+        <Field label={t("pages.companyImport.target", { defaultValue: "Target" })} hint={t("pages.companyImport.targetHint", { defaultValue: "Import into this company or create a new one." })}>
           <select
             className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
             value={targetMode}
@@ -1187,31 +1224,31 @@ export function CompanyImport() {
               setImportPreview(null);
             }}
           >
-            <option value="new">Create new company</option>
+            <option value="new">{t("pages.companyImport.createNewCompany", { defaultValue: "Create new company" })}</option>
             <option value="existing">
-              Existing company: {selectedCompany?.name}
+              {t("pages.companyImport.existingCompany", { defaultValue: "Existing company: {{name}}", name: selectedCompany?.name })}
             </option>
           </select>
         </Field>
 
         {targetMode === "new" && (
           <Field
-            label="New company name"
-            hint="Optional override. Leave blank to use the package name."
+            label={t("pages.companyImport.newCompanyName", { defaultValue: "New company name" })}
+            hint={t("pages.companyImport.newCompanyNameHint", { defaultValue: "Optional override. Leave blank to use the package name." })}
           >
             <input
               className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
               type="text"
               value={newCompanyName}
               onChange={(e) => setNewCompanyName(e.target.value)}
-              placeholder="Imported Company"
+              placeholder={t("pages.companyImport.importedCompanyPlaceholder", { defaultValue: "Imported Company" })}
             />
           </Field>
         )}
 
         <Field
-          label="Collision strategy"
-          hint="Board imports can rename, skip, or replace matching company content."
+          label={t("pages.companyImport.collisionStrategy", { defaultValue: "Collision strategy" })}
+          hint={t("pages.companyImport.collisionStrategyHint", { defaultValue: "Board imports can rename, skip, or replace matching company content." })}
         >
           <select
             className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
@@ -1221,9 +1258,9 @@ export function CompanyImport() {
               setImportPreview(null);
             }}
           >
-            <option value="rename">Rename on conflict</option>
-            <option value="skip">Skip on conflict</option>
-            <option value="replace">Replace existing</option>
+            <option value="rename">{t("pages.companyImport.renameOnConflict", { defaultValue: "Rename on conflict" })}</option>
+            <option value="skip">{t("pages.companyImport.skipOnConflict", { defaultValue: "Skip on conflict" })}</option>
+            <option value="replace">{t("pages.companyImport.replaceExisting", { defaultValue: "Replace existing" })}</option>
           </select>
         </Field>
 
@@ -1234,7 +1271,9 @@ export function CompanyImport() {
             onClick={() => previewMutation.mutate()}
             disabled={previewMutation.isPending || !hasSource}
           >
-            {previewMutation.isPending ? "Previewing..." : "Preview import"}
+            {previewMutation.isPending
+              ? t("pages.companyImport.previewing", { defaultValue: "Previewing..." })
+              : t("pages.companyImport.previewImport", { defaultValue: "Preview import" })}
           </Button>
         </div>
       </div>
@@ -1246,19 +1285,33 @@ export function CompanyImport() {
           <div className="sticky top-0 z-10 border-b border-border bg-background px-5 py-3">
             <div className="flex flex-wrap items-center gap-4 text-sm">
               <span className="font-medium">
-                Import preview
+                {t("pages.companyImport.importPreview", { defaultValue: "Import preview" })}
               </span>
               <span className="text-muted-foreground">
-                {selectedCount} / {totalFiles} file{totalFiles === 1 ? "" : "s"} selected
+                {t("pages.companyImport.selectedFiles", {
+                  defaultValue: "{{selected}} / {{total}} file selected",
+                  defaultValue_plural: "{{selected}} / {{total}} files selected",
+                  selected: selectedCount,
+                  total: totalFiles,
+                  count: totalFiles,
+                })}
               </span>
               {conflicts.length > 0 && (
                 <span className="text-amber-500">
-                  {conflicts.length} conflict{conflicts.length === 1 ? "" : "s"}
+                  {t("pages.companyImport.conflictsCount", {
+                    defaultValue: "{{count}} conflict",
+                    defaultValue_plural: "{{count}} conflicts",
+                    count: conflicts.length,
+                  })}
                 </span>
               )}
               {importPreview.errors.length > 0 && (
                 <span className="text-destructive">
-                  {importPreview.errors.length} error{importPreview.errors.length === 1 ? "" : "s"}
+                  {t("pages.companyImport.errorsCount", {
+                    defaultValue: "{{count}} error",
+                    defaultValue_plural: "{{count}} errors",
+                    count: importPreview.errors.length,
+                  })}
                 </span>
               )}
             </div>
@@ -1295,8 +1348,12 @@ export function CompanyImport() {
             >
               <Download className="mr-1.5 h-3.5 w-3.5" />
               {importMutation.isPending
-                ? "Importing..."
-                : `Import ${selectedCount} file${selectedCount === 1 ? "" : "s"}`}
+                ? t("pages.companyImport.importing", { defaultValue: "Importing..." })
+                : t("pages.companyImport.importFiles", {
+                    defaultValue: "Import {{count}} file",
+                    defaultValue_plural: "Import {{count}} files",
+                    count: selectedCount,
+                  })}
             </Button>
           </div>
 
@@ -1304,7 +1361,7 @@ export function CompanyImport() {
           {importPreview.warnings.length > 0 && (
             <div className="mx-5 mt-3 rounded-md border border-amber-500/30 bg-amber-500/5 px-4 py-3">
               {importPreview.warnings.map((w) => (
-                <div key={w} className="text-xs text-amber-500">{w}</div>
+                <div key={w} className="text-xs text-amber-500">{formatCompanyPortabilityWarning(w, t)}</div>
               ))}
             </div>
           )}
@@ -1313,7 +1370,7 @@ export function CompanyImport() {
           {importPreview.errors.length > 0 && (
             <div className="mx-5 mt-3 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3">
               {importPreview.errors.map((e) => (
-                <div key={e} className="text-xs text-destructive">{e}</div>
+                <div key={e} className="text-xs text-destructive">{formatCompanyPortabilityError(e, t)}</div>
               ))}
             </div>
           )}
@@ -1322,7 +1379,7 @@ export function CompanyImport() {
           <div className="grid gap-4 xl:h-[calc(100vh-16rem)] xl:grid-cols-[19rem_minmax(0,1fr)] xl:gap-0">
             <aside className="flex max-h-[24rem] flex-col overflow-hidden border-b border-border xl:max-h-none xl:border-b-0 xl:border-r">
               <div className="border-b border-border px-4 py-3 shrink-0">
-                <h2 className="text-base font-semibold">Package files</h2>
+                <h2 className="text-base font-semibold">{t("pages.companyImport.packageFiles", { defaultValue: "Package files" })}</h2>
               </div>
               <div className="flex-1 overflow-y-auto">
                 <FileTree

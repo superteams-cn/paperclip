@@ -6,6 +6,7 @@ import type {
   SuccessfulRunHandoffState,
 } from "@paperclipai/shared";
 import { AlertTriangle, CheckCircle2, Flag, Loader2, RotateCcw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link } from "@/lib/router";
 import { Button } from "@/components/ui/button";
 import { createIssueDetailPath } from "../lib/issueDetailBreadcrumb";
@@ -20,21 +21,26 @@ import {
 } from "../lib/recovery-display";
 
 function BlockerRecoveryIndicator({ action }: { action: IssueRecoveryAction }) {
+  const { t } = useTranslation();
   const state = deriveActiveRecoveryDisplayState(action);
   if (!state) return null;
   const tone = RECOVERY_CHIP_DEFAULT_TONE[state];
   const Icon = tone.icon;
+  const label = t(`pages.issues.recovery.chipStates.${state}`, { defaultValue: tone.label });
   return (
     <span
       data-testid="issue-blocked-notice-recovery-indicator"
       data-recovery-state={state}
       role="status"
-      aria-label={tone.label}
-      title={`${tone.label} — open the source issue to act.`}
+      aria-label={label}
+      title={t("pages.issues.blockedNotice.recoveryChipTitle", {
+        defaultValue: "{{label}} — open the source issue to act.",
+        label,
+      })}
       className={`inline-flex shrink-0 items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${tone.className}`}
     >
       <Icon className="h-2.5 w-2.5" aria-hidden />
-      {tone.label}
+      {label}
     </span>
   );
 }
@@ -46,16 +52,20 @@ function SuccessfulRunRetryNowControl({
   issueId: string;
   scheduledRetry: IssueScheduledRetry;
 }) {
+  const { t } = useTranslation();
   const retryNow = useRetryNowMutation(issueId);
   const dueAtIso = scheduledRetry.scheduledRetryAt
     ? new Date(scheduledRetry.scheduledRetryAt).toISOString()
     : null;
   const relative = dueAtIso ? formatMonitorOffset(dueAtIso) : null;
   const scheduleLabel = relative === "now"
-    ? "due now"
+    ? t("pages.issues.blockedNotice.dueNow", { defaultValue: "due now" })
     : relative
-      ? `scheduled ${relative}`
-      : "scheduled";
+      ? t("pages.issues.blockedNotice.scheduledRelative", {
+        defaultValue: "scheduled {{relative}}",
+        relative,
+      })
+      : t("pages.issues.blockedNotice.scheduled", { defaultValue: "scheduled" });
   const success = retryNow.isSuccess
     && (retryNow.data?.outcome === "promoted" || retryNow.data?.outcome === "already_promoted");
 
@@ -63,7 +73,10 @@ function SuccessfulRunRetryNowControl({
     <div className="mt-2 rounded-md border border-amber-300/70 bg-background/80 p-2 dark:border-amber-500/40 dark:bg-background/40">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 text-xs leading-5 text-amber-900 dark:text-amber-100">
-          Corrective wake {scheduleLabel}. Retry now starts the same recovery path immediately.
+          {t("pages.issues.blockedNotice.correctiveWakeSchedule", {
+            defaultValue: "Corrective wake {{schedule}}. Retry now starts the same recovery path immediately.",
+            schedule: scheduleLabel,
+          })}
         </div>
         <Button
           type="button"
@@ -77,17 +90,19 @@ function SuccessfulRunRetryNowControl({
           {retryNow.isPending ? (
             <span className="inline-flex items-center gap-1.5">
               <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-              Retrying...
+              {t("pages.issues.blockedNotice.retrying", { defaultValue: "Retrying..." })}
             </span>
           ) : success ? (
             <span className="inline-flex items-center gap-1.5">
               <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-              {retryNow.data?.outcome === "already_promoted" ? "Already promoted" : "Promoted"}
+              {retryNow.data?.outcome === "already_promoted"
+                ? t("pages.issues.blockedNotice.alreadyPromoted", { defaultValue: "Already promoted" })
+                : t("pages.issues.blockedNotice.promoted", { defaultValue: "Promoted" })}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5">
               <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-              Retry now
+              {t("pages.issues.blockedNotice.retryNow", { defaultValue: "Retry now" })}
             </span>
           )}
         </Button>
@@ -121,6 +136,7 @@ export function IssueBlockedNotice({
   scheduledRetry?: IssueScheduledRetry | null;
   agentName?: string | null;
 }) {
+  const { t } = useTranslation();
   if (issueStatus === "done" || issueStatus === "cancelled") return null;
   const showSuccessfulRunHandoff = successfulRunHandoff?.required === true;
   if (!showSuccessfulRunHandoff && blockers.length === 0 && issueStatus !== "blocked") return null;
@@ -130,7 +146,9 @@ export function IssueBlockedNotice({
       ? { issueId, scheduledRetry }
       : null;
 
-  const blockerLabel = blockers.length === 1 ? "the linked issue" : "the linked issues";
+  const blockerLabel = blockers.length === 1
+    ? t("pages.issues.blockedNotice.linkedIssue", { defaultValue: "the linked issue" })
+    : t("pages.issues.blockedNotice.linkedIssues", { defaultValue: "the linked issues" });
   const terminalBlockers = blockers
     .flatMap((blocker) => blocker.terminalBlockers ?? [])
     .filter((blocker, index, all) => all.findIndex((candidate) => candidate.id === blocker.id) === index);
@@ -205,19 +223,25 @@ export function IssueBlockedNotice({
         <div className="min-w-0 space-y-1.5">
           {showSuccessfulRunHandoff ? (
             <>
-              <p className="font-medium leading-5">This issue still needs a next step.</p>
+              <p className="font-medium leading-5">
+                {t("pages.issues.blockedNotice.nextStepTitle", { defaultValue: "This issue still needs a next step." })}
+              </p>
               <p className="leading-5">
-                A run finished successfully, but this issue is still open in{" "}
+                {t("pages.issues.blockedNotice.successfulRunOpenBeforeStatus", {
+                  defaultValue: "A run finished successfully, but this issue is still open in",
+                })}{" "}
                 <code className="rounded bg-amber-100 px-1 py-0.5 text-[12px] dark:bg-amber-400/15">
                   in_progress
                 </code>{" "}
-                with no clear owner for the next action.
+                {t("pages.issues.blockedNotice.successfulRunOpenAfterStatus", {
+                  defaultValue: "with no clear owner for the next action.",
+                })}
               </p>
               <ul className="list-disc space-y-1 pl-5 text-xs leading-5 text-amber-900 dark:text-amber-100">
-                <li>Mark it done or cancelled.</li>
-                <li>Send it for review or ask for input.</li>
-                <li>Mark it blocked with a blocker owner.</li>
-                <li>Delegate follow-up work or queue a continuation.</li>
+                <li>{t("pages.issues.blockedNotice.nextSteps.doneOrCancelled", { defaultValue: "Mark it done or cancelled." })}</li>
+                <li>{t("pages.issues.blockedNotice.nextSteps.reviewOrInput", { defaultValue: "Send it for review or ask for input." })}</li>
+                <li>{t("pages.issues.blockedNotice.nextSteps.blockedWithOwner", { defaultValue: "Mark it blocked with a blocker owner." })}</li>
+                <li>{t("pages.issues.blockedNotice.nextSteps.delegateOrContinue", { defaultValue: "Delegate follow-up work or queue a continuation." })}</li>
               </ul>
               <div className="flex flex-wrap gap-1.5 text-xs">
                 {successfulRunHandoff.sourceRunId && successfulRunHandoff.assigneeAgentId ? (
@@ -225,20 +249,32 @@ export function IssueBlockedNotice({
                     to={`/agents/${successfulRunHandoff.assigneeAgentId}/runs/${successfulRunHandoff.sourceRunId}`}
                     className="rounded-md border border-amber-300/70 bg-background/80 px-2 py-1 font-mono text-amber-950 hover:border-amber-500 hover:bg-amber-100 hover:underline dark:border-amber-500/40 dark:bg-background/40 dark:text-amber-100 dark:hover:bg-amber-500/15"
                   >
-                    run {successfulRunHandoff.sourceRunId.slice(0, 8)}
+                    {t("pages.issues.recovery.runLabel", {
+                      defaultValue: "run {{id}}",
+                      id: successfulRunHandoff.sourceRunId.slice(0, 8),
+                    })}
                   </Link>
                 ) : successfulRunHandoff.sourceRunId ? (
                   <span className="rounded-md border border-amber-300/70 bg-background/80 px-2 py-1 font-mono text-amber-950 dark:border-amber-500/40 dark:bg-background/40 dark:text-amber-100">
-                    run {successfulRunHandoff.sourceRunId.slice(0, 8)}
+                    {t("pages.issues.recovery.runLabel", {
+                      defaultValue: "run {{id}}",
+                      id: successfulRunHandoff.sourceRunId.slice(0, 8),
+                    })}
                   </span>
                 ) : null}
                 <span className="rounded-md border border-amber-300/70 bg-background/80 px-2 py-1 text-amber-900 dark:border-amber-500/40 dark:bg-background/40 dark:text-amber-100">
-                  Corrective wake queued for {agentName ?? "the assignee"}
+                  {t("pages.issues.blockedNotice.correctiveWakeQueuedFor", {
+                    defaultValue: "Corrective wake queued for {{agent}}",
+                    agent: agentName ?? t("pages.issues.blockedNotice.assigneeFallback", { defaultValue: "the assignee" }),
+                  })}
                 </span>
               </div>
               {successfulRunHandoff.detectedProgressSummary ? (
                 <p className="text-xs leading-5 text-amber-800 dark:text-amber-200">
-                  Detected progress: {successfulRunHandoff.detectedProgressSummary}
+                  {t("pages.issues.blockedNotice.detectedProgress", {
+                    defaultValue: "Detected progress: {{summary}}",
+                    summary: successfulRunHandoff.detectedProgressSummary,
+                  })}
                 </p>
               ) : null}
               {successfulRunRetryNow ? (
@@ -258,10 +294,24 @@ export function IssueBlockedNotice({
                 {blockers.length > 0
                   ? isStalled
                     ? stalledLeafBlockers.length > 1
-                      ? <>Work on this issue is blocked by {blockerLabel}, but the chain is stalled in review without a clear next step. Resolve the stalled reviews below or remove them as blockers.</>
-                      : <>Work on this issue is blocked by {blockerLabel}, but the chain is stalled in review without a clear next step. Resolve the stalled review below or remove it as a blocker.</>
-                    : <>Work on this issue is blocked by {blockerLabel} until {blockers.length === 1 ? "it is" : "they are"} complete. Comments still wake the assignee for questions or triage.</>
-                  : <>Work on this issue is blocked until it is moved back to todo. Comments still wake the assignee for questions or triage.</>}
+                      ? t("pages.issues.blockedNotice.blockedByStalledReviews", {
+                        defaultValue: "Work on this issue is blocked by {{blockerLabel}}, but the chain is stalled in review without a clear next step. Resolve the stalled reviews below or remove them as blockers.",
+                        blockerLabel,
+                      })
+                      : t("pages.issues.blockedNotice.blockedByStalledReview", {
+                        defaultValue: "Work on this issue is blocked by {{blockerLabel}}, but the chain is stalled in review without a clear next step. Resolve the stalled review below or remove it as a blocker.",
+                        blockerLabel,
+                      })
+                    : t("pages.issues.blockedNotice.blockedByLinked", {
+                      defaultValue: "Work on this issue is blocked by {{blockerLabel}} until {{pronoun}} complete. Comments still wake the assignee for questions or triage.",
+                      blockerLabel,
+                      pronoun: blockers.length === 1
+                        ? t("pages.issues.blockedNotice.itIs", { defaultValue: "it is" })
+                        : t("pages.issues.blockedNotice.theyAre", { defaultValue: "they are" }),
+                    })
+                  : t("pages.issues.blockedNotice.blockedUntilTodo", {
+                    defaultValue: "Work on this issue is blocked until it is moved back to todo. Comments still wake the assignee for questions or triage.",
+                  })}
               </p>
               {blockers.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
@@ -271,14 +321,14 @@ export function IssueBlockedNotice({
               {showStalledRow ? (
                 <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                   <span className="text-xs font-medium text-amber-800 dark:text-amber-200">
-                    Stalled in review
+                    {t("pages.issues.blockedNotice.stalledInReview", { defaultValue: "Stalled in review" })}
                   </span>
                   {stalledLeafBlockers.map(renderBlockerChip)}
                 </div>
               ) : terminalBlockers.length > 0 ? (
                 <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                   <span className="text-xs font-medium text-amber-800 dark:text-amber-200">
-                    Ultimately waiting on
+                    {t("pages.issues.blockedNotice.ultimatelyWaitingOn", { defaultValue: "Ultimately waiting on" })}
                   </span>
                   {terminalBlockers.map(renderBlockerChip)}
                 </div>
@@ -290,7 +340,7 @@ export function IssueBlockedNotice({
                 >
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-800 dark:text-amber-200">
                     <Flag className="h-3 w-3" aria-hidden />
-                    Blocked by parked work
+                    {t("pages.issues.blockedNotice.blockedByParkedWork", { defaultValue: "Blocked by parked work" })}
                   </span>
                   {parkedBlockers.map(renderBlockerChip)}
                 </div>

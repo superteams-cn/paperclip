@@ -258,7 +258,7 @@ describe("ProjectWorkspaceDetail plugin tabs", () => {
 
     expect(container.querySelector("h1")?.textContent).toBe("Primary checkout");
     expect(container.textContent).toContain("Project workspace");
-    expect(container.textContent).toContain("This is the project’s primary codebase workspace.");
+    expect(container.textContent).toContain("This is the project's primary codebase workspace.");
     expect(container.querySelector('[data-testid="plugin-slot-mount"]')).not.toBeNull();
     expect(container.textContent).not.toContain("Configure the concrete workspace");
     expect(container.textContent).not.toContain("Workspace name");

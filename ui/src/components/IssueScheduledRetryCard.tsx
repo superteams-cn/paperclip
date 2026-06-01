@@ -6,6 +6,7 @@ import { formatMonitorOffset } from "@/lib/issue-monitor";
 import { formatRetryReason } from "@/lib/runRetryState";
 import type { IssueScheduledRetry } from "@paperclipai/shared";
 import { useRetryNowMutation, type RetryNowError } from "../hooks/useRetryNowMutation";
+import { useTranslation } from "react-i18next";
 
 const MAX_TURN_CONTINUATION = "max_turns_continuation";
 
@@ -26,6 +27,7 @@ export function IssueScheduledRetryCard({
   issueId,
   scheduledRetry,
 }: IssueScheduledRetryCardProps) {
+  const { t } = useTranslation();
   const retryNow = useRetryNowMutation(issueId);
 
   if (!scheduledRetry || !issueId) return null;
@@ -47,21 +49,25 @@ export function IssueScheduledRetryCard({
       ? scheduledRetry.scheduledRetryAttempt
       : null;
 
-  const badgeLabel = continuation ? "Continuation scheduled" : "Retry scheduled";
-  const titleAction = continuation ? "Automatic continuation" : "Automatic retry";
+  const badgeLabel = continuation
+    ? t("pages.issues.scheduledRetry.continuationScheduled", { defaultValue: "Continuation scheduled" })
+    : t("pages.issues.scheduledRetry.retryScheduled", { defaultValue: "Retry scheduled" });
+  const titleAction = continuation
+    ? t("pages.issues.scheduledRetry.automaticContinuation", { defaultValue: "Automatic continuation" })
+    : t("pages.issues.scheduledRetry.automaticRetry", { defaultValue: "Automatic retry" });
   let titleSuffix: string;
   if (relative === "now") {
-    titleSuffix = "due now";
+    titleSuffix = t("pages.issues.scheduledRetry.dueNow", { defaultValue: "due now" });
   } else if (relative) {
     titleSuffix = relative;
   } else {
-    titleSuffix = "pending schedule";
+    titleSuffix = t("pages.issues.scheduledRetry.pendingSchedule", { defaultValue: "pending schedule" });
   }
   const title = `${titleAction} ${titleSuffix}`;
 
   const helperIdle = continuation
-    ? "Pulls continuation forward immediately"
-    : "Pulls retry forward immediately";
+    ? t("pages.issues.scheduledRetry.pullContinuationForward", { defaultValue: "Pulls continuation forward immediately" })
+    : t("pages.issues.scheduledRetry.pullRetryForward", { defaultValue: "Pulls retry forward immediately" });
   const isError = retryNow.isError || retryNow.lastError !== null;
   const isSuccessTransient = retryNow.isSuccess
     && (retryNow.data?.outcome === "promoted" || retryNow.data?.outcome === "already_promoted");
@@ -79,7 +85,12 @@ export function IssueScheduledRetryCard({
               {badgeLabel}
             </span>
             {attempt !== null ? (
-              <span className="text-muted-foreground">Attempt {attempt}</span>
+              <span className="text-muted-foreground">
+                {t("pages.issues.scheduledRetry.attempt", {
+                  attempt,
+                  defaultValue: "Attempt {{attempt}}",
+                })}
+              </span>
             ) : null}
             {reason ? (
               <span className="text-muted-foreground">{reason}</span>
@@ -92,7 +103,7 @@ export function IssueScheduledRetryCard({
               {absolute && scheduledRetry.retryOfRunId ? <span>{" · "}</span> : null}
               {scheduledRetry.retryOfRunId ? (
                 <span>
-                  Replaces run{" "}
+                  {t("pages.issues.scheduledRetry.replacesRun", { defaultValue: "Replaces run" })}{" "}
                   <Link
                     to={`/agents/${scheduledRetry.agentId}/runs/${scheduledRetry.retryOfRunId}`}
                     className="font-mono text-foreground hover:underline"
@@ -105,7 +116,10 @@ export function IssueScheduledRetryCard({
           ) : null}
           {scheduledRetry.error ? (
             <div className="mt-1 text-xs text-muted-foreground">
-              Last attempt failed: {scheduledRetry.error}. Paperclip will retry automatically.
+              {t("pages.issues.scheduledRetry.lastAttemptFailed", {
+                error: scheduledRetry.error,
+                defaultValue: "Last attempt failed: {{error}}. Paperclip will retry automatically.",
+              })}
             </div>
           ) : null}
           {isError ? (
@@ -131,27 +145,29 @@ export function IssueScheduledRetryCard({
             {retryNow.isPending ? (
               <span className="inline-flex items-center gap-1.5">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                Retrying…
+                {t("pages.issues.scheduledRetry.retrying", { defaultValue: "Retrying..." })}
               </span>
             ) : isSuccessTransient ? (
               <span className="inline-flex items-center gap-1.5">
                 <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-                {retryNow.data?.outcome === "already_promoted" ? "Already promoted" : "Promoted"}
+                {retryNow.data?.outcome === "already_promoted"
+                  ? t("pages.issues.scheduledRetry.alreadyPromoted", { defaultValue: "Already promoted" })
+                  : t("pages.issues.scheduledRetry.promoted", { defaultValue: "Promoted" })}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5">
                 <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-                Retry now
+                {t("pages.issues.scheduledRetry.retryNow", { defaultValue: "Retry now" })}
               </span>
             )}
           </Button>
           <span className="text-right text-xs text-muted-foreground sm:max-w-[12rem]">
             {retryNow.isPending
-              ? "Promoting scheduled retry"
+              ? t("pages.issues.scheduledRetry.promoting", { defaultValue: "Promoting scheduled retry" })
               : isSuccessTransient
                 ? retryNow.data?.outcome === "already_promoted"
-                  ? "Already promoted — run starting"
-                  : "Promoted — run starting"
+                  ? t("pages.issues.scheduledRetry.alreadyPromotedStarting", { defaultValue: "Already promoted — run starting" })
+                  : t("pages.issues.scheduledRetry.promotedStarting", { defaultValue: "Promoted — run starting" })
                 : helperIdle}
           </span>
         </div>
@@ -167,6 +183,7 @@ interface RetryErrorBandProps {
 }
 
 export function RetryErrorBand({ error, onRetry, className }: RetryErrorBandProps) {
+  const { t } = useTranslation();
   if (!error) return null;
   return (
     <div
@@ -179,7 +196,7 @@ export function RetryErrorBand({ error, onRetry, className }: RetryErrorBandProp
     >
       <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       <div className="min-w-0 flex-1">
-        <div className="font-medium">Couldn't retry now</div>
+        <div className="font-medium">{t("pages.issues.scheduledRetry.couldNotRetry", { defaultValue: "Couldn't retry now" })}</div>
         <div className="mt-0.5 text-muted-foreground">{error.message}</div>
       </div>
       <button
@@ -187,7 +204,7 @@ export function RetryErrorBand({ error, onRetry, className }: RetryErrorBandProp
         onClick={onRetry}
         className="shrink-0 font-medium text-rose-700 hover:underline dark:text-rose-300"
       >
-        Try again
+        {t("common.tryAgain", { defaultValue: "Try again" })}
       </button>
     </div>
   );

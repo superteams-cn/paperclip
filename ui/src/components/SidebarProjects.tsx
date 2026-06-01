@@ -33,14 +33,10 @@ import {
   writeProjectSortMode,
 } from "../lib/project-order";
 import type { Project } from "@paperclipai/shared";
+import { useTranslation } from "@/i18n";
 
 type ProjectSidebarSlot = ReturnType<typeof usePluginSlots>["slots"][number];
 
-const PROJECT_SORT_CHOICES: SidebarSectionRadioChoice[] = [
-  { value: "top", label: "Top" },
-  { value: "alphabetical", label: "Alphabetical" },
-  { value: "recent", label: "Recent" },
-];
 const REORDER_POINTER_MEDIA = "(hover: hover) and (pointer: fine)";
 
 type ProjectItemProps = {
@@ -105,6 +101,7 @@ function ProjectItem({
   setSidebarOpen,
   isDragging = false,
 }: ProjectItemProps) {
+  const { t } = useTranslation();
   const routeRef = projectRouteRef(project);
 
   return (
@@ -131,7 +128,9 @@ function ProjectItem({
           style={{ backgroundColor: project.color ?? "#6366f1" }}
         />
         <span className="flex-1 truncate">{project.name}</span>
-        {project.pauseReason === "budget" ? <BudgetSidebarMarker title="Project paused by budget" /> : null}
+        {project.pauseReason === "budget" ? (
+          <BudgetSidebarMarker title={t("sidebar.projects.pausedByBudget", { defaultValue: "Project paused by budget" })} />
+        ) : null}
       </NavLink>
       {projectSidebarSlots.length > 0 && (
         <div className="ml-5 flex flex-col gap-0.5">
@@ -184,6 +183,7 @@ function SortableProjectItem(props: ProjectItemProps) {
 }
 
 export function SidebarProjects() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(true);
   const { selectedCompany, selectedCompanyId } = useCompany();
   const { openNewProject } = useDialogActions();
@@ -229,6 +229,14 @@ export function SidebarProjects() {
   const sortedProjects = useMemo(
     () => sortProjects(orderedProjects, sortMode),
     [orderedProjects, sortMode],
+  );
+  const projectSortChoices = useMemo<SidebarSectionRadioChoice[]>(
+    () => [
+      { value: "top", label: t("sidebar.sort.top", { defaultValue: "Top" }) },
+      { value: "alphabetical", label: t("sidebar.sort.alphabetical", { defaultValue: "Alphabetical" }) },
+      { value: "recent", label: t("sidebar.sort.recent", { defaultValue: "Recent" }) },
+    ],
+    [t],
   );
   const isTopMode = sortMode === "top";
   const canReorderProjects = isTopMode && !isMobile && fineReorderPointer;
@@ -314,21 +322,21 @@ export function SidebarProjects() {
 
   return (
     <SidebarSection
-      label="Projects"
+      label={t("nav.projects", { defaultValue: "Projects" })}
       collapsible={{ open, onOpenChange: setOpen }}
       headerAction={{
-        ariaLabel: "New project",
+        ariaLabel: t("sidebar.projects.newProject", { defaultValue: "New project" }),
         icon: Plus,
         onClick: openNewProject,
       }}
       menu={{
-        ariaLabel: "Projects section actions",
+        ariaLabel: t("sidebar.projects.sectionActions", { defaultValue: "Projects section actions" }),
         actions: [
-          { type: "item", label: "Browse projects", icon: FolderOpen, href: "/projects" },
+          { type: "item", label: t("sidebar.projects.browse", { defaultValue: "Browse projects" }), icon: FolderOpen, href: "/projects" },
           { type: "separator" },
         ],
-        radioLabel: "Project sort",
-        radioChoices: PROJECT_SORT_CHOICES,
+        radioLabel: t("sidebar.projects.sort", { defaultValue: "Project sort" }),
+        radioChoices: projectSortChoices,
         radioValue: sortMode,
         onRadioValueChange: persistSortMode,
       }}

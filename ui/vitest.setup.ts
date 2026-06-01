@@ -30,3 +30,5 @@ if (
 if (typeof window !== "undefined" && window.localStorage !== globalThis.localStorage) {
   installStorageMock(window as unknown as Record<string, unknown>);
 }
+
+await import("./src/i18n");

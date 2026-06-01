@@ -22,6 +22,7 @@ import { PriorityIcon } from "./PriorityIcon";
 import { Identity } from "./Identity";
 import type { Issue, IssueStatus } from "@paperclipai/shared";
 import { AlertTriangle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { isSuccessfulRunHandoffRequired } from "../lib/successful-run-handoff";
 
 export const KANBAN_BOARD_HIGH_VOLUME_THRESHOLD = 100;
@@ -92,7 +93,9 @@ function KanbanColumn({
   revealIncrement: number;
   onShowMore: () => void;
 }) {
+  const { t } = useTranslation();
   const { setNodeRef, isOver } = useDroppable({ id: status });
+  const localizedStatus = t(`labels.status.${status}`, { defaultValue: statusLabel(status) });
 
   const isEmpty = issues.length === 0;
   const visibleIssues = collapsed ? [] : issues.slice(0, visibleCount);
@@ -106,11 +109,11 @@ function KanbanColumn({
         className={`flex min-h-[220px] w-[52px] shrink-0 flex-col items-center rounded-md border border-border bg-muted/20 px-1.5 py-2 transition-colors ${
           isOver ? "bg-accent/50 ring-1 ring-primary/20" : ""
         }`}
-        title={`${statusLabel(status)}: ${issues.length}`}
+        title={`${localizedStatus}: ${issues.length}`}
       >
         <StatusIcon status={status} />
         <span className="mt-2 [writing-mode:vertical-rl] rotate-180 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          {statusLabel(status)}
+          {localizedStatus}
         </span>
         <span className="mt-auto rounded-full bg-background px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
           {issues.length}
@@ -126,7 +129,7 @@ function KanbanColumn({
         {(!isEmpty || isOver) && (
           <>
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {statusLabel(status)}
+              {localizedStatus}
             </span>
             <span className="text-xs text-muted-foreground/60 ml-auto tabular-nums">
               {issues.length}
@@ -161,12 +164,19 @@ function KanbanColumn({
             className="mt-1 flex w-full items-center justify-center rounded-md border border-dashed border-border bg-background/70 px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
             onClick={onShowMore}
           >
-            Show {nextRevealCount} more
+            {t("components.kanbanBoard.showMore", {
+              defaultValue: "Show {{count}} more",
+              count: nextRevealCount,
+            })}
           </button>
         ) : null}
         {issues.length > 0 && (hiddenCount > 0 || issues.length >= visibleCount) ? (
           <p className="px-1 pt-1 text-[11px] text-muted-foreground">
-            Showing {visibleIssues.length} of {issues.length}
+            {t("components.kanbanBoard.showingCount", {
+              defaultValue: "Showing {{visible}} of {{total}}",
+              visible: visibleIssues.length,
+              total: issues.length,
+            })}
           </p>
         ) : null}
       </div>
@@ -189,6 +199,7 @@ function KanbanCard({
   isOverlay?: boolean;
   compact?: boolean;
 }) {
+  const { t } = useTranslation();
   const {
     attributes,
     listeners,
@@ -236,11 +247,11 @@ function KanbanCard({
           {isSuccessfulRunHandoffRequired(issue) ? (
             <span
               className="inline-flex items-center gap-1 rounded-full border border-amber-400/45 bg-amber-50/60 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:border-amber-300/35 dark:bg-amber-400/10 dark:text-amber-300"
-              title="This issue needs a next step"
-              aria-label="Needs next step"
+              title={t("pages.issues.needsNextStepTitle", { defaultValue: "This issue needs a next step" })}
+              aria-label={t("pages.issues.needsNextStep", { defaultValue: "Needs next step" })}
             >
               <AlertTriangle className="h-3 w-3" />
-              Next step
+              {t("pages.issues.nextStep", { defaultValue: "Next step" })}
             </span>
           ) : null}
           {isLive && (
@@ -249,7 +260,7 @@ function KanbanCard({
                 <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
               </span>
-              {compact ? "Live" : null}
+              {compact ? t("pages.issues.live", { defaultValue: "Live" }) : null}
             </span>
           )}
         </div>

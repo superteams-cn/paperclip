@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OrgChart } from "./OrgChart";
+import "@/i18n";
 
 const navigateMock = vi.fn();
 const orgMock = vi.fn();

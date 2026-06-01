@@ -653,6 +653,32 @@ describe.sequential("agent skill routes", () => {
     );
   });
 
+  it("materializes the selected locale instruction set when creating default agents", async () => {
+    const res = await requestApp(await createApp(), (baseUrl) => request(baseUrl)
+      .post("/api/companies/company-1/agents")
+      .send({
+        name: "CEO",
+        role: "ceo",
+        adapterType: "claude_local",
+        adapterConfig: {},
+        instructionsLocale: "zh-CN",
+      }));
+
+    expect([200, 201], JSON.stringify(res.body)).toContain(res.status);
+    expect(mockAgentInstructionsService.materializeManagedBundle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "11111111-1111-4111-8111-111111111111",
+        role: "ceo",
+        adapterType: "claude_local",
+      }),
+      expect.objectContaining({
+        "AGENTS.md": expect.stringContaining("你是 CEO"),
+        "HEARTBEAT.md": expect.stringContaining("CEO 心跳检查清单"),
+      }),
+      { entryFile: "AGENTS.md", replaceExisting: false },
+    );
+  });
+
   it("materializes the bundled default instruction set for non-CEO agents with no prompt template", async () => {
     const res = await requestApp(await createApp(), (baseUrl) => request(baseUrl)
       .post("/api/companies/company-1/agents")

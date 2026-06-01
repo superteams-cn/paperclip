@@ -9,6 +9,7 @@ import {
 type AuthErrorBody =
   | {
     code?: string;
+    details?: { code?: string };
     message?: string;
     error?: string | { code?: string; message?: string };
   }
@@ -47,7 +48,9 @@ function extractAuthError(payload: AuthErrorBody, status: number) {
       ? nested.code
       : typeof payload?.code === "string"
         ? payload.code
-        : null;
+        : typeof payload?.details?.code === "string"
+          ? payload.details.code
+          : null;
   const message =
     typeof nested?.message === "string" && nested.message.trim().length > 0
       ? nested.message
@@ -97,7 +100,7 @@ export const authApi = {
     if (res.status === 401) return null;
     const payload = await res.json().catch(() => null);
     if (!res.ok) {
-      throw new Error(`Failed to load session (${res.status})`);
+      throw extractAuthError(payload as AuthErrorBody, res.status);
     }
     const direct = toSession(payload);
     if (direct) return direct;
@@ -120,7 +123,7 @@ export const authApi = {
     });
     const payload = await res.json().catch(() => null);
     if (!res.ok) {
-      throw new Error((payload as { error?: string } | null)?.error ?? `Failed to load profile (${res.status})`);
+      throw extractAuthError(payload as AuthErrorBody, res.status);
     }
     return currentUserProfileSchema.parse(payload);
   },
