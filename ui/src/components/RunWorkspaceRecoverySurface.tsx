@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { HeartbeatRun } from "@paperclipai/shared";
 import { useNavigate } from "@/lib/router";
@@ -52,6 +53,7 @@ function readRunIssueId(run: HeartbeatRun): string | null {
  * a live `workspace_validation` recovery action.
  */
 export function RunWorkspaceRecoverySurface({ run }: { run: HeartbeatRun }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { pushToast } = useToastActions();
@@ -103,21 +105,37 @@ export function RunWorkspaceRecoverySurface({ run }: { run: HeartbeatRun }) {
       pushToast(
         variables.mode === "quarantine_restore"
           ? {
-              title: "Workspace repaired",
-              body: "Dirty changes were quarantined onto a rescue branch and the recorded branch restored; the task will resume.",
+              title: t("components.runWorkspaceRecoverySurface.workspaceRepairedTitle", {
+                defaultValue: "Workspace repaired",
+              }),
+              body: t("components.runWorkspaceRecoverySurface.workspaceRepairedBody", {
+                defaultValue:
+                  "Dirty changes were quarantined onto a rescue branch and the recorded branch restored; the task will resume.",
+              }),
               tone: "success",
             }
           : {
-              title: "Workspace branch reconciled",
-              body: "The recorded branch now matches the live branch; the task will resume.",
+              title: t("components.runWorkspaceRecoverySurface.branchReconciledTitle", {
+                defaultValue: "Workspace branch reconciled",
+              }),
+              body: t("components.runWorkspaceRecoverySurface.branchReconciledBody", {
+                defaultValue: "The recorded branch now matches the live branch; the task will resume.",
+              }),
               tone: "success",
             },
       );
     },
     onError: (err) => {
       pushToast({
-        title: "Reconcile failed",
-        body: err instanceof Error ? err.message : "Unable to reconcile the workspace branch.",
+        title: t("components.runWorkspaceRecoverySurface.reconcileFailedTitle", {
+          defaultValue: "Reconcile failed",
+        }),
+        body:
+          err instanceof Error
+            ? err.message
+            : t("components.runWorkspaceRecoverySurface.reconcileFailedBody", {
+                defaultValue: "Unable to reconcile the workspace branch.",
+              }),
         tone: "error",
       });
     },
@@ -125,20 +143,50 @@ export function RunWorkspaceRecoverySurface({ run }: { run: HeartbeatRun }) {
 
   const reissue = useMutation({
     mutationFn: async (request: RecoveryReissueRequest) => {
-      if (!issue) throw new Error("Task is not loaded yet.");
-      const sourceLabel = issue.identifier ?? "the stalled task";
+      if (!issue)
+        throw new Error(
+          t("components.runWorkspaceRecoverySurface.taskNotLoadedError", {
+            defaultValue: "Task is not loaded yet.",
+          }),
+        );
+      const sourceLabel =
+        issue.identifier ??
+        t("components.runWorkspaceRecoverySurface.stalledTaskFallback", {
+          defaultValue: "the stalled task",
+        });
       const descriptionLines = [
-        `Re-issued from ${sourceLabel} on an isolated git worktree after a workspace branch divergence.`,
+        t("components.runWorkspaceRecoverySurface.reissueDescriptionIntro", {
+          defaultValue:
+            "Re-issued from {{sourceLabel}} on an isolated git worktree after a workspace branch divergence.",
+          sourceLabel,
+          interpolation: { escapeValue: false },
+        }),
         "",
-        `- Base ref (live branch): \`${request.baseRef}\``,
-        ...(request.expectedBranch ? [`- Recorded branch: \`${request.expectedBranch}\``] : []),
+        t("components.runWorkspaceRecoverySurface.reissueBaseRefLine", {
+          defaultValue: "- Base ref (live branch): `{{baseRef}}`",
+          baseRef: request.baseRef,
+          interpolation: { escapeValue: false },
+        }),
+        ...(request.expectedBranch
+          ? [
+              t("components.runWorkspaceRecoverySurface.reissueRecordedBranchLine", {
+                defaultValue: "- Recorded branch: `{{expectedBranch}}`",
+                expectedBranch: request.expectedBranch,
+                interpolation: { escapeValue: false },
+              }),
+            ]
+          : []),
         "",
         "---",
         "",
         issue.description ?? "",
       ];
       return issuesApi.create(issue.companyId, {
-        title: `Re-issue (isolated): ${issue.title ?? sourceLabel}`,
+        title: t("components.runWorkspaceRecoverySurface.reissueTitle", {
+          defaultValue: "Re-issue (isolated): {{title}}",
+          title: issue.title ?? sourceLabel,
+          interpolation: { escapeValue: false },
+        }),
         description: descriptionLines.join("\n"),
         priority: issue.priority,
         projectId: issue.projectId ?? null,
@@ -158,10 +206,17 @@ export function RunWorkspaceRecoverySurface({ run }: { run: HeartbeatRun }) {
     onSuccess: (created) => {
       invalidate();
       pushToast({
-        title: "Isolated re-issue created",
+        title: t("components.runWorkspaceRecoverySurface.isolatedReissueCreatedTitle", {
+          defaultValue: "Isolated re-issue created",
+        }),
         body: created.identifier
-          ? `${created.identifier} will run on a fresh isolated workspace.`
-          : "A fresh isolated re-issue was created.",
+          ? t("components.runWorkspaceRecoverySurface.isolatedReissueCreatedBody", {
+              defaultValue: "{{identifier}} will run on a fresh isolated workspace.",
+              identifier: created.identifier,
+            })
+          : t("components.runWorkspaceRecoverySurface.isolatedReissueCreatedBodyFallback", {
+              defaultValue: "A fresh isolated re-issue was created.",
+            }),
         tone: "success",
       });
       if (created.identifier) {
@@ -170,8 +225,15 @@ export function RunWorkspaceRecoverySurface({ run }: { run: HeartbeatRun }) {
     },
     onError: (err) => {
       pushToast({
-        title: "Re-issue failed",
-        body: err instanceof Error ? err.message : "Unable to create an isolated re-issue.",
+        title: t("components.runWorkspaceRecoverySurface.reissueFailedTitle", {
+          defaultValue: "Re-issue failed",
+        }),
+        body:
+          err instanceof Error
+            ? err.message
+            : t("components.runWorkspaceRecoverySurface.reissueFailedBody", {
+                defaultValue: "Unable to create an isolated re-issue.",
+              }),
         tone: "error",
       });
     },
@@ -182,7 +244,12 @@ export function RunWorkspaceRecoverySurface({ run }: { run: HeartbeatRun }) {
       outcome: "restored" | "false_positive";
       sourceIssueStatus: "todo" | "done" | "in_review";
     }) => {
-      if (!issueId || !recoveryAction) throw new Error("No recovery action to resolve.");
+      if (!issueId || !recoveryAction)
+        throw new Error(
+          t("components.runWorkspaceRecoverySurface.noRecoveryActionError", {
+            defaultValue: "No recovery action to resolve.",
+          }),
+        );
       return issuesApi.resolveRecoveryAction(issueId, {
         actionId: recoveryAction.id,
         outcome: data.outcome,
@@ -194,8 +261,15 @@ export function RunWorkspaceRecoverySurface({ run }: { run: HeartbeatRun }) {
     },
     onError: (err) => {
       pushToast({
-        title: "Recovery resolution failed",
-        body: err instanceof Error ? err.message : "Unable to resolve recovery action",
+        title: t("components.runWorkspaceRecoverySurface.recoveryResolutionFailedTitle", {
+          defaultValue: "Recovery resolution failed",
+        }),
+        body:
+          err instanceof Error
+            ? err.message
+            : t("components.runWorkspaceRecoverySurface.recoveryResolutionFailedBody", {
+                defaultValue: "Unable to resolve recovery action",
+              }),
         tone: "error",
       });
     },
@@ -255,7 +329,9 @@ export function RunWorkspaceRecoverySurface({ run }: { run: HeartbeatRun }) {
   return (
     <div className="space-y-2" data-testid="run-workspace-recovery-surface">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium text-muted-foreground">Workspace recovery</span>
+        <span className="text-xs font-medium text-muted-foreground">
+          {t("components.runWorkspaceRecoverySurface.heading", { defaultValue: "Workspace recovery" })}
+        </span>
         {issue?.identifier ? (
           <a
             href={`/issues/${issue.identifier}`}

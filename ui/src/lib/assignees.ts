@@ -9,6 +9,12 @@ export interface AssigneeOption {
   searchText?: string;
 }
 
+type AssigneeDisplayLabels = {
+  me?: string;
+  you?: string;
+  board?: string;
+};
+
 interface CommentAssigneeSuggestionInput {
   assigneeAgentId?: string | null;
   assigneeUserId?: string | null;
@@ -62,11 +68,11 @@ export function parseAssigneeValue(value: string): AssigneeSelection {
   return { assigneeAgentId: value, assigneeUserId: null };
 }
 
-export function currentUserAssigneeOption(currentUserId: string | null | undefined): AssigneeOption[] {
+export function currentUserAssigneeOption(currentUserId: string | null | undefined, labels: AssigneeDisplayLabels = {}): AssigneeOption[] {
   if (!currentUserId) return [];
   return [{
     id: assigneeValueFromSelection({ assigneeUserId: currentUserId }),
-    label: "Me",
+    label: labels.me ?? "Me",
     searchText: currentUserId === "local-board" ? "me board human local-board" : `me human ${currentUserId}`,
   }];
 }
@@ -75,9 +81,10 @@ export function formatAssigneeUserLabel(
   userId: string | null | undefined,
   currentUserId: string | null | undefined,
   userLabels?: ReadonlyMap<string, string> | Record<string, string> | null,
+  labels: AssigneeDisplayLabels = {},
 ): string | null {
   if (!userId) return null;
-  if (currentUserId && userId === currentUserId) return "You";
+  if (currentUserId && userId === currentUserId) return labels.you ?? "You";
   return formatUserLabel(userId, userLabels);
 }
 

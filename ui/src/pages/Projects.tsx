@@ -6,6 +6,7 @@ import { useCompany } from "../context/CompanyContext";
 import { useDialogActions } from "../context/DialogContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { queryKeys } from "../lib/queryKeys";
+import { formatApiError } from "../lib/api-error";
 import { EntityRow } from "../components/EntityRow";
 import { ProjectTile } from "../components/ProjectTile";
 import { StatusBadge } from "../components/StatusBadge";
@@ -75,8 +76,10 @@ function sortProjects(projects: Project[], sortField: ProjectSortField, sortDir:
     return comparison;
   });
 }
+import { useTranslation } from "@/i18n";
 
 export function Projects() {
+  const { t } = useTranslation();
   const { selectedCompanyId } = useCompany();
   const { openNewProject } = useDialogActions();
   const { setBreadcrumbs } = useBreadcrumbs();
@@ -84,8 +87,8 @@ export function Projects() {
   const [sortDir, setSortDir] = useState<ProjectSortDir>("asc");
 
   useEffect(() => {
-    setBreadcrumbs([{ label: "Projects" }]);
-  }, [setBreadcrumbs]);
+    setBreadcrumbs([{ label: t("nav.projects", { defaultValue: "Projects" }) }]);
+  }, [setBreadcrumbs, t]);
 
   const { data: allProjects, isLoading, error } = useQuery({
     queryKey: queryKeys.projects.list(selectedCompanyId!),
@@ -119,7 +122,12 @@ export function Projects() {
   const sortLabel = PROJECT_SORT_OPTIONS.find((option) => option.field === sortField)?.label ?? "Name";
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={Hexagon} message="Select a company to view projects." />;
+    return (
+      <EmptyState
+        icon={Hexagon}
+        message={t("pages.projects.selectCompany", { defaultValue: "Select a company to view projects." })}
+      />
+    );
   }
 
   if (isLoading) {
@@ -170,17 +178,17 @@ export function Projects() {
         </Popover>
         <Button size="sm" variant="outline" onClick={openNewProject}>
           <Plus className="h-4 w-4 mr-1" />
-          Add Project
+          {t("pages.projects.addProject", { defaultValue: "Add Project" })}
         </Button>
       </div>
 
-      {error && <p className="text-sm text-destructive">{error.message}</p>}
+      {error && <p className="text-sm text-destructive">{formatApiError(error, t)}</p>}
 
       {!isLoading && projects.length === 0 && (
         <EmptyState
           icon={Hexagon}
-          message="No projects yet."
-          action="Add Project"
+          message={t("pages.projects.noProjects", { defaultValue: "No projects yet." })}
+          action={t("pages.projects.addProject", { defaultValue: "Add Project" })}
           onAction={openNewProject}
         />
       )}

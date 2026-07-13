@@ -1,5 +1,7 @@
 import { AlertTriangle, ExternalLink, Loader2, Lock, RefreshCw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { PipelineCaseLiveness } from "@paperclipai/shared";
+import { t } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/lib/router";
 import { cn } from "../lib/utils";
@@ -64,13 +66,23 @@ const TONE_PALETTES: Record<LivenessBannerTone, TonePalette> = {
 };
 
 function blockerLinkLabel(link: LivenessBannerLink): string {
-  if (link.identifier) return `Open ${link.identifier}`;
-  return "Open blocker";
+  if (link.identifier)
+    return t("components.pipelineLivenessBanner.openIdentifier", {
+      defaultValue: "Open {{identifier}}",
+      identifier: link.identifier,
+    });
+  return t("components.pipelineLivenessBanner.openBlocker", { defaultValue: "Open blocker" });
 }
 
 function automationLinkLabel(link: LivenessBannerLink): string {
-  if (link.identifier) return `Open ${link.identifier}`;
-  return "Open automation task";
+  if (link.identifier)
+    return t("components.pipelineLivenessBanner.openIdentifier", {
+      defaultValue: "Open {{identifier}}",
+      identifier: link.identifier,
+    });
+  return t("components.pipelineLivenessBanner.openAutomationTask", {
+    defaultValue: "Open automation task",
+  });
 }
 
 export function PipelineLivenessBanner({
@@ -84,6 +96,7 @@ export function PipelineLivenessBanner({
   retryPending?: boolean;
   retryError?: string | null;
 }) {
+  const { t } = useTranslation();
   const view = derivePipelineLivenessBanner(liveness);
   if (!view) return null;
 
@@ -115,11 +128,15 @@ export function PipelineLivenessBanner({
           <p className="text-sm opacity-85">{view.body}</p>
           {view.permissionKey ? (
             <p className="text-sm opacity-85">
-              Required permission:{" "}
+              {t("components.pipelineLivenessBanner.requiredPermissionLabel", {
+                defaultValue: "Required permission:",
+              })}{" "}
               <code className="rounded-sm bg-black/10 px-1 py-0.5 text-xs font-medium dark:bg-white/10">
                 {view.permissionKey}
               </code>{" "}
-              on the target pipeline.
+              {t("components.pipelineLivenessBanner.requiredPermissionSuffix", {
+                defaultValue: "on the target pipeline.",
+              })}
             </p>
           ) : null}
           {view.blockerLink || view.automationLink ? (
@@ -169,7 +186,9 @@ export function PipelineLivenessBanner({
           ) : (
             <RefreshCw className="mr-2 h-4 w-4" />
           )}
-          {retryPending ? "Retrying…" : view.retryLabel}
+          {retryPending
+            ? t("components.pipelineLivenessBanner.retrying", { defaultValue: "Retrying…" })
+            : view.retryLabel}
         </Button>
       ) : null}
     </section>

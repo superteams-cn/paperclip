@@ -3,6 +3,7 @@ import { Link, Navigate } from "@/lib/router";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { WorkspaceOverviewItem } from "@paperclipai/shared";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
 import { executionWorkspacesApi } from "../api/execution-workspaces";
 import { instanceSettingsApi } from "../api/instanceSettings";
 import { ProjectWorkspacesContent } from "../components/ProjectWorkspacesContent";
@@ -11,6 +12,7 @@ import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useCompany } from "../context/CompanyContext";
 import type { ProjectWorkspaceSummary } from "../lib/project-workspaces-tab";
 import { queryKeys } from "../lib/queryKeys";
+import { formatApiError } from "../lib/api-error";
 import { projectRouteRef } from "../lib/utils";
 
 type ProjectWorkspaceGroup = {
@@ -76,6 +78,7 @@ function buildProjectWorkspaceGroups(items: WorkspaceOverviewItem[]): ProjectWor
 }
 
 export function Workspaces() {
+  const { t } = useTranslation();
   const { selectedCompanyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
   const experimentalSettingsQuery = useQuery({
@@ -95,8 +98,8 @@ export function Workspaces() {
   });
 
   useEffect(() => {
-    setBreadcrumbs([{ label: "Workspaces" }]);
-  }, [setBreadcrumbs]);
+    setBreadcrumbs([{ label: t("nav.workspaces", { defaultValue: "Workspaces" }) }]);
+  }, [setBreadcrumbs, t]);
 
   const overviewPages = overviewQuery.data?.pages ?? [];
   const overviewItems = useMemo(
@@ -112,16 +115,18 @@ export function Workspaces() {
   if (experimentalSettingsQuery.isLoading) return <PageSkeleton variant="detail" />;
   if (!isolatedWorkspacesEnabled) return <Navigate to="/issues" replace />;
   if (dataLoading) return <PageSkeleton variant="list" />;
-  if (error) return <p className="text-sm text-destructive">{error.message}</p>;
+  if (error) return <p className="text-sm text-destructive">{formatApiError(error, t)}</p>;
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold">Workspaces</h2>
+        <h2 className="text-xl font-bold">{t("nav.workspaces", { defaultValue: "Workspaces" })}</h2>
       </div>
 
       {groups.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No workspace activity yet.</p>
+        <p className="text-sm text-muted-foreground">
+          {t("pages.workspaces.empty", { defaultValue: "No workspace activity yet." })}
+        </p>
       ) : (
         <div className="space-y-8">
           {groups.map((group) => (
@@ -136,7 +141,11 @@ export function Workspaces() {
                   </Link>
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {group.summaries.length} workspace{group.summaries.length === 1 ? "" : "s"}
+                  {t("pages.workspaces.workspaceCount", {
+                    defaultValue_one: "{{count}} workspace",
+                    defaultValue_other: "{{count}} workspaces",
+                    count: group.summaries.length,
+                  })}
                 </span>
               </div>
               <ProjectWorkspacesContent

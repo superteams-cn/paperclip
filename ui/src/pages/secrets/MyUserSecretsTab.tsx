@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CompanySecret } from "@paperclipai/shared";
 import { AlertCircle, KeyRound, Trash2, UserRound } from "lucide-react";
@@ -23,6 +24,7 @@ import {
  * "User secret definitions" tab.
  */
 export function MyUserSecretsTab({ companyId }: { companyId: string }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { pushToast } = useToastActions();
   const [dialogFor, setDialogFor] = useState<MyUserSecretEntry | null>(null);
@@ -37,11 +39,16 @@ export function MyUserSecretsTab({ companyId }: { companyId: string }) {
     mutationFn: (secret: CompanySecret) => secretsApi.removeMyUserSecret(companyId, secret.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.secrets.myUserSecrets(companyId) });
-      pushToast({ title: "Value cleared", tone: "info" });
+      pushToast({
+        title: t("pages.secrets.myUserSecretsTab.valueClearedToast", { defaultValue: "Value cleared" }),
+        tone: "info",
+      });
     },
     onError: (err) =>
       pushToast({
-        title: "Could not clear value",
+        title: t("pages.secrets.myUserSecretsTab.clearValueErrorToast", {
+          defaultValue: "Could not clear value",
+        }),
         body: err instanceof Error ? err.message : undefined,
         tone: "error",
       }),
@@ -56,13 +63,22 @@ export function MyUserSecretsTab({ companyId }: { companyId: string }) {
       <div className="flex items-start gap-2 rounded-md border border-violet-500/30 bg-violet-500/5 px-4 py-3 text-xs text-violet-800 dark:text-violet-200">
         <UserRound className="h-4 w-4 mt-0.5 shrink-0" />
         <p>
-          These are credentials only you provide. Each value is yours alone — used when you are the
-          user responsible for a run — and is never shown back to anyone, including admins.
+          {t("pages.secrets.myUserSecretsTab.intro", {
+            defaultValue:
+              "These are credentials only you provide. Each value is yours alone — used when you are the user responsible for a run — and is never shown back to anyone, including admins.",
+          })}
           {missingCount > 0 ? (
             <span className="font-medium">
               {" "}
-              {missingCount} required secret{missingCount === 1 ? " still needs" : "s still need"} your
-              value.
+              {missingCount === 1
+                ? t("pages.secrets.myUserSecretsTab.missingSecretsSingular", {
+                    defaultValue: "{{missingCount}} required secret still needs your value.",
+                    missingCount,
+                  })
+                : t("pages.secrets.myUserSecretsTab.missingSecretsPlural", {
+                    defaultValue: "{{missingCount}} required secrets still need your value.",
+                    missingCount,
+                  })}
             </span>
           ) : null}
         </p>
@@ -71,16 +87,20 @@ export function MyUserSecretsTab({ companyId }: { companyId: string }) {
       <div className="min-h-0 flex-1 overflow-y-auto">
         {mySecretsQuery.isError ? (
           <div className="flex items-center gap-2 py-4 text-sm text-destructive">
-            <AlertCircle className="h-4 w-4" /> Failed to load your secrets:{" "}
+            <AlertCircle className="h-4 w-4" />{" "}
+            {t("pages.secrets.myUserSecretsTab.loadError", { defaultValue: "Failed to load your secrets:" })}{" "}
             {(mySecretsQuery.error as Error).message}
             <Button variant="ghost" size="sm" onClick={() => mySecretsQuery.refetch()}>
-              Retry
+              {t("pages.secrets.myUserSecretsTab.retryButton", { defaultValue: "Retry" })}
             </Button>
           </div>
         ) : entries.length === 0 && !mySecretsQuery.isPending ? (
           <EmptyState
             icon={KeyRound}
-            message="No user secrets are defined for this company yet. An admin defines which credentials each member supplies."
+            message={t("pages.secrets.myUserSecretsTab.emptyState", {
+              defaultValue:
+                "No user secrets are defined for this company yet. An admin defines which credentials each member supplies.",
+            })}
           />
         ) : (
           <ul className="space-y-2">
@@ -121,6 +141,7 @@ function MyUserSecretRow({
   onClear: () => void;
   clearing: boolean;
 }) {
+  const { t } = useTranslation();
   const { definition, secret } = entry;
   const state = myValueState(definition, secret);
   const disabledDefinition = definition.status !== "active";
@@ -160,7 +181,9 @@ function MyUserSecretRow({
         </Badge>
         {!disabledDefinition ? (
           <Button size="sm" variant={secret ? "outline" : "default"} onClick={onSet}>
-            {secret ? "Update" : "Set value"}
+            {secret
+              ? t("pages.secrets.myUserSecretsTab.updateButton", { defaultValue: "Update" })
+              : t("pages.secrets.myUserSecretsTab.setValueButton", { defaultValue: "Set value" })}
           </Button>
         ) : null}
         {secret ? (
@@ -170,7 +193,7 @@ function MyUserSecretRow({
             className="text-muted-foreground hover:text-destructive"
             onClick={onClear}
             disabled={clearing}
-            title="Clear my value"
+            title={t("pages.secrets.myUserSecretsTab.clearValueTooltip", { defaultValue: "Clear my value" })}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>

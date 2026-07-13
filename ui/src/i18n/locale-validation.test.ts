@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { t } from ".";
+import { normalizeLocale, t } from ".";
 import en from "./locales/en.json";
-import { localeMessages } from "./locales";
+import { localeMessages, supportedLocales } from "./locales";
 import { validateLocaleMessages } from "./locale-validation";
 
 describe("locale validation", () => {
@@ -12,10 +12,18 @@ describe("locale validation", () => {
   });
 
   it("accepts registered locale files", () => {
-    expect(Object.keys(localeMessages)).toContain("en");
+    expect(supportedLocales).toEqual(["en", "zh-CN"]);
+    expect(Object.keys(localeMessages).sort()).toEqual(["en", "zh-CN"]);
     for (const [locale, messages] of Object.entries(localeMessages)) {
       expect(validateLocaleMessages(messages), locale).toEqual([]);
     }
+  });
+
+  it("normalizes supported English and Chinese browser language tags", () => {
+    expect(normalizeLocale("en-US")).toBe("en");
+    expect(normalizeLocale("zh-Hans-CN")).toBe("zh-CN");
+    expect(normalizeLocale("zh_TW")).toBe("zh-CN");
+    expect(normalizeLocale("fr-FR")).toBeNull();
   });
 
   it("rejects missing and extra nested keys", () => {
@@ -28,7 +36,7 @@ describe("locale validation", () => {
             unexpected: "Unexpected",
           },
         },
-      }),
+      }, { app: { noCompanies: en.app.noCompanies } }),
     ).toEqual(
       expect.arrayContaining([
         "app.noCompanies.newCompany is missing",
@@ -46,7 +54,7 @@ describe("locale validation", () => {
             title: ["Create your first company"],
           },
         },
-      }),
+      }, { app: { noCompanies: en.app.noCompanies } }),
     ).toEqual(expect.arrayContaining(["app.noCompanies.title must be a string"]));
   });
 

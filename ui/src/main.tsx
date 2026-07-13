@@ -4,6 +4,7 @@ import * as ReactDOM from "react-dom";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "@/lib/router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import "./i18n";
 import { App } from "./App";
 import { CompanyProvider, useCompany } from "./context/CompanyContext";
 import { LiveUpdatesProvider } from "./context/LiveUpdatesProvider";

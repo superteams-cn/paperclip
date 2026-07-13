@@ -7,6 +7,7 @@ import {
   type SearchableSelectOption,
 } from "@/components/SearchableSelect";
 import { Badge } from "@/components/ui/badge";
+import { t, useTranslation } from "@/i18n";
 import { normalizeSearchText } from "@/lib/searchable-select";
 import { cn } from "@/lib/utils";
 
@@ -107,7 +108,7 @@ function buildFolderGroup(
     options.push({
       key: `folder-up-${pathKey(currentPath)}`,
       value: folderValue(parentPath),
-      label: "Up one folder",
+      label: t("components.environmentVariablesEditor.secretPicker.upOneFolder", { defaultValue: "Up one folder" }),
       title: pathLabel(parentPath),
       searchText: pathLabel(parentPath),
       kind: "back",
@@ -119,7 +120,10 @@ function buildFolderGroup(
 
   return {
     id: "browse-secrets",
-    label: currentPath.length > 0 ? pathLabel(currentPath) : "Browse secrets",
+    label:
+      currentPath.length > 0
+        ? pathLabel(currentPath)
+        : t("components.environmentVariablesEditor.secretPicker.browseSecrets", { defaultValue: "Browse secrets" }),
     options,
   };
 }
@@ -154,6 +158,7 @@ export function SecretPicker({
   triggerClassName,
   disablePortal,
 }: SecretPickerProps) {
+  const { t } = useTranslation();
   const [currentPathKey, setCurrentPathKey] = useState("");
   const boundSecret = useMemo(
     () => secrets.find((secret) => secret.id === secretId) ?? null,
@@ -171,13 +176,19 @@ export function SecretPicker({
     if (boundMissing) {
       result.push({
         id: "current-missing",
-        label: "Current",
+        label: t("components.environmentVariablesEditor.secretPicker.current", { defaultValue: "Current" }),
         options: [
           {
             key: `missing-${secretId}`,
             value: secretId,
-            label: `Missing secret (${secretId.slice(0, 8)}…)`,
-            title: `Missing secret (${secretId})`,
+            label: t("components.environmentVariablesEditor.secretPicker.missingSecretShort", {
+              defaultValue: "Missing secret ({{id}}…)",
+              id: secretId.slice(0, 8),
+            }),
+            title: t("components.environmentVariablesEditor.secretPicker.missingSecretFull", {
+              defaultValue: "Missing secret ({{id}})",
+              id: secretId,
+            }),
             missing: true,
             disabled: true,
           },
@@ -191,7 +202,7 @@ export function SecretPicker({
     if (recent.length > 0) {
       result.push({
         id: "recently-used",
-        label: "Recently used",
+        label: t("components.environmentVariablesEditor.secretPicker.recentlyUsed", { defaultValue: "Recently used" }),
         options: recent.map((secret) => ({
           key: `recent-${secret.id}`,
           value: secret.id,
@@ -207,7 +218,9 @@ export function SecretPicker({
 
     result.push({
       id: "all-secrets",
-      label: recent.length > 0 ? "All secrets" : undefined,
+      label: recent.length > 0
+        ? t("components.environmentVariablesEditor.secretPicker.allSecrets", { defaultValue: "All secrets" })
+        : undefined,
       options: secrets.map((secret) => ({
         key: `all-${secret.id}`,
         value: secret.id,
@@ -253,9 +266,9 @@ export function SecretPicker({
       deriveGroups={deriveGroups}
       disabled={disabled}
       disablePortal={disablePortal}
-      placeholder="Select secret…"
-      searchPlaceholder="Search secrets…"
-      emptyMessage="No matching secrets"
+      placeholder={t("components.environmentVariablesEditor.secretPicker.selectPlaceholder", { defaultValue: "Select secret…" })}
+      searchPlaceholder={t("components.environmentVariablesEditor.secretPicker.searchPlaceholder", { defaultValue: "Search secrets…" })}
+      emptyMessage={t("components.environmentVariablesEditor.secretPicker.emptyMessage", { defaultValue: "No matching secrets" })}
       triggerClassName={cn(
         "h-(--sz-34px) min-h-(--sz-34px) font-mono text-sm",
         boundMissing && "border-destructive text-destructive",
@@ -264,7 +277,11 @@ export function SecretPicker({
       )}
       renderValue={(option) => {
         if (!option) {
-          return <span className="text-muted-foreground">Select secret…</span>;
+          return (
+            <span className="text-muted-foreground">
+              {t("components.environmentVariablesEditor.secretPicker.selectPlaceholder", { defaultValue: "Select secret…" })}
+            </span>
+          );
         }
         if (option.missing) {
           return (
@@ -323,10 +340,13 @@ export function SecretPicker({
             <Plus className="size-3.5 shrink-0" />
             {query.trim() ? (
               <span>
-                Create secret <span className="font-mono">&ldquo;{query.trim()}&rdquo;</span>…
+                {t("components.environmentVariablesEditor.secretPicker.createSecretNamed", { defaultValue: "Create secret" })}{" "}
+                <span className="font-mono">&ldquo;{query.trim()}&rdquo;</span>…
               </span>
             ) : (
-              <span>Create new secret…</span>
+              <span>
+                {t("components.environmentVariablesEditor.secretPicker.createNewSecret", { defaultValue: "Create new secret…" })}
+              </span>
             )}
           </span>
         ),

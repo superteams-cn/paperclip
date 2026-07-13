@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { TranscriptEntry } from "../../adapters";
 import type { ToolRunDecision } from "@paperclipai/shared";
 import { MarkdownBody, type MarkdownExternalReferenceMap } from "../MarkdownBody";
@@ -153,6 +154,22 @@ function truncate(value: string, max: number): string {
   return value.length > max ? `${value.slice(0, Math.max(0, max - 1))}…` : value;
 }
 
+interface TranscriptInputLabels {
+  inspectInput: (name: string) => string;
+  noInput: (name: string) => string;
+  pathsStartingWith: (count: number, path: string) => string;
+  payload: (key: string) => string;
+  fields: (count: number, keys: string) => string;
+}
+
+interface TranscriptResultLabels {
+  toolFailed: string;
+  waitingForResult: string;
+  completed: string;
+  failed: string;
+  failedWithExitCode: (exitCode: string) => string;
+}
+
 function humanizeLabel(value: string): string {
   return value
     .replace(/[_-]+/g, " ")
@@ -232,7 +249,12 @@ function mergeToolInput(previous: unknown, incoming: unknown): unknown {
   return incoming;
 }
 
-function summarizeToolInput(name: string, input: unknown, density: TranscriptDensity): string {
+function summarizeToolInput(
+  name: string,
+  input: unknown,
+  density: TranscriptDensity,
+  labels?: TranscriptInputLabels,
+): string {
   const compactMax = density === "compact" ? 72 : 120;
   if (typeof input === "string") {
     const normalized = isCommandTool(name, input) ? stripWrappedShell(input) : compactWhitespace(input);
@@ -241,7 +263,7 @@ function summarizeToolInput(name: string, input: unknown, density: TranscriptDen
   const record = asRecord(input);
   if (!record) {
     const serialized = compactWhitespace(formatUnknown(input));
-    return serialized ? truncate(serialized, compactMax) : `Inspect ${name} input`;
+    return serialized ? truncate(serialized, compactMax) : (labels?.inspectInput(name) ?? `Inspect ${name} input`);
   }
 
   const command = typeof record.command === "string"
@@ -262,14 +284,15 @@ function summarizeToolInput(name: string, input: unknown, density: TranscriptDen
   if (Array.isArray(record.paths) && record.paths.length > 0) {
     const first = record.paths.find((value): value is string => typeof value === "string" && value.trim().length > 0);
     if (first) {
-      return truncate(`${record.paths.length} paths, starting with ${first}`, compactMax);
+      return truncate(labels?.pathsStartingWith(record.paths.length, first) ?? `${record.paths.length} paths, starting with ${first}`, compactMax);
     }
   }
 
   const keys = Object.keys(record);
-  if (keys.length === 0) return `No ${name} input`;
-  if (keys.length === 1) return truncate(`${keys[0]} payload`, compactMax);
-  return truncate(`${keys.length} fields: ${keys.slice(0, 3).join(", ")}`, compactMax);
+  if (keys.length === 0) return labels?.noInput(name) ?? `No ${name} input`;
+  if (keys.length === 1) return truncate(labels?.payload(keys[0]) ?? `${keys[0]} payload`, compactMax);
+  const firstKeys = keys.slice(0, 3).join(", ");
+  return truncate(labels?.fields(keys.length, firstKeys) ?? `${keys.length} fields: ${firstKeys}`, compactMax);
 }
 
 function parseStructuredToolResult(result: string | undefined) {
@@ -315,16 +338,23 @@ function displayToolName(name: string, input: unknown): string {
   return humanizeLabel(name);
 }
 
-function summarizeToolResult(result: string | undefined, isError: boolean | undefined, density: TranscriptDensity): string {
-  if (!result) return isError ? "Tool failed" : "Waiting for result";
+function summarizeToolResult(
+  result: string | undefined,
+  isError: boolean | undefined,
+  density: TranscriptDensity,
+  labels?: TranscriptResultLabels,
+): string {
+  if (!result) return isError ? (labels?.toolFailed ?? "Tool failed") : (labels?.waitingForResult ?? "Waiting for result");
   const structured = parseStructuredToolResult(result);
   if (structured) {
     if (structured.body) {
       return truncate(structured.body.split("\n")[0] ?? structured.body, density === "compact" ? 84 : 140);
     }
-    if (structured.status === "completed") return "Completed";
+    if (structured.status === "completed") return labels?.completed ?? "Completed";
     if (structured.status === "failed" || structured.status === "error") {
-      return structured.exitCode ? `Failed with exit code ${structured.exitCode}` : "Failed";
+      return structured.exitCode
+        ? (labels?.failedWithExitCode(structured.exitCode) ?? `Failed with exit code ${structured.exitCode}`)
+        : (labels?.failed ?? "Failed");
     }
   }
   const lines = result
@@ -769,6 +799,7 @@ function TranscriptMessageBlock({
   density: TranscriptDensity;
   externalReferences?: MarkdownExternalReferenceMap;
 }) {
+  const { t } = useTranslation();
   const isAssistant = block.role === "assistant";
   const compact = density === "compact";
 
@@ -777,7 +808,7 @@ function TranscriptMessageBlock({
       {!isAssistant && (
         <div className="mb-1.5 flex items-center gap-2 text-(length:--text-micro) font-semibold uppercase tracking-(--tracking-caps) text-muted-foreground">
           <User className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
-          <span>User</span>
+          <span>{t("common.user")}</span>
         </div>
       )}
       <MarkdownBody
@@ -795,7 +826,7 @@ function TranscriptMessageBlock({
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-70" />
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-current" />
           </span>
-          Streaming
+          {t("components.runTranscript.streaming")}
         </div>
       )}
     </div>
@@ -889,15 +920,30 @@ function TranscriptToolCard({
   density: TranscriptDensity;
   decision: ToolRunDecision | null;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(block.status === "error" || Boolean(decision?.pendingAction || decision?.denialReason));
   const compact = density === "compact";
   const parsedResult = parseStructuredToolResult(block.result);
+  const inputLabels: TranscriptInputLabels = {
+    inspectInput: (name) => t("components.runTranscript.summaries.inspectInput", { name }),
+    noInput: (name) => t("components.runTranscript.summaries.noInput", { name }),
+    pathsStartingWith: (count, path) => t("components.runTranscript.summaries.pathsStartingWith", { count, path }),
+    payload: (key) => t("components.runTranscript.summaries.payload", { key }),
+    fields: (count, fields) => t("components.runTranscript.summaries.fields", { count, fields }),
+  };
+  const resultLabels: TranscriptResultLabels = {
+    toolFailed: t("components.runTranscript.summaries.toolFailed"),
+    waitingForResult: t("components.runTranscript.summaries.waitingForResult"),
+    completed: t("components.runTranscript.summaries.completed"),
+    failed: t("components.runTranscript.summaries.failed"),
+    failedWithExitCode: (exitCode) => t("components.runTranscript.summaries.failedWithExitCode", { exitCode }),
+  };
   const statusLabel =
     block.status === "running"
-      ? "Running"
+      ? t("components.runTranscript.status.running")
       : block.status === "error"
-        ? "Errored"
-        : "Completed";
+        ? t("components.runTranscript.status.errored")
+        : t("components.runTranscript.status.completed");
   const statusTone =
     block.status === "running"
       ? "text-blue-700 dark:text-blue-300"
@@ -917,10 +963,10 @@ function TranscriptToolCard({
         : "text-blue-600 dark:text-blue-300",
   );
   const summary = block.status === "running"
-    ? summarizeToolInput(block.name, block.input, density)
+    ? summarizeToolInput(block.name, block.input, density, inputLabels)
     : block.status === "completed" && parsedResult?.body
       ? truncate(parsedResult.body.split("\n")[0] ?? parsedResult.body, compact ? 84 : 140)
-      : summarizeToolResult(block.result, block.isError, density);
+      : summarizeToolResult(block.result, block.isError, density, resultLabels);
 
   return (
     <div className={cn(block.status === "error" && "rounded-xl border border-red-500/20 bg-red-500/[0.04] p-3")}>
@@ -951,7 +997,7 @@ function TranscriptToolCard({
           type="button"
           className="mt-0.5 inline-flex h-5 w-5 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
           onClick={() => setOpen((value) => !value)}
-          aria-label={open ? "Collapse tool details" : "Expand tool details"}
+          aria-label={open ? t("components.runTranscript.collapseTool") : t("components.runTranscript.expandTool")}
         >
           {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </button>
@@ -962,7 +1008,7 @@ function TranscriptToolCard({
             <div className={cn("grid gap-3", compact ? "grid-cols-1" : "lg:grid-cols-2")}>
               <div>
                 <div className="mb-1 text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-caps) text-muted-foreground">
-                  Input
+                  {t("components.runTranscript.input")}
                 </div>
                 <pre className="overflow-x-auto whitespace-pre-wrap break-words font-mono text-(length:--text-micro) text-foreground/80">
                   {formatToolPayload(block.input) || "<empty>"}
@@ -970,13 +1016,13 @@ function TranscriptToolCard({
               </div>
               <div>
                 <div className="mb-1 text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-caps) text-muted-foreground">
-                  Result
+                  {t("components.runTranscript.result")}
                 </div>
                 <pre className={cn(
                   "overflow-x-auto whitespace-pre-wrap break-words font-mono text-(length:--text-micro)",
                   block.status === "error" ? "text-red-700 dark:text-red-300" : "text-foreground/80",
                 )}>
-                  {block.result ? formatToolPayload(block.result) : "Waiting for result..."}
+                  {block.result ? formatToolPayload(block.result) : t("components.runTranscript.waitingForResult")}
                 </pre>
               </div>
             </div>
@@ -1002,8 +1048,16 @@ function TranscriptCommandGroup({
   density: TranscriptDensity;
   toolDecisionMaps: ToolDecisionMaps;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const compact = density === "compact";
+  const inputLabels: TranscriptInputLabels = {
+    inspectInput: (name) => t("components.runTranscript.summaries.inspectInput", { name }),
+    noInput: (name) => t("components.runTranscript.summaries.noInput", { name }),
+    pathsStartingWith: (count, path) => t("components.runTranscript.summaries.pathsStartingWith", { count, path }),
+    payload: (key) => t("components.runTranscript.summaries.payload", { key }),
+    fields: (count, fields) => t("components.runTranscript.summaries.fields", { count, fields }),
+  };
   const runningItem = [...block.items].reverse().find((item) => item.status === "running");
   const latestItem = block.items[block.items.length - 1] ?? null;
   const highlightedDecision =
@@ -1016,12 +1070,12 @@ function TranscriptCommandGroup({
   const isRunning = Boolean(runningItem);
   const showExpandedErrorState = open && hasError;
   const title = isRunning
-    ? "Executing command"
+    ? t("components.runTranscript.executingCommand")
     : block.items.length === 1
-      ? "Executed command"
-      : `Executed ${block.items.length} commands`;
+      ? t("components.runTranscript.executedCommand")
+      : t("components.runTranscript.executedCommands", { count: block.items.length });
   const subtitle = runningItem
-    ? summarizeToolInput("command_execution", runningItem.input, density)
+    ? summarizeToolInput("command_execution", runningItem.input, density, inputLabels)
     : null;
   const statusTone = isRunning
       ? "text-blue-700 dark:text-blue-300"
@@ -1078,7 +1132,7 @@ function TranscriptCommandGroup({
           )}
           {!subtitle && latestItem?.status === "error" && open && (
             <div className={cn("mt-1", compact ? "text-xs" : "text-sm", statusTone)}>
-              Command failed
+              {t("components.runTranscript.commandFailed")}
             </div>
           )}
         </div>
@@ -1092,7 +1146,7 @@ function TranscriptCommandGroup({
             event.stopPropagation();
             setOpen((value) => !value);
           }}
-          aria-label={open ? "Collapse command details" : "Expand command details"}
+          aria-label={open ? t("components.runTranscript.collapseCommand") : t("components.runTranscript.expandCommand")}
         >
           {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </button>
@@ -1113,7 +1167,7 @@ function TranscriptCommandGroup({
                   <TerminalSquare className="h-3 w-3" />
                 </span>
                 <span className={cn("font-mono break-all", compact ? "text-(length:--text-micro)" : "text-xs")}>
-                  {summarizeToolInput("command_execution", item.input, density)}
+                  {summarizeToolInput("command_execution", item.input, density, inputLabels)}
                 </span>
               </div>
               {item.result && (
@@ -1142,8 +1196,16 @@ function TranscriptToolGroup({
   density: TranscriptDensity;
   toolDecisionMaps: ToolDecisionMaps;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const compact = density === "compact";
+  const inputLabels: TranscriptInputLabels = {
+    inspectInput: (name) => t("components.runTranscript.summaries.inspectInput", { name }),
+    noInput: (name) => t("components.runTranscript.summaries.noInput", { name }),
+    pathsStartingWith: (count, path) => t("components.runTranscript.summaries.pathsStartingWith", { count, path }),
+    payload: (key) => t("components.runTranscript.summaries.payload", { key }),
+    fields: (count, fields) => t("components.runTranscript.summaries.fields", { count, fields }),
+  };
   const runningItem = [...block.items].reverse().find((item) => item.status === "running");
   const hasError = block.items.some((item) => item.status === "error");
   const isRunning = Boolean(runningItem);
@@ -1157,14 +1219,14 @@ function TranscriptToolGroup({
   const toolLabel =
     uniqueNames.length === 1
       ? humanizeLabel(uniqueNames[0])
-      : `${uniqueNames.length} tools`;
+      : t("components.runTranscript.tools", { count: uniqueNames.length });
   const title = isRunning
-    ? `Using ${toolLabel}`
+    ? t("components.runTranscript.usingTool", { tool: toolLabel })
     : block.items.length === 1
-      ? `Used ${toolLabel}`
-      : `Used ${toolLabel} (${block.items.length} calls)`;
+      ? t("components.runTranscript.usedTool", { tool: toolLabel })
+      : t("components.runTranscript.usedToolCalls", { tool: toolLabel, count: block.items.length });
   const subtitle = runningItem
-    ? summarizeToolInput(runningItem.name, runningItem.input, density)
+    ? summarizeToolInput(runningItem.name, runningItem.input, density, inputLabels)
     : null;
   const statusTone = isRunning
     ? "text-blue-700 dark:text-blue-300"
@@ -1222,7 +1284,7 @@ function TranscriptToolGroup({
           type="button"
           className={cn("inline-flex h-5 w-5 items-center justify-center text-muted-foreground transition-colors hover:text-foreground", subtitle && "mt-0.5")}
           onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-          aria-label={open ? "Collapse tool details" : "Expand tool details"}
+          aria-label={open ? t("components.runTranscript.collapseTool") : t("components.runTranscript.expandTool")}
         >
           {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </button>
@@ -1251,20 +1313,24 @@ function TranscriptToolGroup({
                   : item.status === "error" ? "text-red-700 dark:text-red-300"
                   : "text-emerald-700 dark:text-emerald-300"
                 )}>
-                  {item.status === "running" ? "Running" : item.status === "error" ? "Errored" : "Completed"}
+                  {item.status === "running"
+                    ? t("components.runTranscript.status.running")
+                    : item.status === "error"
+                      ? t("components.runTranscript.status.errored")
+                      : t("components.runTranscript.status.completed")}
                 </span>
                 <ToolDecisionBadge decision={findToolDecision(toolDecisionMaps, item)} />
               </div>
               <div className={cn("grid gap-2 pl-7", compact ? "grid-cols-1" : "lg:grid-cols-2")}>
                 <div>
-                  <div className="mb-0.5 text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-caps) text-muted-foreground">Input</div>
+                  <div className="mb-0.5 text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-caps) text-muted-foreground">{t("components.runTranscript.input")}</div>
                   <pre className="overflow-x-auto whitespace-pre-wrap break-words font-mono text-(length:--text-micro) text-foreground/80">
                     {formatToolPayload(item.input) || "<empty>"}
                   </pre>
                 </div>
                 {item.result && (
                   <div>
-                    <div className="mb-0.5 text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-caps) text-muted-foreground">Result</div>
+                    <div className="mb-0.5 text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-caps) text-muted-foreground">{t("components.runTranscript.result")}</div>
                     <pre className={cn(
                       "overflow-x-auto whitespace-pre-wrap break-words font-mono text-(length:--text-micro)",
                       item.status === "error" ? "text-red-700 dark:text-red-300" : "text-foreground/80",
@@ -1321,7 +1387,13 @@ function TranscriptEventRow({
   density: TranscriptDensity;
   externalReferences?: MarkdownExternalReferenceMap;
 }) {
+  const { t } = useTranslation();
   const compact = density === "compact";
+  const text = block.label === "result" && block.text === "Completed"
+    ? t("components.runTranscript.summaries.completed")
+    : block.label === "result" && block.text === "Run failed"
+      ? t("components.runTranscript.summaries.runFailed")
+      : block.text;
   const toneClasses =
     block.tone === "error"
       ? "rounded-xl border border-red-500/20 bg-red-500/[0.06] p-3 text-red-700 dark:text-red-300"
@@ -1350,14 +1422,14 @@ function TranscriptEventRow({
               )}
               externalReferences={externalReferences}
             >
-              {block.text}
+              {text}
             </MarkdownBody>
           ) : (
             <div className={cn("whitespace-pre-wrap break-words", compact ? "text-(length:--text-micro)" : "text-xs")}>
               <span className="text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-label) text-muted-foreground/70">
                 {block.label}
               </span>
-              {block.text ? <span className="ml-2">{block.text}</span> : null}
+              {text ? <span className="ml-2">{text}</span> : null}
             </div>
           )}
           {block.detail && (
@@ -1475,6 +1547,7 @@ function TranscriptStderrGroup({
   block: Extract<TranscriptBlock, { type: "stderr_group" }>;
   density: TranscriptDensity;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const compact = density === "compact";
   return (
@@ -1487,7 +1560,7 @@ function TranscriptStderrGroup({
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen((v) => !v); } }}
       >
         <span className={cn("text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-eyebrow)")}>
-          {block.lines.length} log {block.lines.length === 1 ? "line" : "lines"}
+          {t("components.runTranscript.logLines", { count: block.lines.length })}
         </span>
         {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
       </div>
@@ -1512,6 +1585,7 @@ function TranscriptSystemGroup({
   block: Extract<TranscriptBlock, { type: "system_group" }>;
   density: TranscriptDensity;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   return (
     <div className="rounded-xl border border-blue-500/20 bg-blue-500/[0.04] p-2 text-blue-700 dark:text-blue-300">
@@ -1524,7 +1598,7 @@ function TranscriptSystemGroup({
       >
         <TerminalSquare className="h-3.5 w-3.5 shrink-0" />
         <span className="text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-eyebrow)">
-          {block.lines.length} system {block.lines.length === 1 ? "message" : "messages"}
+          {t("components.runTranscript.systemMessages", { count: block.lines.length })}
         </span>
         {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
       </div>
@@ -1551,6 +1625,7 @@ function TranscriptStdoutRow({
   density: TranscriptDensity;
   collapseByDefault: boolean;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(!collapseByDefault);
 
   return (
@@ -1563,7 +1638,7 @@ function TranscriptStdoutRow({
           type="button"
           className="inline-flex h-5 w-5 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
           onClick={() => setOpen((value) => !value)}
-          aria-label={open ? "Collapse stdout" : "Expand stdout"}
+          aria-label={open ? t("components.runTranscript.collapseStdout") : t("components.runTranscript.expandStdout")}
         >
           {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </button>
@@ -1699,12 +1774,14 @@ export function RunTranscriptView({
   limit,
   streaming = false,
   collapseStdout = false,
-  emptyMessage = "No transcript yet.",
+  emptyMessage,
   className,
   thinkingClassName,
   externalReferences,
 }: RunTranscriptViewProps) {
   const toolDecisionMaps = useMemo(() => buildToolDecisionMaps(toolDecisions), [toolDecisions]);
+  const { t } = useTranslation();
+  const resolvedEmptyMessage = emptyMessage ?? t("components.runTranscript.empty");
   const blocks = useMemo(
     () => (mode === "raw" ? [] : normalizeTranscript(entries, streaming)),
     [entries, mode, streaming],
@@ -1715,7 +1792,7 @@ export function RunTranscriptView({
   if (entries.length === 0) {
     return (
       <div className={cn("rounded-2xl border border-dashed border-border/70 bg-background/40 p-4 text-sm text-muted-foreground", className)}>
-        {emptyMessage}
+        {resolvedEmptyMessage}
       </div>
     );
   }

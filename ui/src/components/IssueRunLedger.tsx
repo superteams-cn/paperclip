@@ -2,6 +2,8 @@ import { useMemo, useState, type ReactNode } from "react";
 import type { ActivityEvent, Issue, Agent } from "@paperclipai/shared";
 import { isResponsibleUserDenialCode, responsibleUserLabel } from "@paperclipai/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import { Link } from "@/lib/router";
 import { accessApi, type CurrentBoardAccess } from "../api/access";
 import { activityApi, type RunForIssue, type RunLivenessState } from "../api/activity";
@@ -15,6 +17,7 @@ import {
 import { useToastActions } from "../context/ToastContext";
 import { cn, relativeTime } from "../lib/utils";
 import { queryKeys } from "../lib/queryKeys";
+import { formatApiError } from "../lib/api-error";
 import { keepPreviousDataForSameQueryTail } from "../lib/query-placeholder-data";
 import { describeRunRetryState } from "../lib/runRetryState";
 import { readSourceResolvedWatchdogFold } from "../lib/source-resolved-watchdog-fold";
@@ -156,6 +159,10 @@ const RUN_OUTPUT_SILENCE_COPY: Partial<Record<RunOutputSilenceLevel, RunOutputSi
   },
 };
 
+function outputSilenceLabel(level: RunOutputSilenceLevel, fallback: string, t: TFunction) {
+  return t(`pages.issues.runLedger.outputSilence.${level}`, { defaultValue: fallback });
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
@@ -196,11 +203,29 @@ function modelProfileBadgeTone(summary: ModelProfileSummary) {
   return "border-border bg-background text-muted-foreground";
 }
 
-function modelProfileTitle(summary: ModelProfileSummary) {
-  const lines = [`Requested: ${summary.requested}`];
-  if (summary.applied) lines.push(`Applied: ${summary.applied}`);
-  if (summary.configSource) lines.push(`Source: ${summary.configSource}`);
-  if (summary.fallbackReason) lines.push(`Fallback: ${summary.fallbackReason}`);
+function modelProfileTitle(summary: ModelProfileSummary, t: TFunction) {
+  const lines = [t("pages.issues.runLedger.modelProfile.requested", {
+    defaultValue: "Requested: {{profile}}",
+    profile: summary.requested,
+  })];
+  if (summary.applied) {
+    lines.push(t("pages.issues.runLedger.modelProfile.applied", {
+      defaultValue: "Applied: {{profile}}",
+      profile: summary.applied,
+    }));
+  }
+  if (summary.configSource) {
+    lines.push(t("pages.issues.runLedger.modelProfile.source", {
+      defaultValue: "Source: {{source}}",
+      source: summary.configSource,
+    }));
+  }
+  if (summary.fallbackReason) {
+    lines.push(t("pages.issues.runLedger.modelProfile.fallback", {
+      defaultValue: "Fallback: {{reason}}",
+      reason: summary.fallbackReason,
+    }));
+  }
   return lines.join("\n");
 }
 
@@ -284,74 +309,131 @@ function mergeRuns(
   });
 }
 
-function statusLabel(status: string) {
+function defaultStatusLabel(status: string) {
   return status.replace(/_/g, " ");
+}
+
+function statusLabel(status: string, t: TFunction) {
+  return t(`labels.status.${status}`, { defaultValue: defaultStatusLabel(status) });
 }
 
 function isActiveRun(run: Pick<LedgerRun, "status" | "isLive">) {
   return run.isLive || ACTIVE_RUN_STATUSES.has(run.status);
 }
 
-function runSummary(run: LedgerRun, agentMap: ReadonlyMap<string, Pick<Agent, "name">>) {
+function runSummary(run: LedgerRun, agentMap: ReadonlyMap<string, Pick<Agent, "name">>, t: TFunction) {
   const agentName = compactAgentName(run, agentMap);
-  if (run.status === "running") return `Running now by ${agentName}`;
-  if (run.status === "queued") return `Queued for ${agentName}`;
-  if (run.status === "scheduled_retry") return `Automatic retry scheduled for ${agentName}`;
-  return `${statusLabel(run.status)} by ${agentName}`;
+  if (run.status === "running") {
+    return t("pages.issues.runLedger.summary.runningNow", {
+      defaultValue: "Running now by {{agent}}",
+      agent: agentName,
+    });
+  }
+  if (run.status === "queued") {
+    return t("pages.issues.runLedger.summary.queuedFor", {
+      defaultValue: "Queued for {{agent}}",
+      agent: agentName,
+    });
+  }
+  if (run.status === "scheduled_retry") {
+    return t("pages.issues.runLedger.summary.automaticRetryFor", {
+      defaultValue: "Automatic retry scheduled for {{agent}}",
+      agent: agentName,
+    });
+  }
+  return t("pages.issues.runLedger.summary.statusByAgent", {
+    defaultValue: "{{status}} by {{agent}}",
+    status: statusLabel(run.status, t),
+    agent: agentName,
+  });
 }
 
-function livenessCopyForRun(run: LedgerRun) {
-  if (run.status === "scheduled_retry") return RETRY_PENDING_LIVENESS_COPY;
-  if (run.livenessState) return LIVENESS_COPY[run.livenessState];
-  return isActiveRun(run) ? PENDING_LIVENESS_COPY : MISSING_LIVENESS_COPY;
+function translateLivenessCopy(key: string, copy: LivenessCopy, t: TFunction): LivenessCopy {
+  return {
+    ...copy,
+    label: t(`pages.issues.runLedger.liveness.${key}.label`, { defaultValue: copy.label }),
+    description: t(`pages.issues.runLedger.liveness.${key}.description`, { defaultValue: copy.description }),
+  };
 }
 
-function stopReasonLabel(run: RunForIssue) {
+function livenessCopyForRun(run: LedgerRun, t: TFunction) {
+  if (run.status === "scheduled_retry") {
+    return translateLivenessCopy("retryPending", RETRY_PENDING_LIVENESS_COPY, t);
+  }
+  if (run.livenessState) return translateLivenessCopy(run.livenessState, LIVENESS_COPY[run.livenessState], t);
+  return isActiveRun(run)
+    ? translateLivenessCopy("pending", PENDING_LIVENESS_COPY, t)
+    : translateLivenessCopy("missing", MISSING_LIVENESS_COPY, t);
+}
+
+function stopReasonLabel(run: RunForIssue, t: TFunction) {
   const result = asRecord(run.resultJson);
   const stopReason = readString(result?.stopReason);
   const timeoutFired = result?.timeoutFired === true;
   const effectiveTimeoutSec = readNumber(result?.effectiveTimeoutSec);
   const timeoutText =
-    effectiveTimeoutSec && effectiveTimeoutSec > 0 ? `${effectiveTimeoutSec}s timeout` : null;
+    effectiveTimeoutSec && effectiveTimeoutSec > 0
+      ? t("pages.issues.runLedger.stopReasons.timeoutSeconds", {
+        defaultValue: "{{seconds}}s timeout",
+        seconds: effectiveTimeoutSec,
+      })
+      : null;
 
   if (timeoutFired || stopReason === "timeout") {
-    return timeoutText ? `timeout (${timeoutText})` : "timeout";
+    return timeoutText
+      ? t("pages.issues.runLedger.stopReasons.timeoutWithLimit", {
+        defaultValue: "timeout ({{limit}})",
+        limit: timeoutText,
+      })
+      : t("pages.issues.runLedger.stopReasons.timeout", { defaultValue: "timeout" });
   }
-  if (stopReason === "max_turns_exhausted" || stopReason === "turn_limit_exhausted") return "max turns exhausted";
-  if (stopReason === "budget_paused") return "budget paused";
-  if (stopReason === "cancelled") return "cancelled";
-  if (stopReason === "paused") return "paused by board";
-  if (stopReason === "process_lost") return "process lost";
-  if (stopReason === "unmanaged_background_task_stopped") return "unmanaged background task stopped";
-  if (stopReason === "adapter_failed") return "adapter failed";
-  if (stopReason === "completed") return timeoutText ? `completed (${timeoutText})` : "completed";
+  if (stopReason === "max_turns_exhausted" || stopReason === "turn_limit_exhausted") {
+    return t("pages.issues.runLedger.stopReasons.maxTurnsExhausted", { defaultValue: "max turns exhausted" });
+  }
+  if (stopReason === "budget_paused") return t("pages.issues.runLedger.stopReasons.budgetPaused", { defaultValue: "budget paused" });
+  if (stopReason === "cancelled") return t("pages.issues.runLedger.stopReasons.cancelled", { defaultValue: "cancelled" });
+  if (stopReason === "paused") return t("pages.issues.runLedger.stopReasons.pausedByBoard", { defaultValue: "paused by board" });
+  if (stopReason === "process_lost") return t("pages.issues.runLedger.stopReasons.processLost", { defaultValue: "process lost" });
+  if (stopReason === "unmanaged_background_task_stopped") return t("pages.issues.runLedger.stopReasons.unmanagedBackgroundTaskStopped", { defaultValue: "unmanaged background task stopped" });
+  if (stopReason === "adapter_failed") return t("pages.issues.runLedger.stopReasons.adapterFailed", { defaultValue: "adapter failed" });
+  if (stopReason === "completed") {
+    return timeoutText
+      ? t("pages.issues.runLedger.stopReasons.completedWithLimit", {
+        defaultValue: "completed ({{limit}})",
+        limit: timeoutText,
+      })
+      : t("labels.status.completed", { defaultValue: "completed" });
+  }
   return timeoutText;
 }
 
-function stopStatusLabel(run: LedgerRun, stopReason: string | null) {
+function stopStatusLabel(run: LedgerRun, stopReason: string | null, t: TFunction) {
   if (stopReason) return stopReason;
-  if (run.status === "scheduled_retry") return "Retry pending";
-  if (run.status === "queued") return "Waiting to start";
-  if (run.status === "running") return "Still running";
-  if (!run.livenessState) return "Unavailable";
-  return "No stop reason";
+  if (run.status === "scheduled_retry") return t("pages.issues.runLedger.stopStatus.retryPending", { defaultValue: "Retry pending" });
+  if (run.status === "queued") return t("pages.issues.runLedger.stopStatus.waitingToStart", { defaultValue: "Waiting to start" });
+  if (run.status === "running") return t("pages.issues.runLedger.stopStatus.stillRunning", { defaultValue: "Still running" });
+  if (!run.livenessState) return t("common.unavailable", { defaultValue: "Unavailable" });
+  return t("pages.issues.runLedger.stopStatus.noStopReason", { defaultValue: "No stop reason" });
 }
 
-function lastUsefulActionLabel(run: LedgerRun) {
-  if (run.status === "scheduled_retry") return "Waiting for next attempt";
+function lastUsefulActionLabel(run: LedgerRun, t: TFunction) {
+  if (run.status === "scheduled_retry") return t("pages.issues.runLedger.lastAction.waitingForNextAttempt", { defaultValue: "Waiting for next attempt" });
   if (run.lastUsefulActionAt) return relativeTime(run.lastUsefulActionAt);
-  if (isActiveRun(run)) return "No action recorded yet";
+  if (isActiveRun(run)) return t("pages.issues.runLedger.lastAction.noActionRecordedYet", { defaultValue: "No action recorded yet" });
   if (run.livenessState === "plan_only" || run.livenessState === "needs_followup") {
-    return "No concrete action";
+    return t("pages.issues.runLedger.lastAction.noConcreteAction", { defaultValue: "No concrete action" });
   }
-  if (run.livenessState === "empty_response") return "No useful output";
-  if (!run.livenessState) return "Unavailable";
-  return "None recorded";
+  if (run.livenessState === "empty_response") return t("pages.issues.runLedger.lastAction.noUsefulOutput", { defaultValue: "No useful output" });
+  if (!run.livenessState) return t("common.unavailable", { defaultValue: "Unavailable" });
+  return t("pages.issues.runLedger.lastAction.noneRecorded", { defaultValue: "None recorded" });
 }
 
-function continuationLabel(run: LedgerRun) {
+function continuationLabel(run: LedgerRun, t: TFunction) {
   if (!run.continuationAttempt || run.continuationAttempt <= 0) return null;
-  return `Continuation attempt ${run.continuationAttempt}`;
+  return t("pages.issues.runLedger.continuationAttempt", {
+    defaultValue: "Continuation attempt {{attempt}}",
+    attempt: run.continuationAttempt,
+  });
 }
 
 function hasExhaustedContinuation(run: RunForIssue) {
@@ -369,15 +451,31 @@ function compactAgentName(run: LedgerRun, agentMap: ReadonlyMap<string, Pick<Age
   return run.agentName ?? agentMap.get(run.agentId)?.name ?? run.agentId.slice(0, 8);
 }
 
-function formatSilenceAge(ms: number | null | undefined) {
+function formatSilenceAge(ms: number | null | undefined, t: TFunction) {
   if (!ms || ms <= 0) return null;
   const totalMinutes = Math.floor(ms / 60_000);
-  if (totalMinutes < 1) return "under 1 minute";
-  if (totalMinutes < 60) return `${totalMinutes} minute${totalMinutes === 1 ? "" : "s"}`;
+  if (totalMinutes < 1) return t("pages.issues.runLedger.silence.underOneMinute", { defaultValue: "under 1 minute" });
+  if (totalMinutes < 60) {
+    return t("pages.issues.runLedger.silence.minutes", {
+      defaultValue_one: "{{count}} minute",
+      defaultValue_other: "{{count}} minutes",
+      count: totalMinutes,
+    });
+  }
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  if (minutes === 0) return `${hours} hour${hours === 1 ? "" : "s"}`;
-  return `${hours}h ${minutes}m`;
+  if (minutes === 0) {
+    return t("pages.issues.runLedger.silence.hours", {
+      defaultValue_one: "{{count}} hour",
+      defaultValue_other: "{{count}} hours",
+      count: hours,
+    });
+  }
+  return t("pages.issues.runLedger.silence.hoursMinutes", {
+    defaultValue: "{{hours}}h {{minutes}}m",
+    hours,
+    minutes,
+  });
 }
 
 function canBoardRecordWatchdogDecision(
@@ -394,13 +492,15 @@ function canBoardRecordWatchdogDecision(
   return membership.membershipRole !== "viewer" && membership.membershipRole !== null;
 }
 
-function watchdogDecisionErrorMessage(error: unknown) {
+function watchdogDecisionErrorMessage(error: unknown, t: TFunction) {
   if (error instanceof ApiError && error.status === 403) {
-    return "Only the board or the assigned recovery owner can record watchdog decisions";
+    return t("pages.issues.runLedger.watchdogDecisionForbidden", {
+      defaultValue: "Only the board or the assigned recovery owner can record watchdog decisions",
+    });
   }
-  return error instanceof Error && error.message.trim().length > 0
-    ? error.message
-    : "Paperclip could not record the watchdog decision.";
+  return formatApiError(error, t, t("pages.issues.runLedger.watchdogDecisionError", {
+    defaultValue: "Paperclip could not record the watchdog decision.",
+  }));
 }
 
 export function IssueRunLedger({
@@ -414,6 +514,7 @@ export function IssueRunLedger({
   renderActivityEvent,
   resolveUserLabel,
 }: IssueRunLedgerProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { pushToast } = useToastActions();
   const [watchdogDecisionError, setWatchdogDecisionError] = useState<string | null>(null);
@@ -453,11 +554,13 @@ export function IssueRunLedger({
       queryClient.invalidateQueries({ queryKey: queryKeys.issues.liveRuns(issueId) });
     },
     onError: (error) => {
-      const message = watchdogDecisionErrorMessage(error);
+      const message = watchdogDecisionErrorMessage(error, t);
       const dedupeSuffix = error instanceof ApiError ? String(error.status) : "error";
       setWatchdogDecisionError(message);
       pushToast({
-        title: "Watchdog decision not recorded",
+        title: t("pages.issues.runLedger.watchdogDecisionNotRecorded", {
+          defaultValue: "Watchdog decision not recorded",
+        }),
         body: message,
         tone: "error",
         dedupeKey: `watchdog-decision:${issueId}:${dedupeSuffix}`,
@@ -499,6 +602,7 @@ export function IssueRunLedgerContent({
   watchdogDecisionError,
   onWatchdogDecision,
 }: IssueRunLedgerContentProps) {
+  const { t } = useTranslation();
   const ledgerRuns = useMemo(() => mergeRuns(runs, liveRuns, activeRun), [activeRun, liveRuns, runs]);
   const latestRun = ledgerRuns[0] ?? null;
   const latestSilentRun = useMemo(
@@ -543,16 +647,18 @@ export function IssueRunLedgerContent({
   }, [activityEvents, canRenderActivityEvents, ledgerRuns]);
 
   return (
-    <section className="space-y-3" aria-label="Task run ledger">
+    <section className="space-y-3" aria-label={t("pages.issues.runLedger.ariaLabel", { defaultValue: "Task run ledger" })}>
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="text-sm font-medium text-muted-foreground">Run ledger</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">
+            {t("pages.issues.runLedger.title", { defaultValue: "Run ledger" })}
+          </h3>
           <p className="text-xs text-muted-foreground">
             {latestRun
-              ? runSummary(latestRun, agentMap)
+              ? runSummary(latestRun, agentMap, t)
               : issueStatus === "in_progress"
-                ? "Waiting for the first run record."
-                : "No runs linked yet."}
+                ? t("pages.issues.runLedger.waitingForFirstRun", { defaultValue: "Waiting for the first run record." })
+                : t("pages.issues.runLedger.noRunsLinked", { defaultValue: "No runs linked yet." })}
           </p>
         </div>
         {latestRun ? (
@@ -560,7 +666,7 @@ export function IssueRunLedgerContent({
             to={`/agents/${latestRun.agentId}/runs/${latestRun.runId}`}
             className="shrink-0 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
           >
-            Latest run
+            {t("pages.issues.runLedger.latestRun", { defaultValue: "Latest run" })}
           </Link>
         ) : null}
       </div>
@@ -568,11 +674,23 @@ export function IssueRunLedgerContent({
       {children.total > 0 ? (
         <div className="rounded-md border border-border/70 px-3 py-2">
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="font-medium text-foreground">Child work</span>
+            <span className="font-medium text-foreground">
+              {t("pages.issues.runLedger.childWork", { defaultValue: "Child work" })}
+            </span>
             <span className="text-muted-foreground">
               {children.active.length > 0
-                ? `${children.active.length} active, ${children.done} done, ${children.cancelled} cancelled`
-                : `all ${children.total} terminal (${children.done} done, ${children.cancelled} cancelled)`}
+                ? t("pages.issues.runLedger.childWorkSummary", {
+                  defaultValue: "{{active}} active, {{done}} done, {{cancelled}} cancelled",
+                  active: children.active.length,
+                  done: children.done,
+                  cancelled: children.cancelled,
+                })
+                : t("pages.issues.runLedger.childWorkAllTerminal", {
+                  defaultValue: "all {{total}} terminal ({{done}} done, {{cancelled}} cancelled)",
+                  total: children.total,
+                  done: children.done,
+                  cancelled: children.cancelled,
+                })}
             </span>
           </div>
           {children.active.length > 0 ? (
@@ -585,12 +703,15 @@ export function IssueRunLedgerContent({
                 >
                   <span className="shrink-0 font-mono text-muted-foreground">{child.identifier ?? child.id.slice(0, 8)}</span>
                   <span className="truncate">{child.title}</span>
-                  <span className="shrink-0 text-muted-foreground">{statusLabel(child.status)}</span>
+                  <span className="shrink-0 text-muted-foreground">{statusLabel(child.status, t)}</span>
                 </Link>
               ))}
               {children.active.length > 4 ? (
                 <span className="rounded-md border border-border px-2 py-1 text-(length:--text-micro) text-muted-foreground">
-                  +{children.active.length - 4} more
+                  {t("pages.issues.runLedger.moreChildren", {
+                    defaultValue: "+{{count}} more",
+                    count: children.active.length - 4,
+                  })}
                 </span>
               ) : null}
             </div>
@@ -609,23 +730,26 @@ export function IssueRunLedgerContent({
         >
           <p className="font-medium">
             {latestSilentRun.outputSilence.level === "critical"
-              ? "Stale-run watchdog alert"
-              : "Output silence watchdog warning"}
+              ? t("pages.issues.runLedger.silence.staleRunAlert", { defaultValue: "Stale-run watchdog alert" })
+              : t("pages.issues.runLedger.silence.outputWarning", { defaultValue: "Output silence watchdog warning" })}
           </p>
           <p className="mt-1">
-            Latest active run has been silent for{" "}
-            {formatSilenceAge(latestSilentRun.outputSilence.silenceAgeMs) ?? "an extended period"}.
+            {t("pages.issues.runLedger.silence.latestSilentFor", {
+              defaultValue: "Latest active run has been silent for {{age}}.",
+              age: formatSilenceAge(latestSilentRun.outputSilence.silenceAgeMs, t)
+                ?? t("pages.issues.runLedger.silence.extendedPeriod", { defaultValue: "an extended period" }),
+            })}
             {latestSilentRun.outputSilence.evaluationIssueIdentifier ? (
               <>
                 {" "}
-                Review{" "}
+                {t("pages.issues.runLedger.silence.reviewPrefix", { defaultValue: "Review" })}{" "}
                 <Link
                   to={`/issues/${latestSilentRun.outputSilence.evaluationIssueIdentifier}`}
                   className="font-medium underline underline-offset-2"
                 >
                   {latestSilentRun.outputSilence.evaluationIssueIdentifier}
                 </Link>
-                {" "}for recovery context.
+                {" "}{t("pages.issues.runLedger.silence.reviewSuffix", { defaultValue: "for recovery context." })}
               </>
             ) : null}
           </p>
@@ -642,7 +766,7 @@ export function IssueRunLedgerContent({
                   })}
                 disabled={pendingWatchdogDecision != null}
               >
-                Continue monitoring
+                {t("pages.issues.runLedger.silence.continueMonitoring", { defaultValue: "Continue monitoring" })}
               </button>
               <button
                 type="button"
@@ -657,7 +781,7 @@ export function IssueRunLedgerContent({
                   })}
                 disabled={pendingWatchdogDecision != null}
               >
-                Snooze 1h
+                {t("pages.issues.runLedger.silence.snoozeOneHour", { defaultValue: "Snooze 1h" })}
               </button>
               <button
                 type="button"
@@ -671,7 +795,7 @@ export function IssueRunLedgerContent({
                   })}
                 disabled={pendingWatchdogDecision != null}
               >
-                Mark false positive
+                {t("pages.issues.runLedger.silence.markFalsePositive", { defaultValue: "Mark false positive" })}
               </button>
             </div>
           ) : null}
@@ -686,8 +810,8 @@ export function IssueRunLedgerContent({
       {feedItems.length === 0 ? (
         <div className="rounded-md border border-dashed border-border px-3 py-3 text-sm text-muted-foreground">
           {renderActivityEvent
-            ? "Runs and activity will appear here once this task has history."
-            : "Historical runs without liveness metadata will appear here once linked to this task."}
+            ? t("pages.issues.runLedger.emptyWithActivity", { defaultValue: "Runs and activity will appear here once this task has history." })
+            : t("pages.issues.runLedger.emptyRunsOnly", { defaultValue: "Historical runs without liveness metadata will appear here once linked to this task." })}
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -696,12 +820,12 @@ export function IssueRunLedgerContent({
               return <div key={`activity:${item.id}`}>{renderActivityEvent?.(item.event)}</div>;
             }
             const run = item.run;
-            const liveness = livenessCopyForRun(run);
-            const stopReason = stopReasonLabel(run);
+            const liveness = livenessCopyForRun(run, t);
+            const stopReason = stopReasonLabel(run, t);
             const duration = formatDuration(run.startedAt, run.finishedAt);
             const exhausted = hasExhaustedContinuation(run);
-            const continuation = continuationLabel(run);
-            const retryState = describeRunRetryState(run);
+            const continuation = continuationLabel(run, t);
+            const retryState = describeRunRetryState(run, t);
             const agentName = compactAgentName(run, agentMap);
             const onBehalfOfLabel = run.responsibleUserId
               ? responsibleUserLabel(resolveUserLabel?.(run.responsibleUserId))
@@ -714,30 +838,34 @@ export function IssueRunLedgerContent({
                 className="space-y-1.5 rounded-lg border border-border/60 px-3 py-2 text-xs text-muted-foreground"
               >
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="font-medium text-foreground">Run</span>
+                  <span className="font-medium text-foreground">
+                    {t("pages.issues.runLedger.run", { defaultValue: "Run" })}
+                  </span>
                   <Link
                     to={`/agents/${run.agentId}/runs/${run.runId}`}
                     className="min-w-0 max-w-full truncate font-mono text-foreground hover:underline"
                   >
                     {run.runId.slice(0, 8)}
                   </Link>
-                  <span>by {agentName}</span>
+                  <span>
+                    {t("pages.issues.runLedger.byAgent", { defaultValue: "by {{agent}}", agent: agentName })}
+                  </span>
                   {onBehalfOfLabel ? (
                     <span
                       data-testid="run-on-behalf-of"
                       className="min-w-0 max-w-full truncate text-muted-foreground"
-                      title={`Acting on behalf of ${onBehalfOfLabel}`}
+                      title={t("pages.issues.runLedger.actingOnBehalfOf", { defaultValue: "Acting on behalf of {{user}}", user: onBehalfOfLabel })}
                     >
-                      on behalf of <span className="text-foreground">{onBehalfOfLabel}</span>
+                      {t("pages.issues.runLedger.onBehalfOf", { defaultValue: "on behalf of" })} <span className="text-foreground">{onBehalfOfLabel}</span>
                     </span>
                   ) : null}
                   <span className="rounded-md border border-border px-1.5 py-0.5 text-(length:--text-micro) capitalize text-muted-foreground">
-                    {statusLabel(run.status)}
+                    {statusLabel(run.status, t)}
                   </span>
                   {run.isLive ? (
                     <span className="inline-flex items-center gap-1 rounded-md border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-(length:--text-micro) text-blue-700 dark:text-blue-300">
                       <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                      live
+                      {t("sidebar.live", { defaultValue: "live" })}
                     </span>
                   ) : null}
                   <span
@@ -751,7 +879,7 @@ export function IssueRunLedgerContent({
                   </span>
                   {exhausted ? (
                     <span className="rounded-md border border-red-500/30 bg-red-500/10 px-1.5 py-0.5 text-(length:--text-micro) font-medium text-red-700 dark:text-red-300">
-                      Exhausted
+                      {t("pages.issues.runLedger.exhausted", { defaultValue: "Exhausted" })}
                     </span>
                   ) : null}
                   {continuation ? (
@@ -774,24 +902,38 @@ export function IssueRunLedgerContent({
                         RUN_OUTPUT_SILENCE_COPY[run.outputSilence.level]?.tone,
                       )}
                     >
-                      {RUN_OUTPUT_SILENCE_COPY[run.outputSilence.level]?.label}
+                      {outputSilenceLabel(
+                        run.outputSilence.level,
+                        RUN_OUTPUT_SILENCE_COPY[run.outputSilence.level]?.label ?? run.outputSilence.level,
+                        t,
+                      )}
                     </span>
                   ) : null}
                   {(() => {
                     const profile = modelProfileForRun(run);
                     if (!profile) return null;
                     const label = profile.applied === profile.requested
-                      ? `Profile: ${profile.requested}`
+                      ? t("pages.issues.runLedger.modelProfile.badge", {
+                        defaultValue: "Profile: {{profile}}",
+                        profile: profile.requested,
+                      })
                       : profile.applied
-                        ? `Profile: ${profile.requested} → ${profile.applied}`
-                        : `Profile: ${profile.requested} (unavailable)`;
+                        ? t("pages.issues.runLedger.modelProfile.badgeApplied", {
+                          defaultValue: "Profile: {{requested}} → {{applied}}",
+                          requested: profile.requested,
+                          applied: profile.applied,
+                        })
+                        : t("pages.issues.runLedger.modelProfile.badgeUnavailable", {
+                          defaultValue: "Profile: {{profile}} (unavailable)",
+                          profile: profile.requested,
+                        });
                     return (
                       <span
                         className={cn(
                           "rounded-md border px-1.5 py-0.5 text-(length:--text-micro) font-medium",
                           modelProfileBadgeTone(profile),
                         )}
-                        title={modelProfileTitle(profile)}
+                        title={modelProfileTitle(profile, t)}
                       >
                         {label}
                       </span>
@@ -803,16 +945,16 @@ export function IssueRunLedgerContent({
 
                 <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
                   <div className="min-w-0">
-                    <span className="text-foreground">Elapsed</span>{" "}
-                    {duration ?? "unknown"}
+                    <span className="text-foreground">{t("pages.issues.runLedger.elapsed", { defaultValue: "Elapsed" })}</span>{" "}
+                    {duration ?? t("common.unknown", { defaultValue: "unknown" })}
                   </div>
                   <div className="min-w-0">
-                    <span className="text-foreground">Last useful action</span>{" "}
-                    {lastUsefulActionLabel(run)}
+                    <span className="text-foreground">{t("pages.issues.runLedger.lastUsefulAction", { defaultValue: "Last useful action" })}</span>{" "}
+                    {lastUsefulActionLabel(run, t)}
                   </div>
                   <div className="min-w-0">
-                    <span className="text-foreground">Stop</span>{" "}
-                    {stopStatusLabel(run, stopReason)}
+                    <span className="text-foreground">{t("pages.issues.runLedger.stop", { defaultValue: "Stop" })}</span>{" "}
+                    {stopStatusLabel(run, stopReason, t)}
                   </div>
                 </div>
 
@@ -822,7 +964,7 @@ export function IssueRunLedgerContent({
                     {retryState.secondary ? <p>{retryState.secondary}</p> : null}
                     {retryState.retryOfRunId ? (
                       <p>
-                        Retry of{" "}
+                        {t("pages.issues.runLedger.retryOf", { defaultValue: "Retry of" })}{" "}
                         <Link
                           to={`/agents/${run.agentId}/runs/${retryState.retryOfRunId}`}
                           className="font-mono text-foreground hover:underline"
@@ -840,8 +982,11 @@ export function IssueRunLedgerContent({
                   return (
                     <p className="min-w-0 break-words text-(length:--text-micro) leading-5 text-amber-700 dark:text-amber-300">
                       {profile.requested === "cheap"
-                        ? "Cheap profile fell back to primary"
-                        : `${profile.requested} profile unavailable`}
+                        ? t("pages.issues.runLedger.modelProfile.cheapFellBack", { defaultValue: "Cheap profile fell back to primary" })
+                        : t("pages.issues.runLedger.modelProfile.profileUnavailable", {
+                          defaultValue: "{{profile}} profile unavailable",
+                          profile: profile.requested,
+                        })}
                       {": "}
                       <span className="font-mono">{profile.fallbackReason}</span>
                     </p>
@@ -863,7 +1008,9 @@ export function IssueRunLedgerContent({
 
                 {run.nextAction ? (
                   <div className="min-w-0 rounded-md bg-accent/40 px-2 py-1.5 text-xs leading-5">
-                    <span className="font-medium text-foreground">Next action: </span>
+                    <span className="font-medium text-foreground">
+                      {t("pages.issues.runLedger.nextAction", { defaultValue: "Next action:" })}{" "}
+                    </span>
                     <span className="break-words text-muted-foreground">{run.nextAction}</span>
                   </div>
                 ) : null}
@@ -872,7 +1019,10 @@ export function IssueRunLedgerContent({
           })}
           {feedItems.length > 20 ? (
             <div className="px-3 py-2 text-xs text-muted-foreground">
-              {feedItems.length - 20} older items not shown
+              {t("pages.issues.runLedger.olderItemsHidden", {
+                defaultValue: "{{count}} older items not shown",
+                count: feedItems.length - 20,
+              })}
             </div>
           ) : null}
         </div>

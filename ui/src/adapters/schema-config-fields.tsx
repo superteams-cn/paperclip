@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { AdapterConfigSchema, ConfigFieldSchema, CreateConfigValues } from "@paperclipai/adapter-utils";
 
@@ -23,6 +24,7 @@ function SelectField({
   options: Array<{ value: string; label: string }>;
   onChange: (value: string) => void;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const selectedOpt = options.find((o) => o.value === value);
   return (
@@ -30,7 +32,7 @@ function SelectField({
       <PopoverTrigger asChild>
         <button className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-sm hover:bg-accent/50 transition-colors w-full justify-between">
           <span className={!value ? "text-muted-foreground" : ""}>
-            {selectedOpt?.label ?? value ?? "Select..."}
+            {selectedOpt?.label ?? value ?? t("adapters.configFields.schemaSelectPlaceholder")}
           </span>
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
@@ -72,6 +74,7 @@ function ComboboxField({
   onChange: (val: string) => void;
   placeholder?: string;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -138,7 +141,7 @@ function ComboboxField({
           type="text"
           className="flex-1 rounded-l-md border border-r-0 border-border px-2.5 py-1.5 bg-transparent outline-none text-sm font-mono placeholder:text-muted-foreground/40 focus:z-10"
           value={displayValue}
-          placeholder={placeholder ?? "Type or select..."}
+          placeholder={placeholder ?? t("adapters.configFields.schemaComboboxPlaceholder")}
           onChange={(e) => {
             setFilter(e.target.value);
             if (!open) setOpen(true);
@@ -189,7 +192,7 @@ function ComboboxField({
             ))}
             {filter && filtered.length === 0 && (
               <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                Use &quot;{filter}&quot; as custom value (press Enter)
+                {t("adapters.configFields.schemaCustomValue", { value: filter })}
               </div>
             )}
           </PopoverContent>

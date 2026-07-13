@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 interface OutputVideoPlayerProps {
@@ -17,6 +18,7 @@ interface OutputVideoPlayerProps {
  * A fixed 16:9 box reserves height before metadata loads to avoid layout jump.
  */
 export function OutputVideoPlayer({ src, poster, className, title }: OutputVideoPlayerProps) {
+  const { t } = useTranslation();
   return (
     <div className={cn("relative w-full overflow-hidden rounded-md bg-black aspect-video", className)}>
       <video
@@ -25,7 +27,16 @@ export function OutputVideoPlayer({ src, poster, className, title }: OutputVideo
         controls
         preload="metadata"
         playsInline
-        aria-label={title ? `Video output: ${title}` : "Video output"}
+        aria-label={
+          title
+            ? t("components.issueOutput.outputVideoPlayer.ariaLabelNamed", {
+                defaultValue: "Video output: {{title}}",
+                title,
+              })
+            : t("components.issueOutput.outputVideoPlayer.ariaLabel", {
+                defaultValue: "Video output",
+              })
+        }
         className="absolute inset-0 h-full w-full"
       />
     </div>

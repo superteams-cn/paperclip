@@ -1,4 +1,5 @@
 import { Lock, type LucideIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link } from "@/lib/router";
 import { cn } from "@/lib/utils";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
@@ -54,6 +55,7 @@ export function AgentSkillRow({
   disabledReason,
   onCheckedChange,
 }: AgentSkillRowProps) {
+  const { t } = useTranslation();
   const readOnly = variant === "readonly";
   const SourceIcon = data.sourceMeta?.icon;
 
@@ -105,7 +107,10 @@ export function AgentSkillRow({
   );
 
   const trailing = readOnly ? (
-    <Lock className="h-4 w-4 shrink-0 text-muted-foreground/60" aria-label="Read-only" />
+    <Lock
+      className="h-4 w-4 shrink-0 text-muted-foreground/60"
+      aria-label={t("pages.agentSkills.agentSkillRow.readOnlyLabel", { defaultValue: "Read-only" })}
+    />
   ) : (
     (() => {
       const toggle = (
@@ -113,7 +118,17 @@ export function AgentSkillRow({
           checked={checked}
           disabled={disabled}
           onCheckedChange={(next) => onCheckedChange?.(next)}
-          aria-label={`${checked ? "Disable" : "Enable"} ${data.name}`}
+          aria-label={
+            checked
+              ? t("pages.agentSkills.agentSkillRow.disableSkill", {
+                  defaultValue: "Disable {{name}}",
+                  name: data.name,
+                })
+              : t("pages.agentSkills.agentSkillRow.enableSkill", {
+                  defaultValue: "Enable {{name}}",
+                  name: data.name,
+                })
+          }
         />
       );
       if (disabled && disabledReason) {

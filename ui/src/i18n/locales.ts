@@ -3,13 +3,19 @@ import type { Resource } from "i18next";
 import { assertValidLocaleMessages } from "./locale-validation";
 
 export const DEFAULT_LOCALE = "en" as const;
+export const SUPPORTED_LOCALE_CODES = ["en", "zh-CN"] as const;
+
+export const localeLabels: Record<SupportedLocale, string> = {
+  en: "English",
+  "zh-CN": "简体中文",
+};
 
 const localeModules = import.meta.glob("./locales/*.json", {
   eager: true,
   import: "default",
 }) as Record<string, unknown>;
 
-export const localeMessages = Object.fromEntries(
+const allLocaleMessages = Object.fromEntries(
   Object.entries(localeModules).map(([path, messages]) => {
     const locale = path.match(/\/([A-Za-z0-9_-]+)\.json$/)?.[1];
     if (!locale) {
@@ -19,8 +25,18 @@ export const localeMessages = Object.fromEntries(
   }),
 );
 
+export const localeMessages = Object.fromEntries(
+  SUPPORTED_LOCALE_CODES.map((locale) => [locale, allLocaleMessages[locale]]),
+) as Record<SupportedLocale, unknown>;
+
 if (!(DEFAULT_LOCALE in localeMessages)) {
   throw new Error(`Missing default locale messages for ${DEFAULT_LOCALE}`);
+}
+
+for (const locale of SUPPORTED_LOCALE_CODES) {
+  if (!localeMessages[locale]) {
+    throw new Error(`Missing locale messages for ${locale}`);
+  }
 }
 
 for (const [locale, messages] of Object.entries(localeMessages)) {
@@ -32,10 +48,10 @@ for (const [locale, messages] of Object.entries(localeMessages)) {
   }
 }
 
-export const supportedLocales = Object.keys(localeMessages);
+export const supportedLocales = [...SUPPORTED_LOCALE_CODES];
 
 export const i18nextResources: Resource = Object.fromEntries(
   Object.entries(localeMessages).map(([locale, messages]) => [locale, { translation: messages }]),
 ) as Resource;
 
-export type SupportedLocale = keyof typeof localeMessages;
+export type SupportedLocale = (typeof SUPPORTED_LOCALE_CODES)[number];

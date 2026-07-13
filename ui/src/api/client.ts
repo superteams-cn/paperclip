@@ -5,6 +5,7 @@ const BASE = "/api";
 export class ApiError extends Error {
   status: number;
   body: unknown;
+  code?: string;
 
   constructor(message: string, status: number, body: unknown) {
     super(message);

@@ -1,6 +1,7 @@
 import { AlertTriangle, Clock, Pause, User, Wrench } from "lucide-react";
 import type { ComponentType } from "react";
 import type { IssueBlockedInboxSeverity } from "@paperclipai/shared";
+import { useTranslation } from "react-i18next";
 import { cn } from "../lib/utils";
 import {
   blockedReasonVariant,
@@ -53,8 +54,11 @@ export function BlockedReasonChip({
   compact = false,
   className,
 }: BlockedReasonChipProps) {
+  const { t } = useTranslation();
   const variant = blockedReasonVariant(reason);
-  const label = blockedVariantLabel(variant);
+  const label = t(`components.blockedReasonChip.variants.${variant}`, {
+    defaultValue: blockedVariantLabel(variant),
+  });
   const Icon = VARIANT_ICONS[variant];
   const dotClass = SEVERITY_DOT[severity];
   return (
@@ -62,7 +66,11 @@ export function BlockedReasonChip({
       data-testid="blocked-reason-chip"
       data-variant={variant}
       data-severity={severity}
-      aria-label={`Reason: ${label}, severity ${severity}`}
+      aria-label={t("components.blockedReasonChip.ariaLabel", {
+        defaultValue: "Reason: {{label}}, severity {{severity}}",
+        label,
+        severity: t(`labels.priority.${severity}`, { defaultValue: severity }),
+      })}
       className={cn(
         "inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-(length:--text-nano) font-medium leading-tight sm:text-(length:--text-micro)",
         VARIANT_STYLES[variant],

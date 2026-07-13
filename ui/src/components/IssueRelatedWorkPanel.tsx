@@ -1,4 +1,5 @@
 import type { IssueRelatedWorkItem, IssueRelatedWorkSummary } from "@paperclipai/shared";
+import { useTranslation } from "react-i18next";
 import { IssueReferencePill } from "./IssueReferencePill";
 import { ExternalObjectPill } from "./ExternalObjectPill";
 import type { IssueExternalObjectGroup } from "../hooks/useIssueExternalObjects";
@@ -98,6 +99,7 @@ function ExternalObjectsSection({
   isError: boolean;
   onRetry?: () => void;
 }) {
+  const { t } = useTranslation();
   // Severity-first sort with most-recently-changed as the secondary sort.
   const sorted = [...groups].sort((a, b) => {
     const aTone = externalObjectToneSeverity(a.pill.statusCategory ? a.group.object?.statusTone ?? null : null);
@@ -111,7 +113,7 @@ function ExternalObjectsSection({
   return (
     <section className="space-y-3 rounded-lg border border-border p-3">
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold">External objects</h3>
+        <h3 className="text-sm font-semibold">{t("components.issueRelatedWork.externalObjects", { defaultValue: "External objects" })}</h3>
         <p className="text-xs text-muted-foreground">
           Remote work referenced from this issue — pull requests, deployments, tickets in other systems, and more.
         </p>
@@ -134,7 +136,7 @@ function ExternalObjectsSection({
         <p className="text-xs text-muted-foreground">Loading external objects…</p>
       ) : sorted.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          This issue does not reference any external objects yet.
+          {t("components.issueRelatedWork.externalObjectsEmpty", { defaultValue: "This issue does not reference any external objects yet." })}
         </p>
       ) : (
         <ul className="-mx-1 flex flex-col">
@@ -185,16 +187,19 @@ export function IssueRelatedWorkPanel({
   externalObjectsError?: boolean;
   onRetryExternalObjects?: () => void;
 }) {
+  const { t } = useTranslation();
   const outbound = relatedWork?.outbound ?? [];
   const inbound = relatedWork?.inbound ?? [];
 
   return (
     <div className="space-y-3">
       <Section
-        title="References"
-        description="Other tasks this task currently points at in its title, description, comments, or documents."
+        title={t("components.issueRelatedWork.references", { defaultValue: "References" })}
+        description={t("components.issueRelatedWork.referencesDescription", {
+          defaultValue: "Other tasks this task currently points at in its title, description, comments, or documents.",
+        })}
         items={outbound}
-        emptyLabel="This task does not reference any other tasks yet."
+        emptyLabel={t("components.issueRelatedWork.referencesEmpty", { defaultValue: "This task does not reference any other tasks yet." })}
       />
       {externalObjectsEnabled ? (
         <ExternalObjectsSection
@@ -205,10 +210,10 @@ export function IssueRelatedWorkPanel({
         />
       ) : null}
       <Section
-        title="Referenced by"
-        description="Other tasks that currently point at this task."
+        title={t("components.issueRelatedWork.referencedBy", { defaultValue: "Referenced by" })}
+        description={t("components.issueRelatedWork.referencedByDescription", { defaultValue: "Other tasks that currently point at this task." })}
         items={inbound}
-        emptyLabel="No other tasks reference this task yet."
+        emptyLabel={t("components.issueRelatedWork.referencedByEmpty", { defaultValue: "No other tasks reference this task yet." })}
       />
     </div>
   );

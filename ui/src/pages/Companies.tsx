@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { useCompany } from "../context/CompanyContext";
 import { useDialogActions } from "../context/DialogContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { companiesApi } from "../api/companies";
 import { queryKeys } from "../lib/queryKeys";
+import { formatApiError } from "../lib/api-error";
 import { formatCents, relativeTime } from "../lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,7 @@ import {
 } from "lucide-react";
 
 export function Companies() {
+  const { t } = useTranslation();
   const {
     companies,
     selectedCompanyId,
@@ -70,9 +73,9 @@ export function Companies() {
     },
   });
 
-  useEffect(() => {
-    setBreadcrumbs([{ label: "Companies" }]);
-  }, [setBreadcrumbs]);
+	  useEffect(() => {
+	    setBreadcrumbs([{ label: t("nav.companies", { defaultValue: "Companies" }) }]);
+	  }, [setBreadcrumbs, t]);
 
   function startEdit(companyId: string, currentName: string) {
     setEditingId(companyId);
@@ -94,13 +97,13 @@ export function Companies() {
       <div className="flex items-center justify-end">
         <Button size="sm" onClick={() => openOnboarding()}>
           <Plus className="h-3.5 w-3.5 mr-1.5" />
-          New Company
+	          {t("pages.companies.newCompany", { defaultValue: "New Company" })}
         </Button>
       </div>
 
       <div className="h-6">
-        {loading && <p className="text-sm text-muted-foreground">Loading companies...</p>}
-        {error && <p className="text-sm text-destructive">{error.message}</p>}
+	        {loading && <p className="text-sm text-muted-foreground">{t("pages.companies.loading", { defaultValue: "Loading companies..." })}</p>}
+        {error && <p className="text-sm text-destructive">{formatApiError(error, t)}</p>}
       </div>
 
       <div className="grid gap-4">
@@ -177,7 +180,11 @@ export function Companies() {
                               : "bg-muted text-muted-foreground"
                         }`}
                       >
-                        {company.status}
+                        {company.status === "active"
+                          ? t("common.active", { defaultValue: "Active" })
+                          : company.status === "paused"
+                            ? t("pages.companies.paused", { defaultValue: "Paused" })
+                            : company.status}
                       </Badge>
                       <Button
                         variant="ghost"
@@ -216,7 +223,7 @@ export function Companies() {
                         onClick={() => startEdit(company.id, company.name)}
                       >
                         <Pencil className="h-3.5 w-3.5" />
-                        Rename
+	                        {t("pages.companies.rename", { defaultValue: "Rename" })}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
@@ -224,7 +231,7 @@ export function Companies() {
                         onClick={() => setConfirmDeleteId(company.id)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                        Delete Company
+	                        {t("pages.companies.deleteCompany", { defaultValue: "Delete Company" })}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -236,13 +243,17 @@ export function Companies() {
                 <div className="flex items-center gap-1.5">
                   <Users className="h-3.5 w-3.5" />
                   <span>
-                    {agentCount} {agentCount === 1 ? "agent" : "agents"}
+	                    {t("pages.companies.agentCount", { count: agentCount, defaultValue: "{{count}} agents" })}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CircleDot className="h-3.5 w-3.5" />
                   <span>
-                    {issueCount} {issueCount === 1 ? "task" : "tasks"}
+                    {t("pages.companies.issueCount", {
+                      count: issueCount,
+                      defaultValue_one: "{{count}} task",
+                      defaultValue_other: "{{count}} tasks",
+                    })}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 tabular-nums">
@@ -251,12 +262,12 @@ export function Companies() {
                     {formatCents(company.spentMonthlyCents)}
                     {company.budgetMonthlyCents > 0
                       ? <> / {formatCents(company.budgetMonthlyCents)} <span className="text-xs">({budgetPct}%)</span></>
-                      : <span className="text-xs ml-1">Unlimited budget</span>}
+	                      : <span className="text-xs ml-1">{t("pages.costs.unlimitedBudget", { defaultValue: "Unlimited budget" })}</span>}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 ml-auto">
                   <Calendar className="h-3.5 w-3.5" />
-                  <span>Created {relativeTime(company.createdAt)}</span>
+	                  <span>{t("pages.companies.created", { defaultValue: "Created {{time}}", time: relativeTime(company.createdAt) })}</span>
                 </div>
               </div>
 
@@ -267,7 +278,7 @@ export function Companies() {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <p className="text-sm text-destructive font-medium">
-                    Delete this company and all its data? This cannot be undone.
+	                    {t("pages.companies.deleteConfirm", { defaultValue: "Delete this company and all its data? This cannot be undone." })}
                   </p>
                   <div className="flex items-center gap-2 ml-4 shrink-0">
                     <Button
@@ -276,7 +287,7 @@ export function Companies() {
                       onClick={() => setConfirmDeleteId(null)}
                       disabled={deleteMutation.isPending}
                     >
-                      Cancel
+	                      {t("common.cancel", { defaultValue: "Cancel" })}
                     </Button>
                     <Button
                       variant="destructive"
@@ -284,7 +295,9 @@ export function Companies() {
                       onClick={() => deleteMutation.mutate(company.id)}
                       disabled={deleteMutation.isPending}
                     >
-                      {deleteMutation.isPending ? "Deleting…" : "Delete"}
+	                      {deleteMutation.isPending
+	                        ? t("pages.companies.deleting", { defaultValue: "Deleting..." })
+	                        : t("pages.companies.delete", { defaultValue: "Delete" })}
                     </Button>
                   </div>
                 </div>

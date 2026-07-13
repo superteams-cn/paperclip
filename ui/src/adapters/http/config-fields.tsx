@@ -4,6 +4,7 @@ import {
   DraftInput,
   help,
 } from "../../components/agent-config-primitives";
+import { useTranslation } from "react-i18next";
 
 const inputClass =
   "w-full rounded-md border border-border px-2.5 py-1.5 bg-transparent outline-none text-sm font-mono placeholder:text-muted-foreground/40";
@@ -16,8 +17,9 @@ export function HttpConfigFields({
   eff,
   mark,
 }: AdapterConfigFieldsProps) {
+  const { t } = useTranslation();
   return (
-    <Field label="Webhook URL" hint={help.webhookUrl}>
+    <Field label={t("adapters.configFields.webhookUrl")} hint={t("pages.agents.config.help.webhookUrl", { defaultValue: help.webhookUrl })}>
       <DraftInput
         value={
           isCreate

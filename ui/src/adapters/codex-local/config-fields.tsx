@@ -13,11 +13,10 @@ import {
   isCodexLocalFastModeSupported,
   isCodexLocalManualModel,
 } from "@paperclipai/adapter-codex-local";
+import { useTranslation } from "react-i18next";
 
 const inputClass =
   "w-full rounded-md border border-border px-2.5 py-1.5 bg-transparent outline-none text-sm font-mono placeholder:text-muted-foreground/40";
-const instructionsFileHint =
-  "Absolute path to a markdown file (e.g. AGENTS.md) that defines this agent's behavior. Injected into the system prompt at runtime. Note: Codex may still auto-apply repo-scoped AGENTS.md files from the workspace.";
 
 export function CodexLocalConfigFields({
   mode,
@@ -31,6 +30,7 @@ export function CodexLocalConfigFields({
   models,
   hideInstructionsFile,
 }: AdapterConfigFieldsProps) {
+  const { t } = useTranslation();
   const rawEngine = isCreate
     ? values!.codexEngine ?? "auto"
     : eff("adapterConfig", "engine", String(config.engine ?? "auto"));
@@ -48,10 +48,10 @@ export function CodexLocalConfigFields({
   const fastModeSupported = isCodexLocalFastModeSupported(currentModel);
   const supportedModelsLabel = CODEX_LOCAL_FAST_MODE_SUPPORTED_MODELS.join(", ");
   const fastModeMessage = fastModeManualModel
-    ? "Fast mode will be passed through for this manual model. If Codex rejects it, turn the toggle off."
+    ? t("adapters.configFields.fastModeManual")
     : fastModeSupported
-      ? "Fast mode consumes credits/tokens much faster than standard Codex runs."
-      : `Fast mode currently only works on ${supportedModelsLabel} or manual model IDs. Paperclip will ignore this toggle until the model is switched.`;
+      ? t("adapters.configFields.fastModeSupported")
+      : t("adapters.configFields.fastModeUnsupported", { models: supportedModelsLabel });
 
   return (
     <>
@@ -66,8 +66,8 @@ export function CodexLocalConfigFields({
               : mark("adapterConfig", "engine", value === "auto" ? undefined : value);
           }}
         >
-          <option value="auto">Auto (ACP preferred)</option>
-          <option value="cli">Codex CLI</option>
+          <option value="auto">{t("adapters.codexLocal.engineAutoAcpPreferred", { defaultValue: "Auto (ACP preferred)" })}</option>
+          <option value="cli">{t("adapters.codexLocal.engineCodexCli", { defaultValue: "Codex CLI" })}</option>
           <option value="acp">ACP</option>
         </select>
       </Field>
@@ -109,7 +109,7 @@ export function CodexLocalConfigFields({
               }}
             >
               <option value="persistent">Persistent</option>
-              <option value="oneshot">One-shot</option>
+              <option value="oneshot">{t("adapters.codexLocal.modeOneShot", { defaultValue: "One-shot" })}</option>
             </select>
           </Field>
           <Field
@@ -184,7 +184,10 @@ export function CodexLocalConfigFields({
         </>
       )}
       {!hideInstructionsFile && (
-        <Field label="Agent instructions file" hint={instructionsFileHint}>
+        <Field
+          label={t("adapters.configFields.agentInstructionsFile")}
+          hint={t("adapters.configFields.agentInstructionsFileHintCodex")}
+        >
           <div className="flex items-center gap-2">
             <DraftInput
               value={
@@ -210,8 +213,8 @@ export function CodexLocalConfigFields({
         </Field>
       )}
       <ToggleField
-        label="Bypass sandbox"
-        hint={help.dangerouslyBypassSandbox}
+        label={t("adapters.configFields.bypassSandbox")}
+        hint={t("pages.agents.config.help.dangerouslyBypassSandbox", { defaultValue: help.dangerouslyBypassSandbox })}
         checked={
           isCreate
             ? values!.dangerouslyBypassSandbox
@@ -228,8 +231,8 @@ export function CodexLocalConfigFields({
         }
       />
       <ToggleField
-        label="Enable search"
-        hint={help.search}
+        label={t("adapters.configFields.enableSearch")}
+        hint={t("pages.agents.config.help.search", { defaultValue: help.search })}
         checked={
           isCreate
             ? values!.search
@@ -242,8 +245,8 @@ export function CodexLocalConfigFields({
         }
       />
       <ToggleField
-        label="Fast mode"
-        hint={help.fastMode}
+        label={t("adapters.configFields.fastMode")}
+        hint={t("pages.agents.config.help.fastMode", { defaultValue: help.fastMode })}
         checked={fastModeEnabled}
         onChange={(v) =>
           isCreate

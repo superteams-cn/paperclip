@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 
@@ -80,6 +81,7 @@ export function AgentCapsule({
   "aria-label": ariaLabel,
   ...rest
 }: AgentCapsuleProps) {
+  const { t } = useTranslation();
   const dims = typeof size === "string" ? SIZE_PRESETS[size] : size;
   const idx = normalizeGradient(gradient);
   const fill = `linear-gradient(to bottom, var(--agent-${idx}a), var(--agent-${idx}b))`;
@@ -87,7 +89,12 @@ export function AgentCapsule({
   return (
     <div
       role="img"
-      aria-label={ariaLabel ?? STATE_ARIA[state]}
+      aria-label={
+        ariaLabel ??
+        t(`components.agentCapsule.stateAria.${state}`, {
+          defaultValue: STATE_ARIA[state],
+        })
+      }
       data-state={state}
       data-gradient={idx}
       data-glow={glow}

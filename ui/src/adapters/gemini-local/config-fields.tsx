@@ -5,11 +5,10 @@ import {
   Field,
 } from "../../components/agent-config-primitives";
 import { ChoosePathButton } from "../../components/PathInstructionsModal";
+import { useTranslation } from "react-i18next";
 
 const inputClass =
   "w-full rounded-md border border-border px-2.5 py-1.5 bg-transparent outline-none text-sm font-mono placeholder:text-muted-foreground/40";
-const instructionsFileHint =
-  "Absolute path to a markdown file (e.g. AGENTS.md) that defines this agent's behavior. Prepended to the Gemini prompt at runtime.";
 
 export function GeminiLocalConfigFields({
   isCreate,
@@ -20,6 +19,7 @@ export function GeminiLocalConfigFields({
   mark,
   hideInstructionsFile,
 }: AdapterConfigFieldsProps) {
+  const { t } = useTranslation();
   const rawEngine = isCreate
     ? values!.geminiEngine ?? "auto"
     : eff("adapterConfig", "engine", String(config.engine ?? "auto"));
@@ -28,7 +28,10 @@ export function GeminiLocalConfigFields({
 
   return (
     <>
-      <Field label="Execution engine" hint="Auto uses ACP when prerequisites pass and falls back to Gemini CLI with diagnostics.">
+      <Field
+        label={t("adapters.configFields.gemini.executionEngine", { defaultValue: "Execution engine" })}
+        hint={t("adapters.configFields.gemini.executionEngineHint", { defaultValue: "Auto uses ACP when prerequisites pass and falls back to Gemini CLI with diagnostics." })}
+      >
         <select
           className={inputClass}
           value={engine}
@@ -39,16 +42,16 @@ export function GeminiLocalConfigFields({
               : mark("adapterConfig", "engine", value === "auto" ? undefined : value);
           }}
         >
-          <option value="auto">Auto (ACP preferred)</option>
-          <option value="cli">Gemini CLI</option>
-          <option value="acp">ACP</option>
+          <option value="auto">{t("adapters.configFields.gemini.engineAuto", { defaultValue: "Auto (ACP preferred)" })}</option>
+          <option value="cli">{t("adapters.configFields.gemini.engineCli", { defaultValue: "Gemini CLI" })}</option>
+          <option value="acp">{t("adapters.configFields.gemini.engineAcp", { defaultValue: "ACP" })}</option>
         </select>
       </Field>
       {acpSelected && (
         <>
           <Field
-            label="ACP server command"
-            hint="Optional override for the Gemini ACP server command. Defaults to gemini --acp."
+            label={t("adapters.configFields.gemini.acpServerCommand", { defaultValue: "ACP server command" })}
+            hint={t("adapters.configFields.gemini.acpServerCommandHint", { defaultValue: "Optional override for the Gemini ACP server command. Defaults to gemini --acp." })}
           >
             <DraftInput
               value={
@@ -66,7 +69,7 @@ export function GeminiLocalConfigFields({
               placeholder="gemini --acp"
             />
           </Field>
-          <Field label="ACP session mode" hint="Persistent keeps ACP session state between runs. One-shot starts fresh each run.">
+          <Field label={t("adapters.configFields.gemini.acpSessionMode", { defaultValue: "ACP session mode" })} hint={t("adapters.configFields.gemini.acpSessionModeHint", { defaultValue: "Persistent keeps ACP session state between runs. One-shot starts fresh each run." })}>
             <select
               className={inputClass}
               value={
@@ -81,13 +84,13 @@ export function GeminiLocalConfigFields({
                   : mark("adapterConfig", "mode", value);
               }}
             >
-              <option value="persistent">Persistent</option>
-              <option value="oneshot">One-shot</option>
+              <option value="persistent">{t("adapters.configFields.gemini.acpModePersistent", { defaultValue: "Persistent" })}</option>
+              <option value="oneshot">{t("adapters.configFields.gemini.acpModeOneshot", { defaultValue: "One-shot" })}</option>
             </select>
           </Field>
           <Field
-            label="ACP non-interactive permissions"
-            hint="Fallback if the ACP agent asks for input outside an interactive session."
+            label={t("adapters.configFields.gemini.acpNonInteractivePermissions", { defaultValue: "ACP non-interactive permissions" })}
+            hint={t("adapters.configFields.gemini.acpNonInteractivePermissionsHint", { defaultValue: "Fallback if the ACP agent asks for input outside an interactive session." })}
           >
             <select
               className={inputClass}
@@ -103,13 +106,13 @@ export function GeminiLocalConfigFields({
                   : mark("adapterConfig", "nonInteractivePermissions", value);
               }}
             >
-              <option value="deny">Deny</option>
-              <option value="fail">Fail</option>
+              <option value="deny">{t("adapters.configFields.gemini.permissionsDeny", { defaultValue: "Deny" })}</option>
+              <option value="fail">{t("adapters.configFields.gemini.permissionsFail", { defaultValue: "Fail" })}</option>
             </select>
           </Field>
           <Field
-            label="ACP state directory"
-            hint="Optional ACP session state directory. Defaults to Paperclip-managed company/agent scoped storage."
+            label={t("adapters.configFields.gemini.acpStateDirectory", { defaultValue: "ACP state directory" })}
+            hint={t("adapters.configFields.gemini.acpStateDirectoryHint", { defaultValue: "Optional ACP session state directory. Defaults to Paperclip-managed company/agent scoped storage." })}
           >
             <div className="flex items-center gap-2">
               <DraftInput
@@ -131,8 +134,8 @@ export function GeminiLocalConfigFields({
             </div>
           </Field>
           <Field
-            label="ACP warm process idle ms"
-            hint="Defaults to 0, which closes the ACP process after each run while retaining persistent session state."
+            label={t("adapters.configFields.gemini.acpWarmProcessIdleMs", { defaultValue: "ACP warm process idle ms" })}
+            hint={t("adapters.configFields.gemini.acpWarmProcessIdleMsHint", { defaultValue: "Defaults to 0, which closes the ACP process after each run while retaining persistent session state." })}
           >
             {isCreate ? (
               <input
@@ -157,7 +160,7 @@ export function GeminiLocalConfigFields({
         </>
       )}
       {!hideInstructionsFile && (
-        <Field label="Agent instructions file" hint={instructionsFileHint}>
+        <Field label={t("adapters.configFields.agentInstructionsFile", { defaultValue: "Agent instructions file" })} hint={t("adapters.configFields.agentInstructionsFileHintGemini", { defaultValue: "Absolute path to a markdown file (e.g. AGENTS.md) that defines this agent's behavior. Prepended to the Gemini prompt at runtime." })}>
           <div className="flex items-center gap-2">
             <DraftInput
               value={

@@ -1,4 +1,5 @@
 import { Profiler, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import type { Agent, DocumentAnnotationThreadWithComments, IssueDocument } from "@paperclipai/shared";
 import { MessageSquare } from "lucide-react";
@@ -72,6 +73,7 @@ export function IssueDocumentAnnotations({
   initialComposerAnchor,
   onInitialComposerAnchorConsumed,
 }: IssueDocumentAnnotationsProps) {
+  const { t } = useTranslation();
   const selectionDebugEnabled = isSelectionDebugEnabled();
   if (selectionDebugEnabled) initializeSelectionDebug();
   const containerRef = useRef<HTMLElement | null>(null);
@@ -199,13 +201,21 @@ export function IssueDocumentAnnotations({
 
   const newCommentDisabled = draftDirty || draftConflicted || historicalPreview || !doc.latestRevisionId;
   const newCommentDisabledReason = historicalPreview
-    ? "New comments are disabled while previewing a historical revision."
+    ? t("components.issueDocumentAnnotations.disabledHistoricalPreview", {
+        defaultValue: "New comments are disabled while previewing a historical revision.",
+      })
     : draftConflicted
-      ? "Resolve the document conflict before adding new comments."
+      ? t("components.issueDocumentAnnotations.disabledConflict", {
+          defaultValue: "Resolve the document conflict before adding new comments.",
+        })
       : draftDirty
-        ? "Save the draft to anchor new comments."
+        ? t("components.issueDocumentAnnotations.disabledDirty", {
+            defaultValue: "Save the draft to anchor new comments.",
+          })
         : !doc.latestRevisionId
-          ? "Document has no saved revision yet."
+          ? t("components.issueDocumentAnnotations.disabledNoRevision", {
+              defaultValue: "Document has no saved revision yet.",
+            })
           : null;
 
   const handleSelectionAnchorChange = useCallback((anchor: PendingAnchor | null) => {
@@ -418,6 +428,7 @@ export function DocumentAnnotationsCountChip({
   panelOpen,
   onToggle,
 }: DocumentAnnotationsCountChipProps) {
+  const { t } = useTranslation();
   const annotationsQuery = useQuery({
     queryKey: target?.kind === "routine"
       ? queryKeys.routines.documentAnnotations(target.routineId, target.documentKey, "all")
@@ -449,14 +460,23 @@ export function DocumentAnnotationsCountChip({
       onClick={onToggle}
       data-testid={`document-annotation-count-${docKey}`}
       aria-label={openCount === 0
-        ? `Open comments on ${docKey}`
-        : `Open ${openCount} unresolved comments on ${docKey}`}
+        ? t("components.issueDocumentAnnotations.countChip.openCommentsAria", {
+            defaultValue: "Open comments on {{docKey}}",
+            docKey,
+          })
+        : t("components.issueDocumentAnnotations.countChip.openUnresolvedCommentsAria", {
+            defaultValue: "Open {{openCount}} unresolved comments on {{docKey}}",
+            openCount,
+            docKey,
+          })}
       aria-expanded={panelOpen}
     >
       <MessageSquare className="h-3 w-3" aria-hidden="true" />
       <span className="tabular-nums">{openCount}</span>
       <span className="hidden sm:inline">
-        {openCount === 1 ? "comment" : "comments"}
+        {openCount === 1
+          ? t("components.issueDocumentAnnotations.countChip.commentSingular", { defaultValue: "comment" })
+          : t("components.issueDocumentAnnotations.countChip.commentPlural", { defaultValue: "comments" })}
       </span>
     </Button>
   );

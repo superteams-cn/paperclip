@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type { TFunction } from "i18next";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -23,6 +24,12 @@ import type {
 } from "@paperclipai/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useTranslation } from "@/i18n";
+import {
+  formatCloudUpstreamRunEventMessage,
+  formatCloudUpstreamWarningDetail,
+  formatCloudUpstreamWarningTitle,
+} from "@/lib/api-feedback-format";
 import { useLocation } from "@/lib/router";
 
 type FixtureStateKey =
@@ -35,51 +42,22 @@ type FixtureStateKey =
   | "retry"
   | "finish";
 
-const STEPS: Array<{ key: CloudUpstreamStep; label: string }> = [
-  { key: "connect", label: "Connect" },
-  { key: "scan", label: "Scan" },
-  { key: "preview", label: "Preview" },
-  { key: "push", label: "Push" },
-  { key: "verify", label: "Verify" },
-  { key: "activate", label: "Activate" },
+const STEPS: CloudUpstreamStep[] = [
+  "connect",
+  "scan",
+  "preview",
+  "push",
+  "verify",
+  "activate",
 ];
 
 const ACTIVATION_CATEGORIES: Array<{
   key: CloudUpstreamActivationEntityType;
-  label: string;
-  singular: string;
-  detail: string;
 }> = [
-  {
-    key: "agents",
-    label: "Agents",
-    singular: "agent",
-    detail: "Keep paused until cloud secrets and adapter credentials are verified.",
-  },
-  {
-    key: "routines",
-    label: "Routines",
-    singular: "routine",
-    detail: "Review schedules before enabling triggers.",
-  },
-  {
-    key: "monitors",
-    label: "Monitors",
-    singular: "monitor",
-    detail: "Activate after the target instance has been smoke tested.",
-  },
+  { key: "agents" },
+  { key: "routines" },
+  { key: "monitors" },
 ];
-
-const FIXTURE_LABELS: Record<FixtureStateKey, string> = {
-  "settings-pane": "1 · Settings → Cloud upstream pane (enabled)",
-  "connect-wizard": "2 · Connect wizard — remote URL entry + PKCE launch",
-  "schema-mismatch": "3 · Connect wizard — schema-mismatch hard block",
-  preview: "4 · Preview — conflicts, warnings, planned actions",
-  "preview-clean": "5 · Preview — clean run with no conflicts",
-  progress: "6 · Durable progress — mid-run from run events",
-  retry: "7 · Retry without duplicating ledger entries",
-  finish: "8 · Finish / activation checklist with run report",
-};
 
 const PARSE_ORDER: FixtureStateKey[] = [
   "settings-pane",
@@ -94,6 +72,7 @@ const PARSE_ORDER: FixtureStateKey[] = [
 
 export function CloudUpstreamUxLab() {
   const location = useLocation();
+  const { t } = useTranslation();
   const { state, showChrome } = useMemo(() => {
     const params = new URLSearchParams(location.search);
     const raw = (params.get("state") ?? "settings-pane") as FixtureStateKey;
@@ -103,7 +82,7 @@ export function CloudUpstreamUxLab() {
     };
   }, [location.search]);
 
-  const fixture = useMemo(() => buildFixture(state), [state]);
+  const fixture = useMemo(() => buildFixture(state, t), [state, t]);
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-6">
@@ -114,9 +93,12 @@ export function CloudUpstreamUxLab() {
 }
 
 function FixtureNav({ active }: { active: FixtureStateKey }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-md border border-dashed border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-      <div className="mb-1 font-semibold uppercase tracking-wide">UX lab · cloud upstream</div>
+      <div className="mb-1 font-semibold uppercase tracking-wide">
+        {t("pages.cloudUpstream.uxLab.navTitle")}
+      </div>
       <div className="flex flex-wrap gap-x-3 gap-y-1">
         {PARSE_ORDER.map((key) => (
           <a
@@ -128,7 +110,7 @@ function FixtureNav({ active }: { active: FixtureStateKey }) {
                 : "rounded px-2 py-0.5 hover:bg-accent/40"
             }
           >
-            {FIXTURE_LABELS[key]}
+            {t(`pages.cloudUpstream.uxLab.fixtures.${key}`)}
           </a>
         ))}
       </div>
@@ -147,6 +129,7 @@ interface Fixture {
 }
 
 function CloudUpstreamRender({ fixture }: { fixture: Fixture }) {
+  const { t } = useTranslation();
   const { connection, preview, latestRun, history, notice, actionError, selectedCompanyName } = fixture;
   const activeStep: CloudUpstreamStep = latestRun?.activeStep
     ?? (preview ? "preview" : connection?.tokenStatus === "connected" ? "scan" : "connect");
@@ -156,17 +139,17 @@ function CloudUpstreamRender({ fixture }: { fixture: Fixture }) {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <CloudUpload className="h-5 w-5 text-muted-foreground" />
-            <h1 className="text-lg font-semibold">Cloud upstream</h1>
+            <h1 className="text-lg font-semibold">{t("pages.cloudUpstream.title")}</h1>
           </div>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Push {selectedCompanyName} into a Paperclip Cloud stack. Automations stay paused until activation.
+            {t("pages.cloudUpstream.description", { company: selectedCompanyName })}
           </p>
         </div>
         {connection?.target.origin ? (
           <Button variant="outline" size="sm" asChild>
             <a href={connection.target.origin} target="_blank" rel="noreferrer">
               <ExternalLink className="h-4 w-4" />
-              Open cloud
+              {t("pages.cloudUpstream.openCloud")}
             </a>
           </Button>
         ) : null}
@@ -183,10 +166,12 @@ function CloudUpstreamRender({ fixture }: { fixture: Fixture }) {
         </div>
       ) : null}
 
-      <Stepper activeStep={activeStep} />
+        <Stepper activeStep={activeStep} />
 
       <section className="space-y-3">
-        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Connection</div>
+        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {t("pages.cloudUpstream.connection")}
+        </div>
         <div className="rounded-md border border-border px-4 py-4">
           {connection ? (
             <div className="grid gap-3 lg:grid-cols-(--gtc-17) lg:items-start">
@@ -195,15 +180,22 @@ function CloudUpstreamRender({ fixture }: { fixture: Fixture }) {
                   {connection.target.stackDisplayName ?? connection.target.stackSlug ?? connection.target.stackId}
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                  {connection.target.product} · {connection.target.origin} · token {connection.tokenStatus}
+                  {t("pages.cloudUpstream.uxLab.connectionMeta", {
+                    product: connection.target.product,
+                    origin: connection.target.origin,
+                    tokenStatus: connection.tokenStatus,
+                  })}
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
-                  Schema {connection.target.schemaMajor}. Max chunk {formatBytes(connection.target.maxChunkBytes)}.
+                  {t("pages.cloudUpstream.schemaMaxChunk", {
+                    schema: connection.target.schemaMajor,
+                    chunk: formatBytes(connection.target.maxChunkBytes),
+                  })}
                 </div>
               </div>
               <Button variant="outline" size="sm">
                 <RefreshCcw className="h-4 w-4" />
-                Preview push
+                {t("pages.cloudUpstream.previewPush")}
               </Button>
             </div>
           ) : (
@@ -211,12 +203,12 @@ function CloudUpstreamRender({ fixture }: { fixture: Fixture }) {
               <Input
                 defaultValue="https://paperclip.paperclip.app/PC521D/dashboard"
                 placeholder="https://paperclip.paperclip.app/PC521D/dashboard"
-                aria-label="Paperclip Cloud stack URL"
+                aria-label={t("pages.cloudUpstream.stackUrlAria")}
                 autoFocus
               />
               <Button disabled>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Discovering
+                {t("pages.cloudUpstream.uxLab.discovering")}
               </Button>
             </div>
           )}
@@ -226,10 +218,12 @@ function CloudUpstreamRender({ fixture }: { fixture: Fixture }) {
       {preview ? (
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preview</div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {t("pages.cloudUpstream.preview")}
+            </div>
             <Button disabled={!preview.schemaCompatible}>
               <CloudUpload className="h-4 w-4" />
-              Push to cloud
+              {t("pages.cloudUpstream.pushToCloud")}
             </Button>
           </div>
           <SummaryGrid summary={preview.summary} />
@@ -241,21 +235,23 @@ function CloudUpstreamRender({ fixture }: { fixture: Fixture }) {
       {latestRun ? (
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Progress and finish</div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {t("pages.cloudUpstream.progressAndFinish")}
+            </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm">
                 <FileJson className="h-4 w-4" />
-                Download report
+                {t("pages.cloudUpstream.downloadReport")}
               </Button>
               {latestRun.status === "failed" || latestRun.status === "cancelled" ? (
                 <Button variant="outline" size="sm">
                   <RefreshCcw className="h-4 w-4" />
-                  Retry
+                  {t("common.tryAgain")}
                 </Button>
               ) : latestRun.status === "succeeded" ? (
                 <Button variant="outline" size="sm">
                   <RefreshCcw className="h-4 w-4" />
-                  Re-run
+                  {t("pages.cloudUpstream.rerun")}
                 </Button>
               ) : null}
             </div>
@@ -263,13 +259,16 @@ function CloudUpstreamRender({ fixture }: { fixture: Fixture }) {
           <div className="rounded-md border border-border px-4 py-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-sm font-medium capitalize">{latestRun.status}</div>
+                <div className="text-sm font-medium capitalize">
+                  {t(`pages.cloudUpstream.runStatuses.${latestRun.status}`)}
+                </div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                  Run {latestRun.id.slice(0, 8)} · {latestRun.completedAt
-                    ? `completed ${formatDate(latestRun.completedAt)}`
-                    : latestRun.status === "running"
-                      ? "in progress"
-                      : "in progress"}
+                  {t("pages.cloudUpstream.uxLab.runMeta", {
+                    id: latestRun.id.slice(0, 8),
+                    status: latestRun.completedAt
+                      ? t("pages.cloudUpstream.completedAt", { date: formatDate(latestRun.completedAt) })
+                      : t("pages.cloudUpstream.inProgress"),
+                  })}
                 </div>
               </div>
               <div className="text-sm tabular-nums">{latestRun.progressPercent}%</div>
@@ -281,8 +280,10 @@ function CloudUpstreamRender({ fixture }: { fixture: Fixture }) {
               {latestRun.events.map((event) => (
                 <div key={event.id} className="grid gap-2 py-2 text-sm sm:grid-cols-(--gtc-20)">
                   <span className="text-xs text-muted-foreground">{formatDate(event.at)}</span>
-                  <span className="text-xs capitalize text-muted-foreground">{event.phase}</span>
-                  <span>{event.message}</span>
+                  <span className="text-xs capitalize text-muted-foreground">
+                    {t(`pages.cloudUpstream.phases.${event.phase}`)}
+                  </span>
+                  <span>{formatCloudUpstreamRunEventMessage(event, t)}</span>
                 </div>
               ))}
             </div>
@@ -296,7 +297,7 @@ function CloudUpstreamRender({ fixture }: { fixture: Fixture }) {
         <section className="space-y-3">
           <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             <History className="h-3.5 w-3.5" />
-            History
+            {t("pages.cloudUpstream.history")}
           </div>
           <div className="divide-y divide-border rounded-md border border-border">
             {history.map((run) => (
@@ -304,7 +305,12 @@ function CloudUpstreamRender({ fixture }: { fixture: Fixture }) {
                 key={run.id}
                 className="grid w-full gap-1 px-4 py-3 text-left text-sm hover:bg-accent/40 sm:grid-cols-(--gtc-17)"
               >
-                <span>Run {run.id.slice(0, 8)} · {run.status}</span>
+                <span>
+                  {t("pages.cloudUpstream.historyRun", {
+                    id: run.id.slice(0, 8),
+                    status: t(`pages.cloudUpstream.runStatuses.${run.status}`),
+                  })}
+                </span>
                 <span className="text-xs text-muted-foreground">{formatDate(run.createdAt)}</span>
               </div>
             ))}
@@ -316,20 +322,23 @@ function CloudUpstreamRender({ fixture }: { fixture: Fixture }) {
 }
 
 function Stepper({ activeStep }: { activeStep: CloudUpstreamStep }) {
-  const activeIndex = STEPS.findIndex((step) => step.key === activeStep);
+  const { t } = useTranslation();
+  const activeIndex = STEPS.findIndex((step) => step === activeStep);
   return (
     <div className="grid gap-2 rounded-md border border-border px-3 py-3 sm:grid-cols-6">
       {STEPS.map((step, index) => {
         const complete = index < activeIndex;
         const active = index === activeIndex;
         return (
-          <div key={step.key} className="flex items-center gap-2 text-xs">
+          <div key={step} className="flex items-center gap-2 text-xs">
             {complete ? (
               <CheckCircle2 className="h-4 w-4 text-emerald-600" />
             ) : (
               <span className={active ? "h-4 w-4 rounded-full border-2 border-primary" : "h-4 w-4 rounded-full border border-border"} />
             )}
-            <span className={active ? "font-medium text-foreground" : "text-muted-foreground"}>{step.label}</span>
+            <span className={active ? "font-medium text-foreground" : "text-muted-foreground"}>
+              {t(`pages.cloudUpstream.steps.${step}`)}
+            </span>
           </div>
         );
       })}
@@ -351,18 +360,19 @@ function SummaryGrid({ summary }: { summary: CloudUpstreamSummaryCount[] }) {
 }
 
 function WarningsPanel({ warnings }: { warnings: CloudUpstreamWarning[] }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-md border border-border px-4 py-3">
       <div className="mb-2 flex items-center gap-2 text-sm font-medium">
         <ShieldAlert className="h-4 w-4 text-muted-foreground" />
-        Warnings
+        {t("pages.cloudUpstream.warnings")}
       </div>
       <div className="divide-y divide-border">
         {warnings.map((warning) => (
           <div key={warning.code} className="grid gap-2 py-2 sm:grid-cols-(--gtc-21)">
             <AlertTriangle className={warning.severity === "blocker" ? "h-4 w-4 text-destructive" : "h-4 w-4 text-amber-600"} />
-            <div className="text-sm font-medium">{warning.title}</div>
-            <div className="text-sm text-muted-foreground">{warning.detail}</div>
+            <div className="text-sm font-medium">{formatCloudUpstreamWarningTitle(warning, t)}</div>
+            <div className="text-sm text-muted-foreground">{formatCloudUpstreamWarningDetail(warning, t)}</div>
           </div>
         ))}
       </div>
@@ -371,19 +381,24 @@ function WarningsPanel({ warnings }: { warnings: CloudUpstreamWarning[] }) {
 }
 
 function ConflictTable({ conflicts }: { conflicts: CloudUpstreamConflict[] }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-md border border-border px-4 py-3">
-      <div className="mb-2 text-sm font-medium">Conflicts</div>
+      <div className="mb-2 text-sm font-medium">{t("pages.cloudUpstream.conflicts")}</div>
       {conflicts.length === 0 ? (
-        <div className="text-sm text-muted-foreground">No target conflicts detected for this preview.</div>
+        <div className="text-sm text-muted-foreground">{t("pages.cloudUpstream.noTargetConflicts")}</div>
       ) : (
         <div className="divide-y divide-border">
           {conflicts.map((conflict) => (
             <div key={conflict.id} className="grid gap-2 py-2 text-sm sm:grid-cols-(--gtc-22)">
-              <span className="text-muted-foreground">{conflict.entityType}</span>
+              <span className="text-muted-foreground">
+                {t(`pages.cloudUpstream.uxLab.entityTypes.${conflict.entityType}`)}
+              </span>
               <span>{conflict.sourceLabel}</span>
               <span>{conflict.targetLabel}</span>
-              <span className="capitalize">{conflict.plannedAction}</span>
+              <span className="capitalize">
+                {t(`pages.cloudUpstream.uxLab.plannedActions.${conflict.plannedAction}`)}
+              </span>
             </div>
           ))}
         </div>
@@ -393,28 +408,31 @@ function ConflictTable({ conflicts }: { conflicts: CloudUpstreamConflict[] }) {
 }
 
 function ActivationChecklist({ run }: { run: CloudUpstreamRun }) {
-  const rows = buildActivationRows(run);
+  const { t } = useTranslation();
+  const rows = buildActivationRows(run, t);
   return (
     <div className="rounded-md border border-border px-4 py-3">
-      <div className="mb-2 text-sm font-medium">Activation checklist</div>
+      <div className="mb-2 text-sm font-medium">{t("pages.cloudUpstream.activationChecklist")}</div>
       <div className="divide-y divide-border">
         {rows.map((row) => {
           const activated = row.status === "activated";
           return (
             <div key={row.key} className="grid gap-2 py-2 text-sm sm:grid-cols-(--gtc-23) sm:items-center">
               <div>
-                <div className="font-medium">{row.label}</div>
+                <div className="font-medium">{t(`pages.cloudUpstream.activation.entities.${row.key}.label`)}</div>
                 <div className="text-xs text-muted-foreground">{row.statusLabel}</div>
               </div>
               <div className="text-muted-foreground">
-                {row.count === 0 ? `0 imported ${row.pluralLabel} in this run.` : row.detail}
+                {row.count === 0
+                  ? t("pages.cloudUpstream.activation.noneImported", { entity: row.pluralLabel })
+                  : row.detail}
               </div>
               <div className="flex flex-wrap gap-2 sm:justify-end">
                 <Button variant={activated ? "secondary" : "default"} size="sm" disabled={row.count === 0 || activated}>
-                  {activated ? "Activated" : "Activate"}
+                  {activated ? t("pages.cloudUpstream.activated") : t("pages.cloudUpstream.activate")}
                 </Button>
                 <Button variant="ghost" size="sm" disabled={activated}>
-                  Keep paused
+                  {t("pages.cloudUpstream.keepPaused")}
                 </Button>
               </div>
             </div>
@@ -425,24 +443,28 @@ function ActivationChecklist({ run }: { run: CloudUpstreamRun }) {
   );
 }
 
-function buildActivationRows(run: CloudUpstreamRun) {
+function buildActivationRows(run: CloudUpstreamRun, t: TFunction) {
   const decisions = decisionsFromReport(run.report);
   return ACTIVATION_CATEGORIES.map((category) => {
     const decision = decisions[category.key];
     const count = summaryCount(run.summary, category.key);
     const status = decision?.status === "activated" ? "activated" : "paused";
-    const pluralLabel = `${category.singular}${count === 1 ? "" : "s"}`;
+    const pluralLabel = t(`pages.cloudUpstream.activation.entities.${category.key}.${count === 1 ? "singular" : "plural"}`);
     return {
       ...category,
       count,
       pluralLabel,
       status,
-      detail: `${count} imported ${pluralLabel} are paused by default. ${category.detail}`,
+      detail: t("pages.cloudUpstream.activation.pausedDetail", {
+        count,
+        entity: pluralLabel,
+        detail: t(`pages.cloudUpstream.activation.entities.${category.key}.detail`),
+      }),
       statusLabel: status === "activated"
-        ? `${count} activated`
+        ? t("pages.cloudUpstream.activation.statusActivated", { count })
         : count === 0
-          ? "0 imported"
-          : `${count} paused`,
+          ? t("pages.cloudUpstream.activation.statusImportedZero")
+          : t("pages.cloudUpstream.activation.statusPaused", { count }),
     };
   });
 }
@@ -520,122 +542,132 @@ function connectedConnection(target = STACK_TARGET): CloudUpstreamConnection {
   };
 }
 
-const PREVIEW_SUMMARY: CloudUpstreamSummaryCount[] = [
-  { key: "users", label: "Users", count: 14 },
-  { key: "agents", label: "Agents", count: 6 },
-  { key: "routines", label: "Routines", count: 4 },
-  { key: "monitors", label: "Monitors", count: 2 },
-];
+function previewSummary(t: TFunction): CloudUpstreamSummaryCount[] {
+  return [
+    { key: "users", label: t("pages.cloudUpstream.uxLab.summary.users"), count: 14 },
+    { key: "agents", label: t("pages.cloudUpstream.uxLab.summary.agents"), count: 6 },
+    { key: "routines", label: t("pages.cloudUpstream.uxLab.summary.routines"), count: 4 },
+    { key: "monitors", label: t("pages.cloudUpstream.uxLab.summary.monitors"), count: 2 },
+  ];
+}
 
-const PREVIEW_WARNINGS_NORMAL: CloudUpstreamWarning[] = [
-  {
-    code: "imported_automations_paused",
-    severity: "warning",
-    title: "Automations stay paused",
-    detail: "Imported agents, routines, and monitors require explicit activation after the push.",
-  },
-  {
-    code: "unmatched_users_import_as_historical_authors",
-    severity: "warning",
-    title: "Unmatched users become historical authors",
-    detail: "Invite now remains a secondary action after the transfer is complete.",
-  },
-  {
-    code: "secret_values_redacted",
-    severity: "warning",
-    title: "Secret values are not transferred",
-    detail: "The push carries secret requirements only. Configure cloud secrets before activating automations.",
-  },
-];
+function previewWarningsNormal(t: TFunction): CloudUpstreamWarning[] {
+  return [
+    {
+      code: "imported_automations_paused",
+      severity: "warning",
+      title: t("pages.cloudUpstream.uxLab.warnings.automationsPaused.title"),
+      detail: t("pages.cloudUpstream.uxLab.warnings.automationsPaused.detail"),
+    },
+    {
+      code: "unmatched_users_import_as_historical_authors",
+      severity: "warning",
+      title: t("pages.cloudUpstream.uxLab.warnings.historicalAuthors.title"),
+      detail: t("pages.cloudUpstream.uxLab.warnings.historicalAuthors.detail"),
+    },
+    {
+      code: "secret_values_redacted",
+      severity: "warning",
+      title: t("pages.cloudUpstream.uxLab.warnings.secretValues.title"),
+      detail: t("pages.cloudUpstream.uxLab.warnings.secretValues.detail"),
+    },
+  ];
+}
 
-const PREVIEW_WARNINGS_SCHEMA: CloudUpstreamWarning[] = [
-  {
-    code: "schema_mismatch",
-    severity: "blocker",
-    title: "Cloud stack upgrade required",
-    detail: "This local build uses upstream schema 7, but the cloud stack reports schema 5.",
-  },
-  ...PREVIEW_WARNINGS_NORMAL,
-];
+function previewWarningsSchema(t: TFunction): CloudUpstreamWarning[] {
+  return [
+    {
+      code: "schema_mismatch",
+      severity: "blocker",
+      title: t("pages.cloudUpstream.uxLab.warnings.schemaMismatch.title"),
+      detail: t("pages.cloudUpstream.uxLab.warnings.schemaMismatch.detail"),
+    },
+    ...previewWarningsNormal(t),
+  ];
+}
 
-const PREVIEW_CONFLICTS: CloudUpstreamConflict[] = [
-  {
-    id: "conflict_user_serena",
-    entityType: "user",
-    sourceLabel: "serena@magicmachine.co (unmatched)",
-    targetLabel: "→ historical author Serena R.",
-    plannedAction: "create",
-    reason: "Target stack has no matching identity. Will arrive as historical author; invite available after push.",
-  },
-  {
-    id: "conflict_user_dotta",
-    entityType: "user",
-    sourceLabel: "dotta@magicmachine.co",
-    targetLabel: "↦ dotta@magicmachine.co (cloud)",
-    plannedAction: "update",
-    reason: "Existing cloud identity matches local user; will be merged.",
-  },
-  {
-    id: "conflict_agent_qa",
-    entityType: "agent",
-    sourceLabel: "QA · qa-bot",
-    targetLabel: "↦ QA · qa-bot (cloud)",
-    plannedAction: "update",
-    reason: "Mapped to existing cloud agent. Imported run history will be appended.",
-  },
-  {
-    id: "conflict_routine_nightly_reports",
-    entityType: "routine",
-    sourceLabel: "Nightly status report",
-    targetLabel: "(new in cloud)",
-    plannedAction: "create",
-    reason: "Routine does not exist in the target stack and will be created in paused state.",
-  },
-];
+function previewConflicts(t: TFunction): CloudUpstreamConflict[] {
+  return [
+    {
+      id: "conflict_user_serena",
+      entityType: "user",
+      sourceLabel: t("pages.cloudUpstream.uxLab.conflictData.serenaSource"),
+      targetLabel: t("pages.cloudUpstream.uxLab.conflictData.serenaTarget"),
+      plannedAction: "create",
+      reason: t("pages.cloudUpstream.uxLab.conflictData.serenaReason"),
+    },
+    {
+      id: "conflict_user_dotta",
+      entityType: "user",
+      sourceLabel: "dotta@magicmachine.co",
+      targetLabel: t("pages.cloudUpstream.uxLab.conflictData.dottaTarget"),
+      plannedAction: "update",
+      reason: t("pages.cloudUpstream.uxLab.conflictData.dottaReason"),
+    },
+    {
+      id: "conflict_agent_qa",
+      entityType: "agent",
+      sourceLabel: "QA · qa-bot",
+      targetLabel: t("pages.cloudUpstream.uxLab.conflictData.qaTarget"),
+      plannedAction: "update",
+      reason: t("pages.cloudUpstream.uxLab.conflictData.qaReason"),
+    },
+    {
+      id: "conflict_routine_nightly_reports",
+      entityType: "routine",
+      sourceLabel: t("pages.cloudUpstream.uxLab.conflictData.nightlySource"),
+      targetLabel: t("pages.cloudUpstream.uxLab.conflictData.newInCloud"),
+      plannedAction: "create",
+      reason: t("pages.cloudUpstream.uxLab.conflictData.nightlyReason"),
+    },
+  ];
+}
 
-function basePreview(): CloudUpstreamPreview {
+function basePreview(t: TFunction): CloudUpstreamPreview {
   return {
     connectionId: "cu_conn_8d3f1b6a",
     sourceCompanyId: "co_local_pc521d",
     target: STACK_TARGET,
     schemaCompatible: true,
-    summary: PREVIEW_SUMMARY,
-    warnings: PREVIEW_WARNINGS_NORMAL,
-    conflicts: PREVIEW_CONFLICTS,
+    summary: previewSummary(t),
+    warnings: previewWarningsNormal(t),
+    conflicts: previewConflicts(t),
     generatedAt: "2026-05-18T19:03:14.000Z",
   };
 }
 
-function schemaMismatchPreview(): CloudUpstreamPreview {
+function schemaMismatchPreview(t: TFunction): CloudUpstreamPreview {
   return {
-    ...basePreview(),
+    ...basePreview(t),
     target: STACK_TARGET_SCHEMA_BEHIND,
     schemaCompatible: false,
     summary: [],
     conflicts: [],
-    warnings: PREVIEW_WARNINGS_SCHEMA,
+    warnings: previewWarningsSchema(t),
   };
 }
 
-function cleanPreview(): CloudUpstreamPreview {
+function cleanPreview(t: TFunction): CloudUpstreamPreview {
   return {
-    ...basePreview(),
+    ...basePreview(t),
     conflicts: [],
-    warnings: PREVIEW_WARNINGS_NORMAL.slice(0, 1),
+    warnings: previewWarningsNormal(t).slice(0, 1),
   };
 }
 
-const PROGRESS_EVENTS = [
-  { id: "evt_01", at: "2026-05-18T19:10:02.000Z", phase: "scan" as CloudUpstreamStep, type: "completed" as const, message: "Scanned 14 users, 6 agents, 4 routines, 2 monitors." },
-  { id: "evt_02", at: "2026-05-18T19:10:11.000Z", phase: "preview" as CloudUpstreamStep, type: "completed" as const, message: "Preview generated with 4 conflicts and 3 warnings." },
-  { id: "evt_03", at: "2026-05-18T19:10:31.000Z", phase: "push" as CloudUpstreamStep, type: "created" as const, message: "users · 8 created, 6 mapped to existing identities." },
-  { id: "evt_04", at: "2026-05-18T19:10:48.000Z", phase: "push" as CloudUpstreamStep, type: "updated" as const, message: "agents · 4 created paused, 2 updated paused." },
-  { id: "evt_05", at: "2026-05-18T19:10:58.000Z", phase: "push" as CloudUpstreamStep, type: "updated" as const, message: "routines · 3 created paused, 1 updated." },
-  { id: "evt_06", at: "2026-05-18T19:11:09.000Z", phase: "push" as CloudUpstreamStep, type: "created" as const, message: "monitors · 2 created paused." },
-  { id: "evt_07", at: "2026-05-18T19:11:18.000Z", phase: "verify" as CloudUpstreamStep, type: "updated" as const, message: "Verifying transferred ledger checksums…" },
-];
+function progressEvents(t: TFunction) {
+  return [
+    { id: "evt_01", at: "2026-05-18T19:10:02.000Z", phase: "scan" as CloudUpstreamStep, type: "completed" as const, message: t("pages.cloudUpstream.uxLab.events.scanned") },
+    { id: "evt_02", at: "2026-05-18T19:10:11.000Z", phase: "preview" as CloudUpstreamStep, type: "completed" as const, message: t("pages.cloudUpstream.uxLab.events.previewGenerated") },
+    { id: "evt_03", at: "2026-05-18T19:10:31.000Z", phase: "push" as CloudUpstreamStep, type: "created" as const, message: t("pages.cloudUpstream.uxLab.events.usersPushed") },
+    { id: "evt_04", at: "2026-05-18T19:10:48.000Z", phase: "push" as CloudUpstreamStep, type: "updated" as const, message: t("pages.cloudUpstream.uxLab.events.agentsPushed") },
+    { id: "evt_05", at: "2026-05-18T19:10:58.000Z", phase: "push" as CloudUpstreamStep, type: "updated" as const, message: t("pages.cloudUpstream.uxLab.events.routinesPushed") },
+    { id: "evt_06", at: "2026-05-18T19:11:09.000Z", phase: "push" as CloudUpstreamStep, type: "created" as const, message: t("pages.cloudUpstream.uxLab.events.monitorsPushed") },
+    { id: "evt_07", at: "2026-05-18T19:11:18.000Z", phase: "verify" as CloudUpstreamStep, type: "updated" as const, message: t("pages.cloudUpstream.uxLab.events.verifyingChecksums") },
+  ];
+}
 
-function runningRun(): CloudUpstreamRun {
+function runningRun(t: TFunction): CloudUpstreamRun {
   return {
     id: "run_3kQ8mNpW9bX2zL4Y",
     connectionId: "cu_conn_8d3f1b6a",
@@ -644,10 +676,10 @@ function runningRun(): CloudUpstreamRun {
     activeStep: "push",
     progressPercent: 62,
     dryRun: false,
-    summary: PREVIEW_SUMMARY,
-    warnings: PREVIEW_WARNINGS_NORMAL,
-    conflicts: PREVIEW_CONFLICTS,
-    events: PROGRESS_EVENTS,
+    summary: previewSummary(t),
+    warnings: previewWarningsNormal(t),
+    conflicts: previewConflicts(t),
+    events: progressEvents(t),
     targetUrl: "https://paperclip.paperclip.app/PC521D/dashboard",
     report: {},
     retryOfRunId: null,
@@ -657,7 +689,7 @@ function runningRun(): CloudUpstreamRun {
   };
 }
 
-function failedRun(): CloudUpstreamRun {
+function failedRun(t: TFunction): CloudUpstreamRun {
   return {
     id: "run_5fXqR2bT7aD8zP1K",
     connectionId: "cu_conn_8d3f1b6a",
@@ -666,17 +698,17 @@ function failedRun(): CloudUpstreamRun {
     activeStep: "push",
     progressPercent: 78,
     dryRun: false,
-    summary: PREVIEW_SUMMARY,
-    warnings: PREVIEW_WARNINGS_NORMAL,
-    conflicts: PREVIEW_CONFLICTS,
+    summary: previewSummary(t),
+    warnings: previewWarningsNormal(t),
+    conflicts: previewConflicts(t),
     events: [
-      ...PROGRESS_EVENTS,
+      ...progressEvents(t),
       {
         id: "evt_08",
         at: "2026-05-18T19:11:30.000Z",
         phase: "push",
         type: "failed",
-        message: "Apply rejected: cloud rejected chunk 4 of 6 (HTTP 502). Ledger entries from chunks 1–3 retained; chunk 4 not committed.",
+        message: t("pages.cloudUpstream.uxLab.events.applyRejected"),
       },
     ],
     targetUrl: "https://paperclip.paperclip.app/PC521D/dashboard",
@@ -688,7 +720,7 @@ function failedRun(): CloudUpstreamRun {
   };
 }
 
-function succeededRun(): CloudUpstreamRun {
+function succeededRun(t: TFunction): CloudUpstreamRun {
   return {
     id: "run_7aBcD9eFgH2iJ3kL",
     connectionId: "cu_conn_8d3f1b6a",
@@ -697,24 +729,24 @@ function succeededRun(): CloudUpstreamRun {
     activeStep: "activate",
     progressPercent: 100,
     dryRun: false,
-    summary: PREVIEW_SUMMARY,
-    warnings: PREVIEW_WARNINGS_NORMAL,
-    conflicts: PREVIEW_CONFLICTS,
+    summary: previewSummary(t),
+    warnings: previewWarningsNormal(t),
+    conflicts: previewConflicts(t),
     events: [
-      ...PROGRESS_EVENTS,
+      ...progressEvents(t),
       {
         id: "evt_08",
         at: "2026-05-18T19:11:25.000Z",
         phase: "verify",
         type: "completed",
-        message: "Ledger checksums match. Push committed.",
+        message: t("pages.cloudUpstream.uxLab.events.ledgerMatched"),
       },
       {
         id: "evt_09",
         at: "2026-05-18T19:11:31.000Z",
         phase: "activate",
         type: "completed",
-        message: "Activation checklist pending operator approval — automations remain paused.",
+        message: t("pages.cloudUpstream.uxLab.events.activationPending"),
       },
     ],
     targetUrl: "https://paperclip.paperclip.app/PC521D/dashboard",
@@ -732,21 +764,21 @@ function succeededRun(): CloudUpstreamRun {
   };
 }
 
-function buildFixture(state: FixtureStateKey): Fixture {
+function buildFixture(state: FixtureStateKey, t: TFunction): Fixture {
   switch (state) {
     case "settings-pane":
       return {
-        selectedCompanyName: "Paperclip · PC521D",
+        selectedCompanyName: t("pages.cloudUpstream.uxLab.companyName"),
         connection: connectedConnection(),
         preview: null,
         latestRun: null,
         history: [],
-        notice: "Cloud upstream connection approved.",
+        notice: t("pages.cloudUpstream.connectionApproved"),
         actionError: null,
       };
     case "connect-wizard":
       return {
-        selectedCompanyName: "Paperclip · PC521D",
+        selectedCompanyName: t("pages.cloudUpstream.uxLab.companyName"),
         connection: null,
         preview: null,
         latestRun: null,
@@ -756,19 +788,19 @@ function buildFixture(state: FixtureStateKey): Fixture {
       };
     case "schema-mismatch":
       return {
-        selectedCompanyName: "Paperclip · PC521D",
+        selectedCompanyName: t("pages.cloudUpstream.uxLab.companyName"),
         connection: connectedConnection(STACK_TARGET_SCHEMA_BEHIND),
-        preview: schemaMismatchPreview(),
+        preview: schemaMismatchPreview(t),
         latestRun: null,
         history: [],
         notice: null,
-        actionError: "Cloud stack is on schema 5 but this local build pushes schema 7. Upgrade the cloud stack to continue.",
+        actionError: t("pages.cloudUpstream.uxLab.schemaMismatchError"),
       };
     case "preview":
       return {
-        selectedCompanyName: "Paperclip · PC521D",
+        selectedCompanyName: t("pages.cloudUpstream.uxLab.companyName"),
         connection: connectedConnection(),
-        preview: basePreview(),
+        preview: basePreview(t),
         latestRun: null,
         history: [],
         notice: null,
@@ -776,46 +808,46 @@ function buildFixture(state: FixtureStateKey): Fixture {
       };
     case "preview-clean":
       return {
-        selectedCompanyName: "Paperclip · PC521D",
+        selectedCompanyName: t("pages.cloudUpstream.uxLab.companyName"),
         connection: connectedConnection(),
-        preview: cleanPreview(),
+        preview: cleanPreview(t),
         latestRun: null,
         history: [],
-        notice: "Preview completed. No target conflicts detected.",
+        notice: t("pages.cloudUpstream.uxLab.previewCompletedClean"),
         actionError: null,
       };
     case "progress":
       return {
-        selectedCompanyName: "Paperclip · PC521D",
+        selectedCompanyName: t("pages.cloudUpstream.uxLab.companyName"),
         connection: connectedConnection(),
         preview: null,
-        latestRun: runningRun(),
+        latestRun: runningRun(t),
         history: [],
         notice: null,
         actionError: null,
       };
     case "retry":
       return {
-        selectedCompanyName: "Paperclip · PC521D",
+        selectedCompanyName: t("pages.cloudUpstream.uxLab.companyName"),
         connection: connectedConnection(),
         preview: null,
-        latestRun: failedRun(),
+        latestRun: failedRun(t),
         history: [
-          { ...failedRun(), id: "run_9pYqXwVtSrQ" },
+          { ...failedRun(t), id: "run_9pYqXwVtSrQ" },
         ],
         notice: null,
-        actionError: "Push run failed. Review the events. Retry resumes from ledger checkpoint chunk-3 — chunks 1–3 will not be re-applied.",
+        actionError: t("pages.cloudUpstream.uxLab.retryError"),
       };
     case "finish":
       return {
-        selectedCompanyName: "Paperclip · PC521D",
+        selectedCompanyName: t("pages.cloudUpstream.uxLab.companyName"),
         connection: connectedConnection(),
         preview: null,
-        latestRun: succeededRun(),
+        latestRun: succeededRun(t),
         history: [
-          { ...succeededRun(), id: "run_aZcXvBnMqWeR" },
+          { ...succeededRun(t), id: "run_aZcXvBnMqWeR" },
         ],
-        notice: "Push run completed. Review activation before unpausing automations.",
+        notice: t("pages.cloudUpstream.pushRunCompleted"),
         actionError: null,
       };
   }

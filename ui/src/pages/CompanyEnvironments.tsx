@@ -9,6 +9,7 @@ import { ArrowLeft, Check, Play, RefreshCw, RotateCcw, Terminal, Trash2, X } fro
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal as XTermTerminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
+import { useTranslation } from "react-i18next";
 import {
   type EnvBinding,
   type Environment,
@@ -30,13 +31,15 @@ import {
   EnvironmentVariablesEditor,
   type EnvironmentVariablesEditorHandle,
 } from "@/components/environment-variables-editor";
-import { JsonSchemaForm, getDefaultValues, validateJsonSchemaForm } from "@/components/JsonSchemaForm";
+import { JsonSchemaForm, createJsonSchemaValidationMessages, getDefaultValues, validateJsonSchemaForm } from "@/components/JsonSchemaForm";
 import { useBreadcrumbs } from "@/context/BreadcrumbContext";
 import { useCompany } from "@/context/CompanyContext";
 import { useToast } from "@/context/ToastContext";
 import { queryKeys } from "@/lib/queryKeys";
 import { Link, useNavigate, useParams } from "@/lib/router";
 import { buildSameOriginWebSocketUrl } from "@/lib/websocket-url";
+import { formatApiError } from "@/lib/api-error";
+import { t } from "@/i18n";
 import {
   Field,
   ToggleField,
@@ -667,7 +670,7 @@ function EnvironmentCustomImageBrowserTerminal({
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-3 py-2">
         <div className="flex min-w-0 items-center gap-2 text-xs">
           <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="font-medium">Browser terminal</span>
+          <span className="font-medium">{t("pages.companyEnvironments.browserTerminal", { defaultValue: "Browser terminal" })}</span>
           <span className="text-muted-foreground">{customImageTerminalStatusCopy(connectionState)}</span>
         </div>
         <div className="flex items-center gap-2">
@@ -692,7 +695,7 @@ function EnvironmentCustomImageBrowserTerminal({
         <div
           ref={terminalElementRef}
           data-testid={`custom-image-terminal-screen-${sessionId}`}
-          aria-label="Custom image browser terminal"
+          aria-label={t("pages.companyEnvironments.customImageBrowserTerminal", { defaultValue: "Custom image browser terminal" })}
           role="application"
           tabIndex={0}
           onFocus={() => xtermRef.current?.focus()}
@@ -938,7 +941,7 @@ function EnvironmentImageTemplatePanel({
   if (overviewQuery.isLoading) {
     return (
       <div className="mt-3 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-        Loading template setup...
+        {t("pages.companyEnvironments.loadingTemplateSetup", { defaultValue: "Loading template setup..." })}
       </div>
     );
   }
@@ -1013,7 +1016,7 @@ function EnvironmentImageTemplatePanel({
         </div>
         {isCapturing ? (
           <div className="mt-2 text-xs text-muted-foreground">
-            Capture is in progress. If this state remains after a refresh or interrupted request, cancel it to return to the active template controls.
+            {t("pages.companyEnvironments.captureInProgress", { defaultValue: "Capture is in progress. If this state remains after a refresh or interrupted request, cancel it to return to the active template controls." })}
           </div>
         ) : null}
         {session.status === "waiting_for_user" && connectionPayload?.type === "ssh" ? (
@@ -1022,7 +1025,7 @@ function EnvironmentImageTemplatePanel({
         {session.status === "waiting_for_user" && connectionCommand ? (
           <details className="mt-2 rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
             <summary className="cursor-pointer select-none font-medium text-foreground">
-              SSH command fallback
+              {t("pages.companyEnvironments.sshCommandFallback", { defaultValue: "SSH command fallback" })}
             </summary>
             <code className="mt-2 block overflow-x-auto whitespace-nowrap text-(length:--text-micro) leading-5">
               {connectionCommand}
@@ -1048,7 +1051,7 @@ function EnvironmentImageTemplatePanel({
       <div className="mt-3 border-t border-border/60 pt-3" data-testid={`custom-image-template-state-${environment.id}`}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
-            <div className="text-xs font-medium">Active template</div>
+            <div className="text-xs font-medium">{t("pages.companyEnvironments.activeTemplate", { defaultValue: "Active template" })}</div>
             <div className="text-xs text-muted-foreground">
               {providerDisplayName} · {activeTemplate.templateKind}
               {" · "}
@@ -1112,7 +1115,7 @@ function EnvironmentImageTemplatePanel({
     <div className="mt-3 border-t border-border/60 pt-3" data-testid={`custom-image-template-state-${environment.id}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <div className="text-xs font-medium">Not configured</div>
+          <div className="text-xs font-medium">{t("pages.companyEnvironments.notConfigured", { defaultValue: "Not configured" })}</div>
           <div className="text-xs text-muted-foreground">
             {latestSession
               ? sessionStatusCopy(latestSession.status)
@@ -1129,7 +1132,7 @@ function EnvironmentImageTemplatePanel({
           disabled={isMutating}
         >
           <Play className="mr-1.5 h-3.5 w-3.5" />
-          Configure image
+          {t("pages.companyEnvironments.configureImage", { defaultValue: "Configure image" })}
         </Button>
       </div>
     </div>
@@ -1137,6 +1140,7 @@ function EnvironmentImageTemplatePanel({
 }
 
 export function CompanyEnvironments({ mode = "list" }: CompanyEnvironmentsProps) {
+  const { t } = useTranslation();
   const { environmentId: routeEnvironmentId } = useParams<{ environmentId?: string }>();
   const navigate = useNavigate();
   const { selectedCompanyId } = useCompany();
@@ -1160,16 +1164,16 @@ export function CompanyEnvironments({ mode = "list" }: CompanyEnvironmentsProps)
 
   useEffect(() => {
     const crumbs = [
-      { label: "Settings", href: "/company/settings" },
-      { label: "Instance settings", href: "/company/settings/instance/general" },
+      { label: t("nav.settings", { defaultValue: "Settings" }), href: "/company/settings" },
+      { label: t("pages.companyEnvironments.instanceSettings", { defaultValue: "Instance settings" }), href: "/company/settings/instance/general" },
       isEnvironmentFormPage
-        ? { label: "Environments", href: ENVIRONMENTS_PATH }
-        : { label: "Environments" },
+        ? { label: t("nav.environments", { defaultValue: "Environments" }), href: ENVIRONMENTS_PATH }
+        : { label: t("nav.environments", { defaultValue: "Environments" }) },
     ];
-    if (mode === "create") crumbs.push({ label: "Add environment" });
-    if (mode === "edit") crumbs.push({ label: "Edit environment" });
+    if (mode === "create") crumbs.push({ label: t("pages.companyEnvironments.addEnvironment", { defaultValue: "Add environment" }) });
+    if (mode === "edit") crumbs.push({ label: t("pages.companyEnvironments.editEnvironment", { defaultValue: "Edit environment" }) });
     setBreadcrumbs(crumbs);
-  }, [isEnvironmentFormPage, mode, setBreadcrumbs]);
+  }, [isEnvironmentFormPage, mode, setBreadcrumbs, t]);
 
   const { data: instanceSettings } = useQuery({
     queryKey: queryKeys.instance.settings,
@@ -1241,8 +1245,13 @@ export function CompanyEnvironments({ mode = "list" }: CompanyEnvironmentsProps)
       draftEnvironmentProbeMutation.reset();
       navigate(ENVIRONMENTS_PATH, { replace: true });
       pushToast({
-        title: wasEditing ? "Environment updated" : "Environment created",
-        body: `${environment.name} is ready.`,
+        title: wasEditing
+          ? t("pages.companyEnvironments.environmentUpdated", { defaultValue: "Environment updated" })
+          : t("pages.companyEnvironments.environmentCreated", { defaultValue: "Environment created" }),
+        body: t("pages.companyEnvironments.environmentReady", {
+          defaultValue: "{{name}} is ready.",
+          name: environment.name,
+        }),
         tone: "success",
       });
       const reconciliation = (environment as EnvironmentUpdateResult).customImageReconciliation;
@@ -1262,8 +1271,8 @@ export function CompanyEnvironments({ mode = "list" }: CompanyEnvironmentsProps)
     },
     onError: (error) => {
       pushToast({
-        title: "Failed to save environment",
-        body: error instanceof Error ? error.message : "Environment save failed.",
+        title: t("pages.companyEnvironments.saveFailed", { defaultValue: "Failed to save environment" }),
+        body: formatApiError(error, t, t("pages.companyEnvironments.saveFailedBody", { defaultValue: "Environment save failed." })),
         tone: "error",
       });
     },
@@ -1303,7 +1312,9 @@ export function CompanyEnvironments({ mode = "list" }: CompanyEnvironmentsProps)
         [environmentId]: probe,
       }));
       pushToast({
-        title: probe.ok ? "Environment probe passed" : "Environment probe failed",
+        title: probe.ok
+          ? t("pages.companyEnvironments.probePassed", { defaultValue: "Environment probe passed" })
+          : t("pages.companyEnvironments.probeFailed", { defaultValue: "Environment probe failed" }),
         body: probe.summary,
         tone: probe.ok ? "success" : "error",
       });
@@ -1315,13 +1326,13 @@ export function CompanyEnvironments({ mode = "list" }: CompanyEnvironmentsProps)
         [environmentId]: {
           ok: false,
           driver: failedEnvironment?.driver ?? "local",
-          summary: error instanceof Error ? error.message : "Environment probe failed.",
+          summary: formatApiError(error, t, t("pages.companyEnvironments.probeFailedBody", { defaultValue: "Environment probe failed." })),
           details: null,
         },
       }));
       pushToast({
-        title: "Environment probe failed",
-        body: error instanceof Error ? error.message : "Environment probe failed.",
+        title: t("pages.companyEnvironments.probeFailed", { defaultValue: "Environment probe failed" }),
+        body: formatApiError(error, t, t("pages.companyEnvironments.probeFailedBody", { defaultValue: "Environment probe failed." })),
         tone: "error",
       });
     },
@@ -1335,15 +1346,17 @@ export function CompanyEnvironments({ mode = "list" }: CompanyEnvironmentsProps)
     },
     onSuccess: (probe) => {
       pushToast({
-        title: probe.ok ? "Draft probe passed" : "Draft probe failed",
+        title: probe.ok
+          ? t("pages.companyEnvironments.draftProbePassed", { defaultValue: "Draft probe passed" })
+          : t("pages.companyEnvironments.draftProbeFailed", { defaultValue: "Draft probe failed" }),
         body: probe.summary,
         tone: probe.ok ? "success" : "error",
       });
     },
     onError: (error) => {
       pushToast({
-        title: "Draft probe failed",
-        body: error instanceof Error ? error.message : "Environment probe failed.",
+        title: t("pages.companyEnvironments.draftProbeFailed", { defaultValue: "Draft probe failed" }),
+        body: formatApiError(error, t, t("pages.companyEnvironments.probeFailedBody", { defaultValue: "Environment probe failed." })),
         tone: "error",
       });
     },
@@ -1509,7 +1522,7 @@ export function CompanyEnvironments({ mode = "list" }: CompanyEnvironmentsProps)
   const selectedSandboxSchema = selectedSandboxProvider?.configSchema ?? null;
   const sandboxConfigErrors =
     environmentForm.driver === "sandbox" && selectedSandboxSchema
-      ? validateJsonSchemaForm(selectedSandboxSchema as any, environmentForm.sandboxConfig)
+      ? validateJsonSchemaForm(selectedSandboxSchema as any, environmentForm.sandboxConfig, [], createJsonSchemaValidationMessages(t))
       : {};
 
   useEffect(() => {
@@ -1557,14 +1570,16 @@ export function CompanyEnvironments({ mode = "list" }: CompanyEnvironmentsProps)
   );
 
   if (!selectedCompanyId) {
-    return <div className="text-sm text-muted-foreground">Select a company context to manage environment secrets and bindings.</div>;
+    return <div className="text-sm text-muted-foreground">{t("pages.companyEnvironments.selectCompany", { defaultValue: "Select a company context to manage environment secrets and bindings." })}</div>;
   }
 
   if (!environmentsEnabled) {
     return (
       <div className="max-w-3xl space-y-4">
         <div className="rounded-md border border-border px-4 py-4 text-sm text-muted-foreground">
-          Enable Environments in instance experimental settings to manage shared execution targets.
+          {t("pages.companyEnvironments.enableHint", {
+            defaultValue: "Enable Environments in instance experimental settings to manage shared execution targets.",
+          })}
         </div>
       </div>
     );
@@ -1601,7 +1616,7 @@ export function CompanyEnvironments({ mode = "list" }: CompanyEnvironmentsProps)
         <div className="space-y-3">
           <div className="flex justify-end">
             <Button size="sm" asChild>
-              <Link to={`${ENVIRONMENTS_PATH}/new`}>Add environment</Link>
+              <Link to={`${ENVIRONMENTS_PATH}/new`}>{t("pages.companyEnvironments.addEnvironment", { defaultValue: "Add environment" })}</Link>
             </Button>
           </div>
           {savedEnvironments.map((environment) => {
@@ -1638,7 +1653,7 @@ export function CompanyEnvironments({ mode = "list" }: CompanyEnvironmentsProps)
                         })()}
                       </div>
                     ) : (
-                      <div className="text-xs text-muted-foreground">Runs on this Paperclip host.</div>
+                      <div className="text-xs text-muted-foreground">{t("pages.companyEnvironments.runsOnThisHost", { defaultValue: "Runs on this Paperclip host." })}</div>
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -1684,16 +1699,16 @@ export function CompanyEnvironments({ mode = "list" }: CompanyEnvironmentsProps)
 
       {isEnvironmentFormPage && mode === "edit" && environments === undefined ? (
         <div className="rounded-md border border-border px-4 py-4 text-sm text-muted-foreground">
-          Loading environment...
+          {t("pages.companyEnvironments.loadingEnvironment", { defaultValue: "Loading environment..." })}
         </div>
       ) : null}
 
       {isEnvironmentFormPage && mode === "edit" && environments !== undefined && !editingEnvironment ? (
         <div className="space-y-3 rounded-md border border-border px-4 py-4 text-sm">
-          <div className="font-medium">Environment not found</div>
-          <div className="text-muted-foreground">The environment may have been removed or is not available in this company.</div>
+          <div className="font-medium">{t("pages.companyEnvironments.environmentNotFound", { defaultValue: "Environment not found" })}</div>
+          <div className="text-muted-foreground">{t("pages.companyEnvironments.environmentNotFoundBody", { defaultValue: "The environment may have been removed or is not available in this company." })}</div>
           <Button size="sm" variant="outline" asChild>
-            <Link to={ENVIRONMENTS_PATH}>Back to environments</Link>
+            <Link to={ENVIRONMENTS_PATH}>{t("pages.companyEnvironments.backToEnvironments", { defaultValue: "Back to environments" })}</Link>
           </Button>
         </div>
       ) : null}
@@ -1709,7 +1724,7 @@ export function CompanyEnvironments({ mode = "list" }: CompanyEnvironmentsProps)
                 </Link>
               </Button>
             </div>
-            <h1 className="text-lg font-semibold">{editingEnvironmentId ? "Edit environment" : "Add environment"}</h1>
+            <h1 className="text-lg font-semibold">{editingEnvironmentId ? t("pages.companyEnvironments.editEnvironment", { defaultValue: "Edit environment" }) : t("pages.companyEnvironments.addEnvironment", { defaultValue: "Add environment" })}</h1>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               Configure a reusable execution target for your agents. Saved changes affect future runs; Paperclip may start fresh sessions or sandbox leases after environment config changes.
             </p>
@@ -1817,7 +1832,7 @@ export function CompanyEnvironments({ mode = "list" }: CompanyEnvironmentsProps)
                             sshPrivateKey: e.target.value ? "" : current.sshPrivateKey,
                           }))}
                       >
-                        <option value="">No saved secret</option>
+                        <option value="">{t("pages.companyEnvironments.noSavedSecret", { defaultValue: "No saved secret" })}</option>
                         {(secrets ?? []).map((secret) => (
                           <option key={secret.id} value={secret.id}>{secret.name}</option>
                         ))}
@@ -1892,7 +1907,7 @@ export function CompanyEnvironments({ mode = "list" }: CompanyEnvironmentsProps)
                     />
                   ) : (
                     <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-                      This provider does not declare additional configuration fields.
+                      {t("pages.companyEnvironments.noProviderConfig", { defaultValue: "This provider does not declare additional configuration fields." })}
                     </div>
                   )}
                   <ToggleField
@@ -1913,7 +1928,7 @@ export function CompanyEnvironments({ mode = "list" }: CompanyEnvironmentsProps)
               environmentForm.driver === "sandbox" &&
               selectedCompanyId ? (
                 <div className="space-y-2 rounded-md border border-border/60 bg-muted/20 px-3 py-3">
-                  <div className="text-sm font-medium">Custom image</div>
+                  <div className="text-sm font-medium">{t("pages.companyEnvironments.customImage", { defaultValue: "Custom image" })}</div>
                   <div className="text-xs text-muted-foreground">
                     Start a setup sandbox, SSH in to customize the instance, then capture the
                     running machine as a reusable image for future runs.

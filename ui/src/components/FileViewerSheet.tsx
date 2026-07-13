@@ -9,6 +9,8 @@ import {
   type ReactNode,
 } from "react";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import { t } from "@/i18n";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -76,7 +78,7 @@ function normalizeError(error: unknown): FileViewerErrorShape {
   if (error instanceof Error) {
     return { status: 0, code: "", message: error.message };
   }
-  return { status: 0, code: "", message: "Something went wrong." };
+  return { status: 0, code: "", message: t("components.fileViewerSheet.normalizeError.genericMessage", { defaultValue: "Something went wrong." }) };
 }
 
 function formatBytes(size: number | null | undefined): string | null {
@@ -141,49 +143,49 @@ export function describeDenial(code: string, fallback: string): { title: string;
   if (lower.includes("policy") || lower.includes("denied") || lower.includes("sensitive")) {
     return {
       icon: <Lock aria-hidden="true" className="h-6 w-6 text-amber-500" />,
-      title: "Viewer blocked for this file",
-      body: "This file is not available through the viewer because it may contain sensitive data.",
+      title: t("components.fileViewerSheet.denial.policyTitle", { defaultValue: "Viewer blocked for this file" }),
+      body: t("components.fileViewerSheet.denial.policyBody", { defaultValue: "This file is not available through the viewer because it may contain sensitive data." }),
     };
   }
   if (lower.includes("outside") || lower.includes("traversal")) {
     return {
       icon: <Ban aria-hidden="true" className="h-6 w-6 text-red-500" />,
-      title: "Path is outside the workspace",
-      body: "The viewer can only open files that live under the issue's workspace.",
+      title: t("components.fileViewerSheet.denial.outsideTitle", { defaultValue: "Path is outside the workspace" }),
+      body: t("components.fileViewerSheet.denial.outsideBody", { defaultValue: "The viewer can only open files that live under the issue's workspace." }),
     };
   }
   if (lower.includes("archive") || lower.includes("cleaned")) {
     return {
       icon: <FolderOpen aria-hidden="true" className="h-6 w-6 text-muted-foreground" />,
-      title: "Workspace is no longer available",
-      body: "The isolated worktree for this issue has been cleaned up, so files cannot be previewed.",
+      title: t("components.fileViewerSheet.denial.archiveTitle", { defaultValue: "Workspace is no longer available" }),
+      body: t("components.fileViewerSheet.denial.archiveBody", { defaultValue: "The isolated worktree for this issue has been cleaned up, so files cannot be previewed." }),
     };
   }
   if (lower.includes("remote")) {
     return {
       icon: <AlertTriangle aria-hidden="true" className="h-6 w-6 text-amber-500" />,
-      title: "Remote workspace preview not supported",
-      body: "This workspace is hosted remotely and is not available for inline preview yet.",
+      title: t("components.fileViewerSheet.denial.remoteTitle", { defaultValue: "Remote workspace preview not supported" }),
+      body: t("components.fileViewerSheet.denial.remoteBody", { defaultValue: "This workspace is hosted remotely and is not available for inline preview yet." }),
     };
   }
   if (lower.includes("too_large") || lower.includes("size")) {
     return {
       icon: <AlertTriangle aria-hidden="true" className="h-6 w-6 text-amber-500" />,
-      title: "File is too large to preview",
-      body: "This file exceeds the supported preview size.",
+      title: t("components.fileViewerSheet.denial.tooLargeTitle", { defaultValue: "File is too large to preview" }),
+      body: t("components.fileViewerSheet.denial.tooLargeBody", { defaultValue: "This file exceeds the supported preview size." }),
     };
   }
   if (lower.includes("binary") || lower.includes("unsupported")) {
     return {
       icon: <AlertTriangle aria-hidden="true" className="h-6 w-6 text-amber-500" />,
-      title: "Preview not supported for this file type",
-      body: "This file does not have a text, image, or video preview available.",
+      title: t("components.fileViewerSheet.denial.unsupportedTitle", { defaultValue: "Preview not supported for this file type" }),
+      body: t("components.fileViewerSheet.denial.unsupportedBody", { defaultValue: "This file does not have a text, image, or video preview available." }),
     };
   }
   return {
     icon: <Ban aria-hidden="true" className="h-6 w-6 text-red-500" />,
-    title: "Can't preview this file",
-    body: fallback || "The viewer was unable to load this file.",
+    title: t("components.fileViewerSheet.denial.genericTitle", { defaultValue: "Can't preview this file" }),
+    body: fallback || t("components.fileViewerSheet.denial.genericBody", { defaultValue: "The viewer was unable to load this file." }),
   };
 }
 
@@ -222,6 +224,7 @@ export function FileViewerMetadataRow({
   resolvedResource?: ResolvedWorkspaceResource;
   state: FileViewerUrlState | null;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex min-h-(--sz-18px) flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
       {resolvedResource ? (
@@ -237,14 +240,14 @@ export function FileViewerMetadataRow({
             <>
               <span aria-hidden="true" className="opacity-50">·</span>
               <span>
-                Line {state.line}
-                {state.column ? `, Col ${state.column}` : ""}
+                {t("components.fileViewerSheet.metadataRow.line", { defaultValue: "Line {{line}}", line: state.line })}
+                {state.column ? t("components.fileViewerSheet.metadataRow.column", { defaultValue: ", Col {{column}}", column: state.column }) : ""}
               </span>
             </>
           ) : null}
         </>
       ) : state ? (
-        <span className="h-3 w-28 rounded bg-muted animate-pulse" aria-label="Loading file details" />
+        <span className="h-3 w-28 rounded bg-muted animate-pulse" aria-label={t("components.fileViewerSheet.metadataRow.loadingLabel", { defaultValue: "Loading file details" })} />
       ) : null}
     </div>
   );
@@ -259,6 +262,7 @@ interface FileContentViewerProps {
 type MarkdownPreviewMode = "raw" | "rendered";
 
 export function FileContentViewer({ content, highlightedLine, onLoaded }: FileContentViewerProps) {
+  const { t } = useTranslation();
   const { resource } = content;
   const isMarkdown = resource.previewKind === "text" && content.content.encoding === "utf8" && isMarkdownResource(resource);
   const [markdownMode, setMarkdownMode] = useState<MarkdownPreviewMode>("rendered");
@@ -278,7 +282,7 @@ export function FileContentViewer({ content, highlightedLine, onLoaded }: FileCo
 
   useEffect(() => {
     if (!lines) return;
-    onLoaded?.(`File loaded, ${lines.length} ${lines.length === 1 ? "line" : "lines"}.`);
+    onLoaded?.(t("components.fileViewerSheet.contentViewer.fileLoaded", { defaultValue: "File loaded, {{count}} lines.", count: lines.length }));
   }, [lines, onLoaded]);
 
   useEffect(() => {
@@ -295,7 +299,7 @@ export function FileContentViewer({ content, highlightedLine, onLoaded }: FileCo
       return (
         <FileViewerStateView
           icon={<AlertTriangle aria-hidden="true" className="h-6 w-6 text-amber-500" />}
-          title="Image preview unavailable"
+          title={t("components.fileViewerSheet.contentViewer.imageUnavailable", { defaultValue: "Image preview unavailable" })}
         />
       );
     }
@@ -318,7 +322,7 @@ export function FileContentViewer({ content, highlightedLine, onLoaded }: FileCo
       return (
         <FileViewerStateView
           icon={<AlertTriangle aria-hidden="true" className="h-6 w-6 text-amber-500" />}
-          title="Video preview unavailable"
+          title={t("components.fileViewerSheet.contentViewer.videoUnavailable", { defaultValue: "Video preview unavailable" })}
         />
       );
     }
@@ -329,7 +333,7 @@ export function FileContentViewer({ content, highlightedLine, onLoaded }: FileCo
           controls
           preload="metadata"
           playsInline
-          aria-label={`Video preview: ${resource.title}`}
+          aria-label={t("components.fileViewerSheet.contentViewer.videoPreviewLabel", { defaultValue: "Video preview: {{title}}", title: resource.title })}
           className="max-h-full max-w-full rounded border border-white/10 bg-black"
         />
       </div>
@@ -340,8 +344,8 @@ export function FileContentViewer({ content, highlightedLine, onLoaded }: FileCo
     return (
       <FileViewerStateView
         icon={<AlertTriangle aria-hidden="true" className="h-6 w-6 text-amber-500" />}
-        title="Preview not supported for this file type"
-        body={resource.contentType ? `Content type: ${resource.contentType}` : undefined}
+        title={t("components.fileViewerSheet.contentViewer.unsupportedTitle", { defaultValue: "Preview not supported for this file type" })}
+        body={resource.contentType ? t("components.fileViewerSheet.contentViewer.contentType", { defaultValue: "Content type: {{contentType}}", contentType: resource.contentType }) : undefined}
       />
     );
   }
@@ -352,7 +356,7 @@ export function FileContentViewer({ content, highlightedLine, onLoaded }: FileCo
     <div
       ref={codeScrollRef}
       role="region"
-      aria-label={`${resource.title} source`}
+      aria-label={t("components.fileViewerSheet.contentViewer.sourceLabel", { defaultValue: "{{title}} source", title: resource.title })}
       tabIndex={0}
       className="paperclip-file-viewer-code flex-1 overflow-auto bg-(--code-bg-resolved) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
     >
@@ -402,15 +406,15 @@ export function FileContentViewer({ content, highlightedLine, onLoaded }: FileCo
       <div className="absolute right-3 top-3 z-20">
         <div
           role="group"
-          aria-label="Markdown preview mode"
+          aria-label={t("components.fileViewerSheet.contentViewer.markdownModeGroup", { defaultValue: "Markdown preview mode" })}
           className="inline-flex rounded-md border border-border bg-background/95 p-0.5 shadow-sm backdrop-blur"
         >
           <Button
             type="button"
             variant={markdownMode === "rendered" ? "secondary" : "ghost"}
             size="icon-sm"
-            aria-label="Show rendered Markdown"
-            title="Rendered Markdown"
+            aria-label={t("components.fileViewerSheet.contentViewer.showRendered", { defaultValue: "Show rendered Markdown" })}
+            title={t("components.fileViewerSheet.contentViewer.renderedMarkdown", { defaultValue: "Rendered Markdown" })}
             aria-pressed={markdownMode === "rendered"}
             onClick={() => setMarkdownMode("rendered")}
             className={cn(
@@ -424,8 +428,8 @@ export function FileContentViewer({ content, highlightedLine, onLoaded }: FileCo
             type="button"
             variant={markdownMode === "raw" ? "secondary" : "ghost"}
             size="icon-sm"
-            aria-label="Show raw Markdown"
-            title="Raw Markdown"
+            aria-label={t("components.fileViewerSheet.contentViewer.showRaw", { defaultValue: "Show raw Markdown" })}
+            title={t("components.fileViewerSheet.contentViewer.rawMarkdown", { defaultValue: "Raw Markdown" })}
             aria-pressed={markdownMode === "raw"}
             onClick={() => setMarkdownMode("raw")}
             className={cn(
@@ -442,7 +446,7 @@ export function FileContentViewer({ content, highlightedLine, onLoaded }: FileCo
       ) : (
         <div
           role="region"
-          aria-label={`${resource.title} rendered Markdown`}
+          aria-label={t("components.fileViewerSheet.contentViewer.renderedMarkdownLabel", { defaultValue: "{{title}} rendered Markdown", title: resource.title })}
           tabIndex={0}
           className="flex-1 overflow-auto bg-background p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
         >
@@ -456,13 +460,14 @@ export function FileContentViewer({ content, highlightedLine, onLoaded }: FileCo
 }
 
 function LoadingView({ elapsedMs }: { elapsedMs: number }) {
+  const { t } = useTranslation();
   if (elapsedMs < 100) {
     return <div className="flex-1" aria-hidden="true" />;
   }
   if (elapsedMs < 400) {
     return (
       <div className="flex-1 space-y-2 p-6" aria-busy="true" aria-live="polite">
-        <span className="sr-only">Loading file preview</span>
+        <span className="sr-only">{t("components.fileViewerSheet.loadingView.loadingPreview", { defaultValue: "Loading file preview" })}</span>
         {Array.from({ length: 10 }).map((_, index) => (
           <div key={index} className="h-3 rounded bg-muted animate-pulse" style={{ width: `${90 - index * 6}%` }} />
         ))}
@@ -477,7 +482,7 @@ function LoadingView({ elapsedMs }: { elapsedMs: number }) {
     >
       <div className="flex items-center gap-2 text-muted-foreground">
         <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
-        Loading file preview...
+        {t("components.fileViewerSheet.loadingView.loadingPreviewEllipsis", { defaultValue: "Loading file preview..." })}
       </div>
     </div>
   );
@@ -503,6 +508,7 @@ export function FileViewerSheet({
   open: openProp,
   onOpenChange,
 }: FileViewerSheetProps) {
+  const { t } = useTranslation();
   const viewer = useRequiredFileViewer();
   const state = typeof stateProp !== "undefined" ? stateProp : viewer.state;
   // Browse mode: no file selected, but the sheet was opened to browse/search.
@@ -574,14 +580,14 @@ export function FileViewerSheet({
   useEffect(() => {
     if (resolveQuery.isError) {
       const normalized = normalizeError(resolveQuery.error);
-      setAnnouncement(normalized.message || "Unable to load file.");
+      setAnnouncement(normalized.message || t("components.fileViewerSheet.sheet.unableToLoad", { defaultValue: "Unable to load file." }));
     }
   }, [resolveQuery.isError, resolveQuery.error]);
 
   useEffect(() => {
     if (contentQuery.isError) {
       const normalized = normalizeError(contentQuery.error);
-      setAnnouncement(normalized.message || "Unable to load file content.");
+      setAnnouncement(normalized.message || t("components.fileViewerSheet.sheet.unableToLoadContent", { defaultValue: "Unable to load file content." }));
     }
   }, [contentQuery.isError, contentQuery.error]);
 
@@ -663,7 +669,7 @@ export function FileViewerSheet({
       await copyTextWithFallback(value);
       showCopyFeedback(field, message);
     } catch {
-      showCopyFeedback(null, "Copy failed");
+      showCopyFeedback(null, t("components.fileViewerSheet.sheet.copyFailed", { defaultValue: "Copy failed" }));
     } finally {
       setCopyingField((current) => (current === field ? null : current));
     }
@@ -678,17 +684,19 @@ export function FileViewerSheet({
         content = result.data;
       }
       if (!content) {
-        showCopyFeedback(null, "File contents unavailable");
+        showCopyFeedback(null, t("components.fileViewerSheet.sheet.contentsUnavailable", { defaultValue: "File contents unavailable" }));
         return;
       }
-      const message = content.content.encoding === "base64" ? "Copied file data" : "Copied contents";
+      const message = content.content.encoding === "base64"
+        ? t("components.fileViewerSheet.sheet.copiedFileData", { defaultValue: "Copied file data" })
+        : t("components.fileViewerSheet.sheet.copiedContents", { defaultValue: "Copied contents" });
       await copyToClipboard(content.content.data, "content", message);
     })();
   }, [canPreview, contentQuery, copyToClipboard, showCopyFeedback, state]);
 
   const handleCopyLink = useCallback(() => {
     if (typeof window === "undefined") return;
-    void copyToClipboard(window.location.href, "link", "Copied link");
+    void copyToClipboard(window.location.href, "link", t("components.fileViewerSheet.sheet.copiedLink", { defaultValue: "Copied link" }));
   }, [copyToClipboard]);
 
   const handleRetry = useCallback(() => {
@@ -727,10 +735,10 @@ export function FileViewerSheet({
     });
   }, []);
 
-  const title = state ? basename(state.path) : "Browse workspace";
+  const title = state ? basename(state.path) : t("components.fileViewerSheet.sheet.browseTitle", { defaultValue: "Browse workspace" });
   const description = state
     ? middleTruncatePath(state.path)
-    : "Search and preview files from this issue's workspace.";
+    : t("components.fileViewerSheet.sheet.browseDescription", { defaultValue: "Search and preview files from this issue's workspace." });
   const showDescription = state ? description !== title : true;
 
   return (
@@ -781,10 +789,10 @@ export function FileViewerSheet({
                   size="sm"
                   onClick={() => viewer.backToFiles()}
                   className="h-7 gap-1 px-2 text-xs"
-                  aria-label="Back to files"
+                  aria-label={t("components.fileViewerSheet.sheet.backToFilesLabel", { defaultValue: "Back to files" })}
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
-                  Back to files
+                  {t("components.fileViewerSheet.sheet.backToFiles", { defaultValue: "Back to files" })}
                 </Button>
               ) : null}
               {state ? (
@@ -798,8 +806,8 @@ export function FileViewerSheet({
                     <a
                       href={downloadUrl}
                       download={resolvedResource?.title ?? basename(state.path)}
-                      aria-label="Download file"
-                      title="Download file"
+                      aria-label={t("components.fileViewerSheet.sheet.downloadLabel", { defaultValue: "Download file" })}
+                      title={t("components.fileViewerSheet.sheet.downloadTitle", { defaultValue: "Download file" })}
                     >
                       <Download className="h-4 w-4" />
                     </a>
@@ -812,8 +820,12 @@ export function FileViewerSheet({
                   variant="ghost"
                   size="icon-sm"
                   onClick={handleCopyContent}
-                  aria-label={copiedField === "content" ? "Copied file contents" : "Copy file contents"}
-                  title={copiedField === "content" ? "Copied contents" : "Copy file contents"}
+                  aria-label={copiedField === "content"
+                    ? t("components.fileViewerSheet.sheet.copiedContentsLabel", { defaultValue: "Copied file contents" })
+                    : t("components.fileViewerSheet.sheet.copyContentsLabel", { defaultValue: "Copy file contents" })}
+                  title={copiedField === "content"
+                    ? t("components.fileViewerSheet.sheet.copiedContentsTitle", { defaultValue: "Copied contents" })
+                    : t("components.fileViewerSheet.sheet.copyContentsTitle", { defaultValue: "Copy file contents" })}
                   className="h-7 w-7"
                 >
                   {copyingField === "content" ? (
@@ -831,8 +843,12 @@ export function FileViewerSheet({
                   variant="ghost"
                   size="icon-sm"
                   onClick={handleCopyLink}
-                  aria-label={copiedField === "link" ? "Copied file view link" : "Copy link to this file view"}
-                  title={copiedField === "link" ? "Copied link" : "Copy link"}
+                  aria-label={copiedField === "link"
+                    ? t("components.fileViewerSheet.sheet.copiedLinkLabel", { defaultValue: "Copied file view link" })
+                    : t("components.fileViewerSheet.sheet.copyLinkLabel", { defaultValue: "Copy link to this file view" })}
+                  title={copiedField === "link"
+                    ? t("components.fileViewerSheet.sheet.copiedLinkTitle", { defaultValue: "Copied link" })
+                    : t("components.fileViewerSheet.sheet.copyLinkTitle", { defaultValue: "Copy link" })}
                   className="h-7 w-7"
                 >
                   {copyingField === "link" ? (
@@ -850,8 +866,8 @@ export function FileViewerSheet({
                 size="icon-sm"
                 onClick={() => handleOpenChange(false)}
                 className="h-7 w-7"
-                aria-label="Close file viewer"
-                title="Close"
+                aria-label={t("components.fileViewerSheet.sheet.closeLabel", { defaultValue: "Close file viewer" })}
+                title={t("components.fileViewerSheet.sheet.closeTitle", { defaultValue: "Close" })}
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -890,7 +906,7 @@ export function FileViewerSheet({
               <div
                 role="separator"
                 aria-orientation="vertical"
-                aria-label="Resize file tree"
+                aria-label={t("components.fileViewerSheet.sheet.resizeFileTree", { defaultValue: "Resize file tree" })}
                 aria-valuemin={MIN_FILE_TREE_WIDTH}
                 aria-valuemax={MAX_FILE_TREE_WIDTH}
                 aria-valuenow={fileTreeWidth}
@@ -964,6 +980,7 @@ function FileViewerBody({
   onSetAnnouncement,
   onFallbackToProject,
 }: FileViewerBodyProps) {
+  const { t } = useTranslation();
   if (resolveQuery.isFetching && !resolveQuery.data) {
     return <LoadingView elapsedMs={elapsedMs} />;
   }
@@ -974,17 +991,17 @@ function FileViewerBody({
       return (
         <FileViewerStateView
           icon={<FileSearch aria-hidden="true" className="h-6 w-6 text-muted-foreground" />}
-          title="File not found"
-          body="That file was not found in the active workspace."
+          title={t("components.fileViewerSheet.body.notFoundTitle", { defaultValue: "File not found" })}
+          body={t("components.fileViewerSheet.body.notFoundBody", { defaultValue: "That file was not found in the active workspace." })}
           actions={
             <>
               {onFallbackToProject ? (
                 <Button type="button" variant="secondary" size="sm" onClick={onFallbackToProject}>
-                  Try project workspace
+                  {t("components.fileViewerSheet.body.tryProjectWorkspace", { defaultValue: "Try project workspace" })}
                 </Button>
               ) : null}
               <Button type="button" variant="ghost" size="sm" onClick={onRetry}>
-                <RefreshCcw aria-hidden="true" className="mr-1 h-3 w-3" /> Retry
+                <RefreshCcw aria-hidden="true" className="mr-1 h-3 w-3" /> {t("components.fileViewerSheet.body.retry", { defaultValue: "Retry" })}
               </Button>
             </>
           }
@@ -995,8 +1012,8 @@ function FileViewerBody({
       return (
         <FileViewerStateView
           icon={<FolderOpen aria-hidden="true" className="h-6 w-6 text-muted-foreground" />}
-          title="No workspace available"
-          body="This issue does not have a workspace that supports preview yet."
+          title={t("components.fileViewerSheet.body.noWorkspaceTitle", { defaultValue: "No workspace available" })}
+          body={t("components.fileViewerSheet.body.noWorkspaceBody", { defaultValue: "This issue does not have a workspace that supports preview yet." })}
         />
       );
     }
@@ -1008,7 +1025,7 @@ function FileViewerBody({
         body={denial.body}
         actions={
           <Button type="button" variant="ghost" size="sm" onClick={onRetry}>
-            <RefreshCcw aria-hidden="true" className="mr-1 h-3 w-3" /> Retry
+            <RefreshCcw aria-hidden="true" className="mr-1 h-3 w-3" /> {t("components.fileViewerSheet.body.retry", { defaultValue: "Retry" })}
           </Button>
         }
       />
@@ -1022,8 +1039,8 @@ function FileViewerBody({
     return (
       <FileViewerStateView
         icon={<Cloud aria-hidden="true" className="h-6 w-6 text-muted-foreground" />}
-        title="Remote workspace preview coming soon"
-        body="This workspace is hosted remotely; inline previews are not supported yet."
+        title={t("components.fileViewerSheet.body.remoteComingSoonTitle", { defaultValue: "Remote workspace preview coming soon" })}
+        body={t("components.fileViewerSheet.body.remoteComingSoonBody", { defaultValue: "This workspace is hosted remotely; inline previews are not supported yet." })}
       />
     );
   }
@@ -1047,7 +1064,7 @@ function FileViewerBody({
         body={denial.body}
         actions={
           <Button type="button" variant="ghost" size="sm" onClick={onRetry}>
-            <RefreshCcw aria-hidden="true" className="mr-1 h-3 w-3" /> Retry
+            <RefreshCcw aria-hidden="true" className="mr-1 h-3 w-3" /> {t("components.fileViewerSheet.body.retry", { defaultValue: "Retry" })}
           </Button>
         }
       />

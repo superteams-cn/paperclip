@@ -7,7 +7,9 @@ import {
   listWorkspaceCommandDefinitions,
   matchWorkspaceRuntimeServiceToCommand,
 } from "@paperclipai/shared";
+import type { TFunction } from "i18next";
 import { Activity, ExternalLink, Loader2, Play, RotateCcw, Square } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -221,6 +223,27 @@ function buildRequest(item: WorkspaceRuntimeControlItem, action: WorkspaceRuntim
   };
 }
 
+function translateStatusLabel(statusLabel: string, t: TFunction) {
+  const translated = t(`components.workspaceRuntimeControls.status.${statusLabel}`, { defaultValue: statusLabel });
+  return typeof translated === "string" ? translated : statusLabel;
+}
+
+function translateLifecycle(lifecycle: WorkspaceRuntimeControlItem["lifecycle"], t: TFunction) {
+  if (!lifecycle) return null;
+  const translated = t(`components.workspaceRuntimeControls.lifecycle.${lifecycle}`, { defaultValue: lifecycle });
+  return typeof translated === "string" ? translated : lifecycle;
+}
+
+function translateDisabledReason(reason: string | null | undefined, t: TFunction) {
+  if (reason === "This job is missing a command.") {
+    return t("components.workspaceRuntimeControls.disabled.jobMissingCommand", { defaultValue: reason });
+  }
+  if (reason === "This runtime service no longer matches a configured workspace command.") {
+    return t("components.workspaceRuntimeControls.disabled.untrackedService", { defaultValue: reason });
+  }
+  return reason;
+}
+
 function CommandActionButtons({
   item,
   isPending,
@@ -236,6 +259,7 @@ function CommandActionButtons({
   square?: boolean;
   iconOnly?: boolean;
 }) {
+  const { t } = useTranslation();
   const actions: WorkspaceRuntimeAction[] =
     item.kind === "job"
       ? ["run"]
@@ -249,12 +273,12 @@ function CommandActionButtons({
         const request = buildRequest(item, action);
         const Icon = action === "stop" ? Square : action === "restart" ? RotateCcw : Play;
         const label = action === "run"
-          ? "Run"
+          ? t("components.workspaceRuntimeControls.actions.run", { defaultValue: "Run" })
           : action === "start"
-            ? "Start"
+            ? t("components.workspaceRuntimeControls.actions.start", { defaultValue: "Start" })
             : action === "stop"
-              ? "Stop"
-              : "Restart";
+              ? t("components.workspaceRuntimeControls.actions.stop", { defaultValue: "Stop" })
+              : t("components.workspaceRuntimeControls.actions.restart", { defaultValue: "Restart" });
         const showSpinner = isPending && requestMatchesPending(pendingRequest, request);
         const disabled =
           isPending
@@ -307,6 +331,8 @@ function CommandSection({
   square?: boolean;
   iconOnly?: boolean;
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-3">
       <div className="space-y-1">
@@ -320,55 +346,62 @@ function CommandSection({
         </div>
       ) : (
         <div className="space-y-3">
-          {items.map((item) => (
-            <div key={item.key} className={cn("border border-border/80 bg-background px-3 py-3", square ? "rounded-none" : "rounded-xl")}>
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium">{item.title}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {item.kind} · {item.statusLabel}
-                      {item.lifecycle ? ` · ${item.lifecycle}` : ""}
+          {items.map((item) => {
+            const translatedKind = t(`components.workspaceRuntimeControls.kind.${item.kind}`, { defaultValue: item.kind });
+            const translatedStatus = translateStatusLabel(item.statusLabel, t);
+            const translatedLifecycle = translateLifecycle(item.lifecycle, t);
+            const translatedDisabledReason = translateDisabledReason(item.disabledReason, t);
+
+            return (
+              <div key={item.key} className={cn("border border-border/80 bg-background px-3 py-3", square ? "rounded-none" : "rounded-xl")}>
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="space-y-1">
+                      <div className="text-sm font-medium">{item.title}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {translatedKind} · {translatedStatus}
+                        {translatedLifecycle ? ` · ${translatedLifecycle}` : ""}
+                      </div>
                     </div>
+                    <CommandActionButtons
+                      item={item}
+                      isPending={isPending}
+                      pendingRequest={pendingRequest}
+                      onAction={onAction}
+                      square={square}
+                      iconOnly={iconOnly}
+                    />
                   </div>
-                  <CommandActionButtons
-                    item={item}
-                    isPending={isPending}
-                    pendingRequest={pendingRequest}
-                    onAction={onAction}
-                    square={square}
-                    iconOnly={iconOnly}
-                  />
-                </div>
-                <div className="space-y-1 text-xs text-muted-foreground">
-                  {item.url ? (
-                    <a href={item.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:underline">
-                      {item.url}
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    {item.url ? (
+                      <a href={item.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:underline">
+                        {item.url}
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    ) : null}
+                    {item.port ? <div>{t("components.workspaceRuntimeControls.port", { defaultValue: "Port {{port}}", port: item.port })}</div> : null}
+                    {item.command ? <div className="break-all font-mono">{item.command}</div> : null}
+                    {item.cwd ? <div className="break-all font-mono">{item.cwd}</div> : null}
+                    {translatedDisabledReason ? <div>{translatedDisabledReason}</div> : null}
+                  </div>
+                  {item.healthStatus && item.statusLabel !== "stopped" ? (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className={cn(
+                        "px-2.5 py-1 text-(length:--text-micro)",
+                        item.healthStatus === "healthy"
+                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                          : item.healthStatus === "unhealthy"
+                            ? "border-destructive/30 bg-destructive/10 text-destructive"
+                            : "border-border text-muted-foreground",
+                      )}>
+                        {t(`components.workspaceRuntimeControls.health.${item.healthStatus}`, { defaultValue: item.healthStatus })}
+                      </Badge>
+                    </div>
                   ) : null}
-                  {item.port ? <div>Port {item.port}</div> : null}
-                  {item.command ? <div className="break-all font-mono">{item.command}</div> : null}
-                  {item.cwd ? <div className="break-all font-mono">{item.cwd}</div> : null}
-                  {item.disabledReason ? <div>{item.disabledReason}</div> : null}
                 </div>
-                {item.healthStatus && item.statusLabel !== "stopped" ? (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={cn(
-                      "px-2.5 py-1 text-(length:--text-micro)",
-                      item.healthStatus === "healthy"
-                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                        : item.healthStatus === "unhealthy"
-                          ? "border-destructive/30 bg-destructive/10 text-destructive"
-                          : "border-border text-muted-foreground",
-                    )}>
-                      {item.healthStatus}
-                    </Badge>
-                  </div>
-                ) : null}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -380,14 +413,15 @@ export function WorkspaceRuntimeControls({
   items,
   isPending = false,
   pendingRequest = null,
-  serviceEmptyMessage = "No services are configured for this workspace.",
-  jobEmptyMessage = "No one-shot jobs are configured for this workspace.",
+  serviceEmptyMessage,
+  jobEmptyMessage,
   emptyMessage,
   disabledHint = null,
   onAction,
   className,
   square,
 }: WorkspaceRuntimeControlsProps) {
+  const { t } = useTranslation();
   const resolvedSections = sections ?? {
     services: (items ?? []).map((item) => ({
       ...item,
@@ -396,7 +430,8 @@ export function WorkspaceRuntimeControls({
     jobs: [],
     otherServices: [],
   };
-  const resolvedServiceEmptyMessage = emptyMessage ?? serviceEmptyMessage;
+  const resolvedServiceEmptyMessage = emptyMessage ?? serviceEmptyMessage ?? t("components.workspaceRuntimeControls.emptyServices", { defaultValue: "No services are configured for this workspace." });
+  const resolvedJobEmptyMessage = jobEmptyMessage ?? t("components.workspaceRuntimeControls.emptyJobs", { defaultValue: "No one-shot jobs are configured for this workspace." });
   const runningCount = [...resolvedSections.services, ...resolvedSections.otherServices].filter(
     (item) => item.statusLabel === "running" || item.statusLabel === "starting",
   ).length;
@@ -406,7 +441,9 @@ export function WorkspaceRuntimeControls({
     <div className={cn("space-y-4", className)}>
       <div className={cn("border border-border/70 bg-background p-3", square ? "rounded-none" : "rounded-xl")}>
         <div className="space-y-1">
-          <div className="text-xs font-medium uppercase tracking-(--tracking-eyebrow) text-muted-foreground">Workspace commands</div>
+          <div className="text-xs font-medium uppercase tracking-(--tracking-eyebrow) text-muted-foreground">
+            {t("components.workspaceRuntimeControls.workspaceCommands", { defaultValue: "Workspace commands" })}
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline"
               className={cn(
@@ -417,12 +454,17 @@ export function WorkspaceRuntimeControls({
               )}
             >
               <Activity className="h-3.5 w-3.5" />
-              {runningCount > 0 ? `${runningCount} services running` : "No services running"}
+              {runningCount > 0
+                ? t("components.workspaceRuntimeControls.servicesRunning", { defaultValue: "{{count}} services running", count: runningCount })
+                : t("components.workspaceRuntimeControls.noServicesRunning", { defaultValue: "No services running" })}
             </Badge>
             <span className="text-xs text-muted-foreground">
               {resolvedSections.jobs.length > 0
-                ? `${resolvedSections.jobs.length} job${resolvedSections.jobs.length === 1 ? "" : "s"} available to run on demand.`
-                : "Each command can be controlled independently."}
+                ? t("components.workspaceRuntimeControls.jobsAvailable", {
+                    defaultValue: "{{count}} jobs available to run on demand.",
+                    count: resolvedSections.jobs.length,
+                  })
+                : t("components.workspaceRuntimeControls.independentCommands", { defaultValue: "Each command can be controlled independently." })}
             </span>
           </div>
           {visibleDisabledHint ? <p className="text-xs text-muted-foreground">{visibleDisabledHint}</p> : null}
@@ -430,8 +472,8 @@ export function WorkspaceRuntimeControls({
       </div>
 
       <CommandSection
-        title="Services"
-        description="Long-running commands that Paperclip can supervise for this workspace."
+        title={t("components.workspaceRuntimeControls.services", { defaultValue: "Services" })}
+        description={t("components.workspaceRuntimeControls.servicesDescription", { defaultValue: "Long-running commands that Paperclip can supervise for this workspace." })}
         items={resolvedSections.services}
         emptyMessage={resolvedServiceEmptyMessage}
         disabledHint={visibleDisabledHint}
@@ -442,10 +484,10 @@ export function WorkspaceRuntimeControls({
       />
 
       <CommandSection
-        title="Jobs"
-        description="One-shot commands that run now and exit when they finish."
+        title={t("components.workspaceRuntimeControls.jobs", { defaultValue: "Jobs" })}
+        description={t("components.workspaceRuntimeControls.jobsDescription", { defaultValue: "One-shot commands that run now and exit when they finish." })}
         items={resolvedSections.jobs}
-        emptyMessage={jobEmptyMessage}
+        emptyMessage={resolvedJobEmptyMessage}
         isPending={isPending}
         pendingRequest={pendingRequest}
         onAction={onAction}
@@ -454,8 +496,8 @@ export function WorkspaceRuntimeControls({
 
       {resolvedSections.otherServices.length > 0 ? (
         <CommandSection
-          title="Untracked services"
-          description="Running services that no longer match the current workspace command config."
+          title={t("components.workspaceRuntimeControls.untrackedServices", { defaultValue: "Untracked services" })}
+          description={t("components.workspaceRuntimeControls.untrackedServicesDescription", { defaultValue: "Running services that no longer match the current workspace command config." })}
           items={resolvedSections.otherServices}
           emptyMessage=""
           isPending={isPending}

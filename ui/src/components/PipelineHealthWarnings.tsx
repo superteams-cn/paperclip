@@ -1,6 +1,7 @@
 import { AlertTriangle, ChevronRight } from "lucide-react";
 import type { PipelineHealthWarning } from "@paperclipai/shared";
 import { Link } from "@/lib/router";
+import { t, useTranslation } from "@/i18n";
 import { cn } from "../lib/utils";
 
 /**
@@ -10,13 +11,17 @@ import { cn } from "../lib/utils";
  */
 
 function warningCount(count: number) {
-  return `${count} thing${count === 1 ? "" : "s"} to fix`;
+  return t("components.pipelineHealthWarnings.warningCount", {
+    defaultValue: "{{count}} things to fix",
+    count,
+  });
 }
 
 /** Board-bar caps its list so a busy pipeline doesn't render a wall of warnings. */
 const BOARD_WARNING_CAP = 5;
 
 function WarningMessage({ warning }: { warning: PipelineHealthWarning }) {
+  const { t } = useTranslation();
   return (
     <>
       {warning.message}
@@ -24,7 +29,7 @@ function WarningMessage({ warning }: { warning: PipelineHealthWarning }) {
         <>
           {" "}
           <Link to={warning.href} className="font-medium underline underline-offset-2">
-            {warning.hrefLabel ?? "Open"}
+            {warning.hrefLabel ?? t("components.pipelineHealthWarnings.openLink", { defaultValue: "Open" })}
           </Link>
         </>
       ) : null}
@@ -45,6 +50,7 @@ export function PipelineHealthBar({
   onSelectStage?: (stageId: string) => void;
   className?: string;
 }) {
+  const { t } = useTranslation();
   if (warnings.length === 0) return null;
   const shown = warnings.slice(0, BOARD_WARNING_CAP);
   const overflow = warnings.length - shown.length;
@@ -59,7 +65,12 @@ export function PipelineHealthBar({
     >
       <h2 id="pipeline-health-bar-heading" className="flex items-center gap-2 text-sm font-semibold">
         <AlertTriangle className="h-4 w-4 shrink-0" />
-        <span>Some steps won't run yet — {warningCount(warnings.length)}</span>
+        <span>
+          {t("components.pipelineHealthWarnings.bar.heading", {
+            defaultValue: "Some steps won't run yet — {{summary}}",
+            summary: warningCount(warnings.length),
+          })}
+        </span>
       </h2>
       <ul className="mt-1.5 space-y-1 pl-6 text-sm">
         {shown.map((warning, index) => {
@@ -75,7 +86,10 @@ export function PipelineHealthBar({
               ) : onSelectStage ? (
                 <button
                   type="button"
-                  aria-label={`Open ${warning.stageName} settings`}
+                  aria-label={t("components.pipelineHealthWarnings.bar.openStageSettings", {
+                    defaultValue: "Open {{stageName}} settings",
+                    stageName: warning.stageName,
+                  })}
                   className="group flex w-full items-start gap-1 text-left underline-offset-2 hover:underline"
                   onClick={() => onSelectStage(warning.stageId)}
                 >
@@ -91,7 +105,10 @@ export function PipelineHealthBar({
       </ul>
       {overflow > 0 ? (
         <p className="mt-1.5 pl-6 text-xs text-amber-800/80 dark:text-amber-200/70">
-          +{overflow} more in stage settings
+          {t("components.pipelineHealthWarnings.bar.overflow", {
+            defaultValue: "+{{count}} more in stage settings",
+            count: overflow,
+          })}
         </p>
       ) : null}
     </div>
@@ -108,6 +125,7 @@ export function StageHealthWarnings({
   warnings: PipelineHealthWarning[];
   className?: string;
 }) {
+  const { t } = useTranslation();
   if (warnings.length === 0) return null;
   return (
     <div
@@ -125,8 +143,13 @@ export function StageHealthWarnings({
         <AlertTriangle className="h-4 w-4 shrink-0" />
         <span>
           {warnings.length === 1
-            ? "This step won't run yet"
-            : `This step won't run yet — ${warnings.length} things to fix`}
+            ? t("components.pipelineHealthWarnings.stage.stepWontRun", {
+                defaultValue: "This step won't run yet",
+              })
+            : t("components.pipelineHealthWarnings.stage.stepWontRunWithCount", {
+                defaultValue: "This step won't run yet — {{count}} things to fix",
+                count: warnings.length,
+              })}
         </span>
       </h2>
       <ul className="mt-1.5 space-y-1 pl-6">

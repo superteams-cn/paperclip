@@ -7,6 +7,7 @@ import type {
   ThreadSystemMessage,
   ThreadUserMessage,
 } from "@assistant-ui/react";
+import type { TFunction } from "i18next";
 import type { Agent, IssueComment } from "@paperclipai/shared";
 import type { ActiveRunForIssue, LiveRunForIssue } from "../api/heartbeats";
 import { formatAssigneeUserLabel } from "./assignees";
@@ -22,6 +23,7 @@ import {
 
 type JsonValue = null | string | number | boolean | JsonValue[] | { [key: string]: JsonValue };
 type JsonObject = { [key: string]: JsonValue };
+type Translate = TFunction;
 
 export interface IssueChatComment extends IssueComment {
   runId?: string | null;
@@ -467,16 +469,20 @@ function authorNameForComment(
   currentUserId?: string | null,
   userLabelMap?: ReadonlyMap<string, string> | null,
   options?: { isSystemNotice?: boolean },
+  t?: Translate,
 ) {
   const authorAgentId = effectiveCommentAuthorAgentId(comment);
   if (authorAgentId) {
     return agentMap?.get(authorAgentId)?.name ?? (options?.isSystemNotice ? "Paperclip" : authorAgentId.slice(0, 8));
   }
   const authorUserId = comment.authorUserId ?? null;
-  if (!authorUserId) return options?.isSystemNotice ? "Paperclip" : "You";
+  if (!authorUserId) return options?.isSystemNotice ? "Paperclip" : (t?.("common.you", { defaultValue: "You" }) ?? "You");
   const userLabel = userLabelMap?.get(authorUserId)?.trim();
   if (userLabel) return userLabel;
-  return formatAssigneeUserLabel(authorUserId, currentUserId, userLabelMap) ?? "You";
+  return formatAssigneeUserLabel(authorUserId, currentUserId, userLabelMap, {
+    you: t?.("common.you", { defaultValue: "You" }) ?? "You",
+    board: t?.("common.board", { defaultValue: "Board" }) ?? "Board",
+  }) ?? t?.("common.you", { defaultValue: "You" }) ?? "You";
 }
 
 function formatStatusLabel(status: string) {
@@ -490,12 +496,13 @@ function createCommentMessage(args: {
   userLabelMap?: ReadonlyMap<string, string> | null;
   companyId?: string | null;
   projectId?: string | null;
+  t?: Translate;
 }): ThreadMessage {
-  const { comment, agentMap, currentUserId, userLabelMap, companyId, projectId } = args;
+  const { comment, agentMap, currentUserId, userLabelMap, companyId, projectId, t } = args;
   const createdAt = toDate(comment.createdAt);
   const isSystemNotice = comment.authorType === "system";
   const authorAgentId = effectiveCommentAuthorAgentId(comment);
-  const authorName = authorNameForComment(comment, agentMap, currentUserId, userLabelMap, { isSystemNotice });
+  const authorName = authorNameForComment(comment, agentMap, currentUserId, userLabelMap, { isSystemNotice }, t);
   const custom = {
     kind: isSystemNotice ? "system_notice" : "comment",
     commentId: comment.id,
@@ -564,34 +571,50 @@ function createTimelineEventMessage(args: {
   agentMap?: Map<string, Agent>;
   currentUserId?: string | null;
   userLabelMap?: ReadonlyMap<string, string> | null;
+  t?: Translate;
 }) {
-  const { event, agentMap, currentUserId, userLabelMap } = args;
+  const { event, agentMap, currentUserId, userLabelMap, t } = args;
   const actorName = event.actorType === "agent"
     ? (agentMap?.get(event.actorId)?.name ?? event.actorId.slice(0, 8))
     : event.actorType === "system"
-      ? "System"
-      : (formatAssigneeUserLabel(event.actorId, currentUserId, userLabelMap) ?? "Board");
+      ? (t?.("components.issueChat.timeline.system", { defaultValue: "System" }) ?? "System")
+      : (formatAssigneeUserLabel(event.actorId, currentUserId, userLabelMap, {
+        you: t?.("common.you", { defaultValue: "You" }) ?? "You",
+        board: t?.("common.board", { defaultValue: "Board" }) ?? "Board",
+      }) ?? t?.("common.board", { defaultValue: "Board" }) ?? "Board");
 
   const lines: string[] = [
-    event.followUpRequested ? `${actorName} requested follow-up` : `${actorName} updated this issue`,
+    event.followUpRequested
+      ? (t?.("components.issueChat.timeline.requestedFollowUp", { actor: actorName, defaultValue: "{{actor}} requested follow-up" }) ?? `${actorName} requested follow-up`)
+      : (t?.("components.issueChat.timeline.updatedThisIssue", { actor: actorName, defaultValue: "{{actor}} updated this issue" }) ?? `${actorName} updated this issue`),
   ];
   if (event.statusChange) {
+    const from = event.statusChange.from ?? (t?.("common.none", { defaultValue: "none" }) ?? "none");
+    const to = event.statusChange.to ?? (t?.("common.none", { defaultValue: "none" }) ?? "none");
     lines.push(
-      `Status: ${event.statusChange.from ?? "none"} -> ${event.statusChange.to ?? "none"}`,
+      t?.("components.issueChat.timeline.statusChange", { from, to, defaultValue: "Status: {{from}} -> {{to}}" }) ?? `Status: ${from} -> ${to}`,
     );
   }
   if (event.assigneeChange) {
     const from = event.assigneeChange.from.agentId
       ? (agentMap?.get(event.assigneeChange.from.agentId)?.name ?? event.assigneeChange.from.agentId.slice(0, 8))
-      : (formatAssigneeUserLabel(event.assigneeChange.from.userId, currentUserId, userLabelMap) ?? "Unassigned");
+      : (formatAssigneeUserLabel(event.assigneeChange.from.userId, currentUserId, userLabelMap, {
+        you: t?.("common.you", { defaultValue: "You" }) ?? "You",
+        board: t?.("common.board", { defaultValue: "Board" }) ?? "Board",
+      }) ?? t?.("pages.issues.unassigned", { defaultValue: "Unassigned" }) ?? "Unassigned");
     const to = event.assigneeChange.to.agentId
       ? (agentMap?.get(event.assigneeChange.to.agentId)?.name ?? event.assigneeChange.to.agentId.slice(0, 8))
-      : (formatAssigneeUserLabel(event.assigneeChange.to.userId, currentUserId, userLabelMap) ?? "Unassigned");
-    lines.push(`Assignee: ${from} -> ${to}`);
+      : (formatAssigneeUserLabel(event.assigneeChange.to.userId, currentUserId, userLabelMap, {
+        you: t?.("common.you", { defaultValue: "You" }) ?? "You",
+        board: t?.("common.board", { defaultValue: "Board" }) ?? "Board",
+      }) ?? t?.("pages.issues.unassigned", { defaultValue: "Unassigned" }) ?? "Unassigned");
+    lines.push(t?.("components.issueChat.timeline.assigneeChange", { from, to, defaultValue: "Assignee: {{from}} -> {{to}}" }) ?? `Assignee: ${from} -> ${to}`);
   }
   if (event.workspaceChange) {
+    const from = event.workspaceChange.from.label ?? (t?.("common.none", { defaultValue: "none" }) ?? "none");
+    const to = event.workspaceChange.to.label ?? (t?.("common.none", { defaultValue: "none" }) ?? "none");
     lines.push(
-      `Workspace: ${event.workspaceChange.from.label ?? "none"} -> ${event.workspaceChange.to.label ?? "none"}`,
+      t?.("components.issueChat.timeline.workspaceChange", { from, to, defaultValue: "Workspace: {{from}} -> {{to}}" }) ?? `Workspace: ${from} -> ${to}`,
     );
   }
 
@@ -618,7 +641,7 @@ function createTimelineEventMessage(args: {
   return message;
 }
 
-function createInteractionMessage(interaction: IssueThreadInteraction) {
+function createInteractionMessage(interaction: IssueThreadInteraction, t?: Translate) {
   const message: ThreadSystemMessage = {
     id: `interaction:${interaction.id}`,
     role: "system",
@@ -691,20 +714,29 @@ function computeSegmentTimings(entries: readonly IssueChatTranscriptEntry[]): Se
   return timings;
 }
 
-export function formatDurationWords(ms: number | null) {
+export function formatDurationWords(ms: number | null, t?: Translate) {
   if (ms === null || !Number.isFinite(ms) || ms <= 0) return null;
   const totalSeconds = Math.max(1, Math.round(ms / 1000));
   if (totalSeconds < 60) {
+    if (t) return t("components.issueChat.duration.seconds", { count: totalSeconds });
     return `${totalSeconds} second${totalSeconds === 1 ? "" : "s"}`;
   }
   const totalMinutes = Math.round(totalSeconds / 60);
   if (totalMinutes < 60) {
+    if (t) return t("components.issueChat.duration.minutes", { count: totalMinutes });
     return `${totalMinutes} minute${totalMinutes === 1 ? "" : "s"}`;
   }
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   if (minutes === 0) {
+    if (t) return t("components.issueChat.duration.hours", { count: hours });
     return `${hours} hour${hours === 1 ? "" : "s"}`;
+  }
+  if (t) {
+    return t("components.issueChat.duration.hoursMinutes", {
+      hours: t("components.issueChat.duration.hours", { count: hours }),
+      minutes: t("components.issueChat.duration.minutes", { count: minutes }),
+    });
   }
   return `${hours} hour${hours === 1 ? "" : "s"} ${minutes} minute${minutes === 1 ? "" : "s"}`;
 }
@@ -716,31 +748,38 @@ function runDurationLabel(run: {
   finishedAt?: Date | string | null;
   errorCode?: string | null;
   resultJson?: Record<string, unknown> | null;
-}) {
+}, t?: Translate) {
   const start = run.startedAt ?? run.createdAt;
   const end = run.finishedAt ?? null;
   const durationMs = end ? Math.max(0, toTimestamp(end) - toTimestamp(start)) : null;
-  const durationText = formatDurationWords(durationMs);
+  const durationText = formatDurationWords(durationMs, t);
   const stopReason = typeof run.resultJson?.stopReason === "string" ? run.resultJson.stopReason : null;
   switch (run.status) {
     case "succeeded":
+      if (t) return durationText ? t("components.issueChat.runDuration.workedFor", { duration: durationText }) : t("components.issueChat.runDuration.finishedWork");
       return durationText ? `Worked for ${durationText}` : "Finished work";
     case "failed":
     case "error":
+      if (t) return durationText ? t("components.issueChat.runDuration.failedAfter", { duration: durationText }) : t("components.issueChat.runDuration.runFailed");
       return durationText ? `Failed after ${durationText}` : "Run failed";
     case "timed_out":
+      if (t) return durationText ? t("components.issueChat.runDuration.timedOutAfter", { duration: durationText }) : t("components.issueChat.runDuration.runTimedOut");
       return durationText ? `Timed out after ${durationText}` : "Run timed out";
     case "cancelled":
       if (isOperatorInterruptedRun(run.resultJson, run.errorCode)) {
         return durationText ? `Interrupted by board after ${durationText}` : "Interrupted by board";
       }
       if (stopReason === "paused") {
+        if (t) return durationText ? t("components.issueChat.runDuration.pausedByBoardAfter", { duration: durationText }) : t("components.issueChat.runDuration.pausedByBoard");
         return durationText ? `Paused by board after ${durationText}` : "Paused by board";
       }
+      if (t) return durationText ? t("components.issueChat.runDuration.cancelledAfter", { duration: durationText }) : t("components.issueChat.runDuration.runCancelled");
       return durationText ? `Cancelled after ${durationText}` : "Run cancelled";
     case "queued":
+      if (t) return t("components.issueChat.runDuration.queued");
       return "Queued";
     case "running":
+      if (t) return t("components.issueChat.runDuration.working");
       return "Working...";
     default:
       return formatStatusLabel(run.status);
@@ -774,12 +813,13 @@ function createHistoricalTranscriptMessage(args: {
   transcript: readonly IssueChatTranscriptEntry[];
   hasOutput: boolean;
   agentMap?: Map<string, Agent>;
+  t?: Translate;
 }) {
-  const { run, transcript, hasOutput, agentMap } = args;
+  const { run, transcript, hasOutput, agentMap, t } = args;
   const agentName = run.agentName ?? agentMap?.get(run.agentId)?.name ?? run.agentId.slice(0, 8);
   const compactedTranscript = compactIssueChatTranscript(transcript);
   const { parts, notices, segments } = buildAssistantPartsFromTranscript(compactedTranscript);
-  const waitingText = hasOutput ? "" : "Run finished";
+  const waitingText = hasOutput ? "" : (t ? t("components.issueChat.runDuration.runFinished") : "Run finished");
   const content = parts.length > 0
     ? parts
     : waitingText
@@ -802,7 +842,7 @@ function createHistoricalTranscriptMessage(args: {
       runOperatorInterrupted: isOperatorInterruptedRun(run.resultJson, run.errorCode),
       notices,
       waitingText,
-      chainOfThoughtLabel: runDurationLabel(run),
+      chainOfThoughtLabel: runDurationLabel(run, t),
       chainOfThoughtSegments: segments,
     }),
   };
@@ -990,16 +1030,17 @@ function normalizeLiveRuns(
 function createLiveRunMessage(args: {
   run: LiveRunForIssue;
   transcript: readonly IssueChatTranscriptEntry[];
+  t?: Translate;
 }) {
-  const { run, transcript } = args;
+  const { run, transcript, t } = args;
   const compactedTranscript = compactIssueChatTranscript(transcript);
   const { parts, notices, segments } = buildAssistantPartsFromTranscript(compactedTranscript);
   const waitingText =
     run.status === "queued"
-      ? "Queued..."
+      ? (t ? t("components.issueChat.runDuration.queuedEllipsis") : "Queued...")
       : parts.length > 0
         ? ""
-        : "Working...";
+        : (t ? t("components.issueChat.runDuration.working") : "Working...");
 
   const content = parts;
 
@@ -1018,7 +1059,7 @@ function createLiveRunMessage(args: {
       adapterType: run.adapterType,
       notices,
       waitingText,
-      chainOfThoughtLabel: runDurationLabel(run),
+      chainOfThoughtLabel: runDurationLabel(run, t),
       chainOfThoughtSegments: segments,
       currentStatusMessage: run.currentStatusMessage ?? null,
       currentStatusUpdatedAt: run.currentStatusUpdatedAt ?? null,
@@ -1046,6 +1087,7 @@ export function buildIssueChatMessages(args: {
   agentMap?: Map<string, Agent>;
   currentUserId?: string | null;
   userLabelMap?: ReadonlyMap<string, string> | null;
+  t?: Translate;
 }) {
   const {
     comments,
@@ -1063,6 +1105,7 @@ export function buildIssueChatMessages(args: {
     agentMap,
     currentUserId,
     userLabelMap,
+    t,
   } = args;
 
   const orderedMessages: MessageWithOrder[] = [];
@@ -1071,7 +1114,7 @@ export function buildIssueChatMessages(args: {
     orderedMessages.push({
       createdAtMs: toTimestamp(comment.createdAt),
       order: 1,
-      message: createCommentMessage({ comment, agentMap, currentUserId, userLabelMap, companyId, projectId }),
+      message: createCommentMessage({ comment, agentMap, currentUserId, userLabelMap, companyId, projectId, t }),
     });
   }
 
@@ -1090,7 +1133,7 @@ export function buildIssueChatMessages(args: {
     orderedMessages.push({
       createdAtMs: handoffAtMs ?? createdAtMs,
       order: 2,
-      message: createInteractionMessage(interaction),
+      message: createInteractionMessage(interaction, t),
     });
   }
 
@@ -1098,7 +1141,7 @@ export function buildIssueChatMessages(args: {
     orderedMessages.push({
       createdAtMs: toTimestamp(event.createdAt),
       order: 0,
-      message: createTimelineEventMessage({ event, agentMap, currentUserId, userLabelMap }),
+      message: createTimelineEventMessage({ event, agentMap, currentUserId, userLabelMap, t }),
     });
   }
 
@@ -1117,6 +1160,7 @@ export function buildIssueChatMessages(args: {
           transcript,
           hasOutput: hasRunOutput,
           agentMap,
+          t,
         }),
       });
       continue;
@@ -1136,6 +1180,7 @@ export function buildIssueChatMessages(args: {
       message: createLiveRunMessage({
         run,
         transcript: transcriptsByRunId?.get(run.id) ?? [],
+        t,
       }),
     });
   }

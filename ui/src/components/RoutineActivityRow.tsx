@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react";
 import type { ActivityEvent } from "@paperclipai/shared";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { t } from "@/i18n";
 
 export type RoutineActivityEvent = Pick<ActivityEvent, "id" | "action" | "details" | "createdAt">;
 
@@ -30,7 +31,7 @@ function formatDetailValue(value: unknown): string {
   try {
     return JSON.stringify(value);
   } catch {
-    return "[unserializable]";
+    return t("components.routineActivityRow.unserializable", { defaultValue: "[unserializable]" });
   }
 }
 

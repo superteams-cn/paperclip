@@ -10,6 +10,7 @@ import {
   PayloadTemplateJsonField,
   RuntimeServicesJsonField,
 } from "../runtime-json-fields";
+import { useTranslation } from "react-i18next";
 
 const inputClass =
   "w-full rounded-md border border-border px-2.5 py-1.5 bg-transparent outline-none text-sm font-mono placeholder:text-muted-foreground/40";
@@ -108,6 +109,7 @@ export function OpenClawGatewayConfigFields({
   eff,
   mark,
 }: AdapterConfigFieldsProps) {
+  const { t } = useTranslation();
   const configuredHeaders =
     config.headers && typeof config.headers === "object" && !Array.isArray(config.headers)
       ? (config.headers as Record<string, unknown>)
@@ -142,7 +144,7 @@ export function OpenClawGatewayConfigFields({
 
   return (
     <>
-      <Field label="Gateway URL" hint={help.webhookUrl}>
+      <Field label={t("adapters.configFields.gatewayUrl")} hint={t("pages.agents.config.help.webhookUrl", { defaultValue: help.webhookUrl })}>
         <DraftInput
           value={
             isCreate
@@ -181,7 +183,7 @@ export function OpenClawGatewayConfigFields({
             ? set!({ authToken: v })
             : commitGatewayToken(v)
         }
-        placeholder="OpenClaw gateway token"
+        placeholder={t("adapters.openclawGateway.gatewayTokenPlaceholder", { defaultValue: "OpenClaw gateway token" })}
       />
 
       <Field label="Agent ID">
@@ -217,8 +219,8 @@ export function OpenClawGatewayConfigFields({
           className={inputClass}
         >
           <option value="fixed">Fixed</option>
-          <option value="issue">Per issue</option>
-          <option value="run">Per run</option>
+          <option value="issue">{t("adapters.openclawGateway.sessionStrategy.perIssue", { defaultValue: "Per issue" })}</option>
+          <option value="run">{t("adapters.openclawGateway.sessionStrategy.perRun", { defaultValue: "Per run" })}</option>
         </select>
       </Field>
 
@@ -254,7 +256,7 @@ export function OpenClawGatewayConfigFields({
             ? set!({ password: v })
             : mark("adapterConfig", "password", v || undefined)
         }
-        placeholder="Gateway shared password"
+        placeholder={t("adapters.openclawGateway.sharedPasswordPlaceholder", { defaultValue: "Gateway shared password" })}
       />
 
       <Field label="Role">
@@ -373,7 +375,7 @@ export function OpenClawGatewayConfigFields({
       </Field>
 
       {!isCreate && (
-        <Field label="Claimed API key path">
+        <Field label={t("adapters.configFields.claimedApiKeyPath", { defaultValue: "Claimed API key path" })}>
           <DraftInput
             value={eff("adapterConfig", "claimedApiKeyPath", String(config.claimedApiKeyPath ?? ""))}
             onCommit={(v) => mark("adapterConfig", "claimedApiKeyPath", v || undefined)}
@@ -384,7 +386,7 @@ export function OpenClawGatewayConfigFields({
         </Field>
       )}
 
-      <Field label="Wait timeout (ms)">
+      <Field label={t("adapters.configFields.waitTimeoutMs", { defaultValue: "Wait timeout (ms)" })}>
         <DraftInput
           value={
             isCreate
@@ -408,7 +410,7 @@ export function OpenClawGatewayConfigFields({
         />
       </Field>
 
-      <Field label="Disable device auth">
+      <Field label={t("adapters.configFields.disableDeviceAuth", { defaultValue: "Disable device auth" })}>
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -423,11 +425,11 @@ export function OpenClawGatewayConfigFields({
                 : mark("adapterConfig", "disableDeviceAuth", e.target.checked || undefined)
             }
           />
-          Skip device key authentication
+          {t("adapters.configFields.skipDeviceKeyAuth", { defaultValue: "Skip device key authentication" })}
         </label>
       </Field>
 
-      <Field label="Auto-pair on first connect">
+      <Field label={t("adapters.configFields.autoPairOnFirstConnect", { defaultValue: "Auto-pair on first connect" })}>
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -442,14 +444,16 @@ export function OpenClawGatewayConfigFields({
                 : mark("adapterConfig", "autoPairOnFirstConnect", e.target.checked)
             }
           />
-          Automatically approve device pairing
+          {t("adapters.configFields.autoApproveDevicePairing", { defaultValue: "Automatically approve device pairing" })}
         </label>
       </Field>
 
-      <Field label="Device auth">
+      <Field label={t("adapters.configFields.deviceAuth", { defaultValue: "Device auth" })}>
         <div className="text-xs text-muted-foreground leading-relaxed">
-          When enabled, Paperclip persists a device key during onboarding so pairing approvals
-          remain stable across runs.
+          {t("adapters.configFields.deviceAuthDescriptionWhenEnabled", {
+            defaultValue:
+              "When enabled, Paperclip persists a device key during onboarding so pairing approvals remain stable across runs.",
+          })}
         </div>
       </Field>
     </>

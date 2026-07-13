@@ -9,8 +9,10 @@ import {
   type ReactNode,
 } from "react";
 import { flushSync } from "react-dom";
+import { useTranslation } from "react-i18next";
 import { AlertCircle, KeyRound, Plus, RotateCcw, Save, UserRound } from "lucide-react";
 import type { CompanySecret, EnvBinding, UserSecretDefinition } from "@paperclipai/shared";
+import { t } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useOptionalToastActions } from "@/context/ToastContext";
@@ -83,7 +85,10 @@ const CHANGE_SUMMARY_MAX_NAMES = 3;
 function formatChangedNames(names: readonly string[]): string {
   const shown = names.slice(0, CHANGE_SUMMARY_MAX_NAMES).join(", ");
   return names.length > CHANGE_SUMMARY_MAX_NAMES
-    ? `${shown} +${names.length - CHANGE_SUMMARY_MAX_NAMES} more`
+    ? `${shown} ${t("components.environmentVariablesEditor.moreCount", {
+        defaultValue: "+{{count}} more",
+        count: names.length - CHANGE_SUMMARY_MAX_NAMES,
+      })}`
     : shown;
 }
 
@@ -157,6 +162,7 @@ export const EnvironmentVariablesEditor = forwardRef<EnvironmentVariablesEditorH
   footerHint,
   onDirtyChange,
 }: EnvironmentVariablesEditorProps, ref) {
+  const { t } = useTranslation();
   const toast = useOptionalToastActions();
   const editorRootRef = useRef<HTMLDivElement | null>(null);
   const [rows, setRows] = useState<EnvRow[]>(() => rowsFromValue(value));
@@ -261,11 +267,29 @@ export const EnvironmentVariablesEditor = forwardRef<EnvironmentVariablesEditorH
 
   const changeSummaryText = useMemo(() => {
     const parts: string[] = [];
-    if (changeSummary.added.length > 0) parts.push(`New: ${formatChangedNames(changeSummary.added)}`);
-    if (changeSummary.changed.length > 0) parts.push(`Edited: ${formatChangedNames(changeSummary.changed)}`);
-    if (changeSummary.removed.length > 0) parts.push(`Removed: ${formatChangedNames(changeSummary.removed)}`);
+    if (changeSummary.added.length > 0)
+      parts.push(
+        t("components.environmentVariablesEditor.changeSummaryNew", {
+          defaultValue: "New: {{names}}",
+          names: formatChangedNames(changeSummary.added),
+        }),
+      );
+    if (changeSummary.changed.length > 0)
+      parts.push(
+        t("components.environmentVariablesEditor.changeSummaryEdited", {
+          defaultValue: "Edited: {{names}}",
+          names: formatChangedNames(changeSummary.changed),
+        }),
+      );
+    if (changeSummary.removed.length > 0)
+      parts.push(
+        t("components.environmentVariablesEditor.changeSummaryRemoved", {
+          defaultValue: "Removed: {{names}}",
+          names: formatChangedNames(changeSummary.removed),
+        }),
+      );
     return parts.join(" · ");
-  }, [changeSummary]);
+  }, [changeSummary, t]);
 
   // Warn before the tab unloads with a dirty draft (same guard as the skill
   // file editor). In-app navigation is not intercepted here.
@@ -371,7 +395,13 @@ export const EnvironmentVariablesEditor = forwardRef<EnvironmentVariablesEditorH
       }
     }
     updateDraft(working);
-    toast?.pushToast({ title: `Imported ${pairs.length} variable${pairs.length === 1 ? "" : "s"}`, tone: "success" });
+    toast?.pushToast({
+      title: t("components.environmentVariablesEditor.importedToast", {
+        defaultValue: "Imported {{count}} variables",
+        count: pairs.length,
+      }),
+      tone: "success",
+    });
     return true;
   }
 
@@ -427,7 +457,10 @@ export const EnvironmentVariablesEditor = forwardRef<EnvironmentVariablesEditorH
   }, [recentlyUsedSecrets, rows]);
 
   const hasRows = rows.length > 0;
-  const hint = footerHint === undefined ? DEFAULT_HINT : footerHint;
+  const hint =
+    footerHint === undefined
+      ? t("components.environmentVariablesEditor.defaultHint", { defaultValue: DEFAULT_HINT })
+      : footerHint;
   const committedRowsById = useMemo(
     () => new Map(committedRows.map((row) => [row.id, row])),
     [committedRows],
@@ -439,7 +472,10 @@ export const EnvironmentVariablesEditor = forwardRef<EnvironmentVariablesEditorH
       {attentionCount > 1 ? (
         <p className="inline-flex items-center gap-1.5 text-(length:--text-micro) font-medium text-amber-700 dark:text-amber-400">
           <AlertCircle className="size-3.5" />
-          {attentionCount} bindings need attention
+          {t("components.environmentVariablesEditor.bindingsNeedAttention", {
+            defaultValue: "{{count}} bindings need attention",
+            count: attentionCount,
+          })}
         </p>
       ) : null}
 
@@ -447,8 +483,8 @@ export const EnvironmentVariablesEditor = forwardRef<EnvironmentVariablesEditorH
         <>
           {/* Header (desktop only) */}
           <div className="hidden gap-x-1.5 @[40rem]/env:grid @[40rem]/env:grid-cols-(--gtc-14)">
-            <span className="text-(length:--text-micro) font-medium uppercase tracking-wide text-muted-foreground">Name</span>
-            <span className="text-(length:--text-micro) font-medium uppercase tracking-wide text-muted-foreground">Value</span>
+            <span className="text-(length:--text-micro) font-medium uppercase tracking-wide text-muted-foreground">{t("components.environmentVariablesEditor.columnName", { defaultValue: "Name" })}</span>
+            <span className="text-(length:--text-micro) font-medium uppercase tracking-wide text-muted-foreground">{t("components.environmentVariablesEditor.columnValue", { defaultValue: "Value" })}</span>
             <span />
           </div>
 
@@ -481,7 +517,7 @@ export const EnvironmentVariablesEditor = forwardRef<EnvironmentVariablesEditorH
           })}
         </>
       ) : (
-        <p className="text-sm text-muted-foreground">No environment variables</p>
+        <p className="text-sm text-muted-foreground">{t("components.environmentVariablesEditor.emptyState", { defaultValue: "No environment variables" })}</p>
       )}
 
       {/* Footer bar */}
@@ -493,14 +529,14 @@ export const EnvironmentVariablesEditor = forwardRef<EnvironmentVariablesEditorH
           className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
         >
           <Plus className="size-3.5" />
-          Add variable
+          {t("components.environmentVariablesEditor.addVariable", { defaultValue: "Add variable" })}
         </button>
 
         {quickBind.length > 0 && !disabled ? (
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="inline-flex items-center gap-1 text-(length:--text-micro) text-muted-foreground/70">
               <KeyRound className="size-3" />
-              Recently used:
+              {t("components.environmentVariablesEditor.recentlyUsed", { defaultValue: "Recently used:" })}
             </span>
             {quickBind.map((secret) => (
               <button
@@ -508,7 +544,7 @@ export const EnvironmentVariablesEditor = forwardRef<EnvironmentVariablesEditorH
                 type="button"
                 onClick={() => bindRecentSecret(secret)}
                 className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 font-mono text-(length:--text-micro) text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-                title={`Bind ${secret.name}`}
+                title={t("components.environmentVariablesEditor.bindSecret", { defaultValue: "Bind {{name}}", name: secret.name })}
               >
                 + {secret.name}
               </button>
@@ -526,7 +562,7 @@ export const EnvironmentVariablesEditor = forwardRef<EnvironmentVariablesEditorH
           <div className="flex min-w-0 flex-col gap-0.5">
             <div className="flex items-center gap-2 text-sm font-medium">
               <span className="size-2 rounded-full bg-amber-500 shadow-(--shadow-extract-13)" />
-              <span>Unsaved changes</span>
+              <span>{t("components.environmentVariablesEditor.unsavedChanges", { defaultValue: "Unsaved changes" })}</span>
             </div>
             {changeSummaryText ? (
               <p className="min-w-0 truncate pl-4 text-xs text-amber-950/80 dark:text-amber-100/80" title={changeSummaryText}>
@@ -541,7 +577,7 @@ export const EnvironmentVariablesEditor = forwardRef<EnvironmentVariablesEditorH
               className="inline-flex h-9 items-center gap-1.5 rounded-md border border-amber-500/30 bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-amber-500/10 dark:bg-background/80"
             >
               <RotateCcw className="size-4" />
-              Revert
+              {t("components.environmentVariablesEditor.revert", { defaultValue: "Revert" })}
             </button>
             <button
               type="button"
@@ -549,7 +585,7 @@ export const EnvironmentVariablesEditor = forwardRef<EnvironmentVariablesEditorH
               className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
               <Save className="size-4" />
-              Save
+              {t("components.environmentVariablesEditor.save", { defaultValue: "Save" })}
             </button>
           </div>
         </div>
@@ -560,8 +596,10 @@ export const EnvironmentVariablesEditor = forwardRef<EnvironmentVariablesEditorH
         <p className="inline-flex items-start gap-1 text-(length:--text-micro) text-muted-foreground/70">
           <UserRound className="mt-0.5 size-3 shrink-0" />
           <span>
-            User secrets resolve from the user responsible for the run. Required bindings fail until that user
-            sets their value under Secrets → My secrets.
+            {t("components.environmentVariablesEditor.userSecretsHint", {
+              defaultValue:
+                "User secrets resolve from the user responsible for the run. Required bindings fail until that user sets their value under Secrets → My secrets.",
+            })}
           </span>
         </p>
       ) : null}

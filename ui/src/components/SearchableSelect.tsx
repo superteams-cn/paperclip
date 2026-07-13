@@ -1,5 +1,6 @@
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -91,9 +92,9 @@ export function SearchableSelect<
   groups,
   onValueChange,
   placeholder,
-  searchPlaceholder = "Search...",
-  emptyMessage = "No options found.",
-  loadingMessage = "Loading...",
+  searchPlaceholder,
+  emptyMessage,
+  loadingMessage,
   loading = false,
   disabled = false,
   className,
@@ -109,6 +110,13 @@ export function SearchableSelect<
   disablePortal,
   createItem,
 }: SearchableSelectProps<TValue, TOption>) {
+  const { t } = useTranslation();
+  const searchPlaceholderText =
+    searchPlaceholder ?? t("components.searchableSelect.searchPlaceholder", { defaultValue: "Search..." });
+  const emptyMessageText =
+    emptyMessage ?? t("components.searchableSelect.emptyMessage", { defaultValue: "No options found." });
+  const loadingMessageText =
+    loadingMessage ?? t("components.searchableSelect.loadingMessage", { defaultValue: "Loading..." });
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const pointerFocusRef = useRef(false);
@@ -247,7 +255,7 @@ export function SearchableSelect<
           <CommandInput
             value={query}
             onValueChange={setQuery}
-            placeholder={searchPlaceholder}
+            placeholder={searchPlaceholderText}
           />
           <CommandList
             className="overscroll-contain touch-pan-y"
@@ -258,12 +266,12 @@ export function SearchableSelect<
             }}
           >
             {loading ? (
-              <div className="px-3 py-6 text-center text-sm text-muted-foreground">{loadingMessage}</div>
+              <div className="px-3 py-6 text-center text-sm text-muted-foreground">{loadingMessageText}</div>
             ) : (
               <>
-                {!hasOptions && !createItem ? <CommandEmpty>{emptyMessage}</CommandEmpty> : null}
+                {!hasOptions && !createItem ? <CommandEmpty>{emptyMessageText}</CommandEmpty> : null}
                 {!hasOptions && createItem ? (
-                  <div className="px-3 py-3 text-center text-xs text-muted-foreground">{emptyMessage}</div>
+                  <div className="px-3 py-3 text-center text-xs text-muted-foreground">{emptyMessageText}</div>
                 ) : null}
                 {filteredGroups.map((group) => (
                   <CommandGroup key={group.id} heading={group.label}>

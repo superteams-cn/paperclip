@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import {
   Dialog,
@@ -60,6 +61,7 @@ export function ConfigureBuiltInAgentModal({
   onOpenChange,
   onConfigured,
 }: ConfigureBuiltInAgentModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { definition } = state;
 
@@ -105,8 +107,14 @@ export function ConfigureBuiltInAgentModal({
   const budgetValid = !budgetDollars.trim() || budgetMonthlyCents !== undefined;
   const canSubmit = budgetValid && (setupSupportedInModal ? !modelRequired || model.trim().length > 0 : true);
   const submitLabel = setupSupportedInModal
-    ? `Configure & enable ${definition.displayName}`
-    : `Provision ${definition.displayName}`;
+    ? t("components.configureBuiltInAgentModal.configureAndEnable", {
+        defaultValue: "Configure & enable {{name}}",
+        name: definition.displayName,
+      })
+    : t("components.configureBuiltInAgentModal.provision", {
+        defaultValue: "Provision {{name}}",
+        name: definition.displayName,
+      });
 
   const provision = useMutation({
     mutationFn: async () => {
@@ -129,7 +137,13 @@ export function ConfigureBuiltInAgentModal({
       onOpenChange(false);
     },
     onError: (err) => {
-      setError(err instanceof ApiError ? err.message : "Failed to configure the built-in agent.");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : t("components.configureBuiltInAgentModal.provisionError", {
+              defaultValue: "Failed to configure the built-in agent.",
+            }),
+      );
     },
   });
 
@@ -137,18 +151,30 @@ export function ConfigureBuiltInAgentModal({
     <Dialog open={open} onOpenChange={(next) => (provision.isPending ? undefined : onOpenChange(next))}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Set up the {definition.displayName}</DialogTitle>
+          <DialogTitle>
+            {t("components.configureBuiltInAgentModal.title", {
+              defaultValue: "Set up the {{name}}",
+              name: definition.displayName,
+            })}
+          </DialogTitle>
           <DialogDescription>{definition.shortPurpose}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <InlineBanner tone="info" compact>
-            Creates <strong>{definition.displayName}</strong> in your roster, badged{" "}
-            <strong>Built-in</strong>. Companies that require hire approval will queue this for the
-            board.
+            {t("components.configureBuiltInAgentModal.rosterBannerPrefix", { defaultValue: "Creates" })}{" "}
+            <strong>{definition.displayName}</strong>{" "}
+            {t("components.configureBuiltInAgentModal.rosterBannerMiddle", {
+              defaultValue: "in your roster, badged",
+            })}{" "}
+            <strong>{t("components.configureBuiltInAgentModal.builtInBadge", { defaultValue: "Built-in" })}</strong>
+            {t("components.configureBuiltInAgentModal.rosterBannerSuffix", {
+              defaultValue:
+                ". Companies that require hire approval will queue this for the board.",
+            })}
           </InlineBanner>
 
-          <Field label="Adapter type">
+          <Field label={t("components.configureBuiltInAgentModal.adapterTypeLabel", { defaultValue: "Adapter type" })}>
             <AdapterTypeDropdown
               value={adapterType}
               onChange={(next) => {
@@ -176,12 +202,21 @@ export function ConfigureBuiltInAgentModal({
 
           {!setupSupportedInModal && (
             <InlineBanner tone="warning" compact>
-              This adapter needs command or endpoint fields before it can run. Provision the
-              built-in row now, then finish those fields from the full agent configuration.
+              {t("components.configureBuiltInAgentModal.needsFieldsWarning", {
+                defaultValue:
+                  "This adapter needs command or endpoint fields before it can run. Provision the built-in row now, then finish those fields from the full agent configuration.",
+              })}
             </InlineBanner>
           )}
 
-          <Field label="Monthly budget (optional)" hint="Leave blank for no cap.">
+          <Field
+            label={t("components.configureBuiltInAgentModal.budgetLabel", {
+              defaultValue: "Monthly budget (optional)",
+            })}
+            hint={t("components.configureBuiltInAgentModal.budgetHint", {
+              defaultValue: "Leave blank for no cap.",
+            })}
+          >
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">$</span>
               <Input
@@ -194,7 +229,7 @@ export function ConfigureBuiltInAgentModal({
                 onChange={(event) => setBudgetDollars(event.target.value)}
                 className="w-32"
               />
-              <span className="text-sm text-muted-foreground">/ month</span>
+              <span className="text-sm text-muted-foreground">{t("components.configureBuiltInAgentModal.perMonth", { defaultValue: "/ month" })}</span>
             </div>
           </Field>
 
@@ -211,7 +246,7 @@ export function ConfigureBuiltInAgentModal({
             onClick={() => onOpenChange(false)}
             disabled={provision.isPending}
           >
-            Not now
+            {t("components.configureBuiltInAgentModal.notNow", { defaultValue: "Not now" })}
           </Button>
           <Button
             onClick={() => {
@@ -220,7 +255,9 @@ export function ConfigureBuiltInAgentModal({
             }}
             disabled={!canSubmit || provision.isPending}
           >
-            {provision.isPending ? "Configuring…" : submitLabel}
+            {provision.isPending
+              ? t("components.configureBuiltInAgentModal.configuring", { defaultValue: "Configuring…" })
+              : submitLabel}
           </Button>
         </DialogFooter>
       </DialogContent>
