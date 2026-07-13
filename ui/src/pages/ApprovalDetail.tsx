@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "@/lib/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { approvalsApi } from "../api/approvals";
 import { agentsApi } from "../api/agents";
 import { useCompany } from "../context/CompanyContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { queryKeys } from "../lib/queryKeys";
+import { formatApiError } from "../lib/api-error";
 import { StatusBadge } from "../components/StatusBadge";
 import { Identity } from "../components/Identity";
 import { approvalLabel, typeIcon, defaultTypeIcon, ApprovalPayloadRenderer } from "../components/ApprovalPayload";
@@ -17,6 +19,7 @@ import type { ApprovalComment } from "@paperclipai/shared";
 import { MarkdownBody } from "../components/MarkdownBody";
 
 export function ApprovalDetail() {
+  const { t } = useTranslation();
   const { approvalId } = useParams<{ approvalId: string }>();
   const { selectedCompanyId, setSelectedCompanyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
@@ -65,10 +68,10 @@ export function ApprovalDetail() {
 
   useEffect(() => {
     setBreadcrumbs([
-      { label: "Approvals", href: "/approvals" },
-      { label: approval?.id?.slice(0, 8) ?? approvalId ?? "Approval" },
+      { label: t("nav.approvals", { defaultValue: "Approvals" }), href: "/approvals" },
+      { label: approval?.id?.slice(0, 8) ?? approvalId ?? t("pages.approvalDetail.fallbackTitle", { defaultValue: "Approval" }) },
     ]);
-  }, [setBreadcrumbs, approval, approvalId]);
+  }, [setBreadcrumbs, approval, approvalId, t]);
 
   const refresh = () => {
     if (!approvalId) return;
@@ -91,7 +94,7 @@ export function ApprovalDetail() {
       refresh();
       navigate(`/approvals/${approvalId}?resolved=approved`, { replace: true });
     },
-    onError: (err) => setError(err instanceof Error ? err.message : "Approve failed"),
+    onError: (err) => setError(formatApiError(err, t, t("pages.approvalDetail.errors.approve", { defaultValue: "Approve failed" }))),
   });
 
   const rejectMutation = useMutation({
@@ -100,7 +103,7 @@ export function ApprovalDetail() {
       setError(null);
       refresh();
     },
-    onError: (err) => setError(err instanceof Error ? err.message : "Reject failed"),
+    onError: (err) => setError(formatApiError(err, t, t("pages.approvalDetail.errors.reject", { defaultValue: "Reject failed" }))),
   });
 
   const revisionMutation = useMutation({
@@ -109,7 +112,7 @@ export function ApprovalDetail() {
       setError(null);
       refresh();
     },
-    onError: (err) => setError(err instanceof Error ? err.message : "Revision request failed"),
+    onError: (err) => setError(formatApiError(err, t, t("pages.approvalDetail.errors.revision", { defaultValue: "Revision request failed" }))),
   });
 
   const resubmitMutation = useMutation({
@@ -118,7 +121,7 @@ export function ApprovalDetail() {
       setError(null);
       refresh();
     },
-    onError: (err) => setError(err instanceof Error ? err.message : "Resubmit failed"),
+    onError: (err) => setError(formatApiError(err, t, t("pages.approvalDetail.errors.resubmit", { defaultValue: "Resubmit failed" }))),
   });
 
   const addCommentMutation = useMutation({
@@ -128,7 +131,7 @@ export function ApprovalDetail() {
       setError(null);
       refresh();
     },
-    onError: (err) => setError(err instanceof Error ? err.message : "Comment failed"),
+    onError: (err) => setError(formatApiError(err, t, t("pages.approvalDetail.errors.comment", { defaultValue: "Comment failed" }))),
   });
 
   const deleteAgentMutation = useMutation({
@@ -138,11 +141,11 @@ export function ApprovalDetail() {
       refresh();
       navigate("/approvals");
     },
-    onError: (err) => setError(err instanceof Error ? err.message : "Delete failed"),
+    onError: (err) => setError(formatApiError(err, t, t("pages.approvalDetail.errors.delete", { defaultValue: "Delete failed" }))),
   });
 
   if (isLoading) return <PageSkeleton variant="detail" />;
-  if (!approval) return <p className="text-sm text-muted-foreground">Approval not found.</p>;
+  if (!approval) return <p className="text-sm text-muted-foreground">{t("pages.approvalDetail.notFound", { defaultValue: "Approval not found." })}</p>;
 
   const payload = approval.payload as Record<string, unknown>;
   const linkedAgentId = typeof payload.agentId === "string" ? payload.agentId : null;
@@ -156,17 +159,17 @@ export function ApprovalDetail() {
       ? {
           label:
             (linkedIssues?.length ?? 0) > 1
-              ? "Review linked tasks"
-              : "Review linked task",
+              ? t("pages.approvalDetail.reviewLinkedIssues", { defaultValue: "Review linked tasks" })
+              : t("pages.approvalDetail.reviewLinkedIssue", { defaultValue: "Review linked task" }),
           to: `/issues/${primaryLinkedIssue.identifier ?? primaryLinkedIssue.id}`,
         }
       : linkedAgentId
         ? {
-            label: "Open hired agent",
+            label: t("pages.approvalDetail.openHiredAgent", { defaultValue: "Open hired agent" }),
             to: `/agents/${linkedAgentId}`,
           }
         : {
-            label: "Back to approvals",
+            label: t("pages.approvalDetail.backToApprovals", { defaultValue: "Back to approvals" }),
             to: "/approvals",
           };
 
@@ -181,9 +184,11 @@ export function ApprovalDetail() {
                 <Sparkles className="h-3 w-3 text-green-500 dark:text-green-200 absolute -right-2 -top-1 animate-pulse" />
               </div>
               <div>
-                <p className="text-sm text-green-800 dark:text-green-100 font-medium">Approval confirmed</p>
+                <p className="text-sm text-green-800 dark:text-green-100 font-medium">
+                  {t("pages.approvalDetail.confirmed", { defaultValue: "Approval confirmed" })}
+                </p>
                 <p className="text-xs text-green-700 dark:text-green-200/90">
-                  Requesting agent was notified to review this approval and linked tasks.
+                  {t("pages.approvalDetail.confirmedDescription", { defaultValue: "Requesting agent was notified to review this approval and linked tasks." })}
                 </p>
               </div>
             </div>
@@ -203,7 +208,9 @@ export function ApprovalDetail() {
           <div className="flex items-center gap-2">
             <TypeIcon className="h-5 w-5 text-muted-foreground shrink-0" />
             <div>
-              <h2 className="text-lg font-semibold">{approvalLabel(approval.type, approval.payload as Record<string, unknown> | null)}</h2>
+              <h2 className="text-lg font-semibold">
+                {approvalLabel(approval.type, approval.payload as Record<string, unknown> | null, t)}
+              </h2>
               <p className="text-xs text-muted-foreground font-mono">{approval.id}</p>
             </div>
           </div>
@@ -212,7 +219,7 @@ export function ApprovalDetail() {
         <div className="text-sm space-y-1">
           {approval.requestedByAgentId && (
             <div className="flex items-center gap-2">
-              <span className="text-muted-foreground text-xs">Requested by</span>
+              <span className="text-muted-foreground text-xs">{t("pages.approvalDetail.requestedBy", { defaultValue: "Requested by" })}</span>
               <Identity
                 name={agentNameById.get(approval.requestedByAgentId) ?? approval.requestedByAgentId.slice(0, 8)}
                 size="sm"
@@ -226,7 +233,7 @@ export function ApprovalDetail() {
             onClick={() => setShowRawPayload((v) => !v)}
           >
             <ChevronRight className={`h-3 w-3 transition-transform ${showRawPayload ? "rotate-90" : ""}`} />
-            See full request
+            {t("pages.approvalDetail.seeFullRequest", { defaultValue: "See full request" })}
           </button>
           {showRawPayload && (
             <pre className="text-xs bg-muted/40 rounded-md p-3 overflow-x-auto">
@@ -234,13 +241,15 @@ export function ApprovalDetail() {
             </pre>
           )}
           {approval.decisionNote && (
-            <p className="text-xs text-muted-foreground">Decision note: {approval.decisionNote}</p>
+            <p className="text-xs text-muted-foreground">
+              {t("pages.approvalDetail.decisionNote", { defaultValue: "Decision note: {{note}}", note: approval.decisionNote })}
+            </p>
           )}
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
         {linkedIssues && linkedIssues.length > 0 && (
           <div className="pt-2 border-t border-border/60">
-            <p className="text-xs text-muted-foreground mb-1.5">Linked Tasks</p>
+            <p className="text-xs text-muted-foreground mb-1.5">{t("pages.approvalDetail.linkedIssues", { defaultValue: "Linked Tasks" })}</p>
             <div className="space-y-1.5">
               {linkedIssues.map((issue) => (
                 <Link
@@ -256,7 +265,7 @@ export function ApprovalDetail() {
               ))}
             </div>
             <p className="text-(length:--text-micro) text-muted-foreground mt-2">
-              Linked tasks remain open until the requesting agent follows up and closes them.
+              {t("pages.approvalDetail.linkedIssuesDescription", { defaultValue: "Linked tasks remain open until the requesting agent follows up and closes them." })}
             </p>
           </div>
         )}
@@ -269,7 +278,7 @@ export function ApprovalDetail() {
                 onClick={() => approveMutation.mutate()}
                 disabled={approveMutation.isPending}
               >
-                Approve
+                {t("pages.inbox.approve", { defaultValue: "Approve" })}
               </Button>
               <Button
                 variant="destructive"
@@ -277,13 +286,14 @@ export function ApprovalDetail() {
                 onClick={() => rejectMutation.mutate()}
                 disabled={rejectMutation.isPending}
               >
-                Reject
+                {t("pages.inbox.reject", { defaultValue: "Reject" })}
               </Button>
             </>
           )}
           {isBudgetApproval && approval.status === "pending" && (
             <p className="text-sm text-muted-foreground">
-              Resolve this budget stop from the budget controls on <Link to="/costs" className="underline underline-offset-2">/costs</Link>.
+              {t("pages.approvalDetail.resolveBudgetPrefix", { defaultValue: "Resolve this budget stop from the budget controls on" })}{" "}
+              <Link to="/costs" className="underline underline-offset-2">/costs</Link>.
             </p>
           )}
           {approval.status === "pending" && (
@@ -293,7 +303,7 @@ export function ApprovalDetail() {
               onClick={() => revisionMutation.mutate()}
               disabled={revisionMutation.isPending}
             >
-              Request revision
+              {t("pages.approvalDetail.requestRevision", { defaultValue: "Request revision" })}
             </Button>
           )}
           {approval.status === "revision_requested" && (
@@ -303,7 +313,7 @@ export function ApprovalDetail() {
               onClick={() => resubmitMutation.mutate()}
               disabled={resubmitMutation.isPending}
             >
-              Mark resubmitted
+              {t("pages.approvalDetail.markResubmitted", { defaultValue: "Mark resubmitted" })}
             </Button>
           )}
           {approval.status === "rejected" && approval.type === "hire_agent" && linkedAgentId && (
@@ -312,19 +322,21 @@ export function ApprovalDetail() {
               variant="outline"
               className="text-destructive border-destructive/40"
               onClick={() => {
-                if (!window.confirm("Delete this disapproved agent? This cannot be undone.")) return;
+                if (!window.confirm(t("pages.approvalDetail.deleteAgentConfirm", { defaultValue: "Delete this disapproved agent? This cannot be undone." }))) return;
                 deleteAgentMutation.mutate(linkedAgentId);
               }}
               disabled={deleteAgentMutation.isPending}
             >
-              Delete disapproved agent
+              {t("pages.approvalDetail.deleteAgent", { defaultValue: "Delete disapproved agent" })}
             </Button>
           )}
         </div>
       </div>
 
       <div className="border border-border rounded-lg p-4 space-y-3">
-        <h3 className="text-sm font-medium">Comments ({comments?.length ?? 0})</h3>
+        <h3 className="text-sm font-medium">
+          {t("pages.approvalDetail.comments", { defaultValue: "Comments ({{count}})", count: comments?.length ?? 0 })}
+        </h3>
         <div className="space-y-2">
           {(comments ?? []).map((comment: ApprovalComment) => (
             <div key={comment.id} className="border border-border/60 rounded-md p-3">
@@ -337,7 +349,7 @@ export function ApprovalDetail() {
                     />
                   </Link>
                 ) : (
-                  <Identity name="Board" size="sm" />
+                  <Identity name={t("common.board", { defaultValue: "Board" })} size="sm" />
                 )}
                 <span className="text-xs text-muted-foreground">
                   {new Date(comment.createdAt).toLocaleString()}
@@ -350,7 +362,7 @@ export function ApprovalDetail() {
         <Textarea
           value={commentBody}
           onChange={(e) => setCommentBody(e.target.value)}
-          placeholder="Add a comment..."
+          placeholder={t("pages.approvalDetail.addCommentPlaceholder", { defaultValue: "Add a comment..." })}
           rows={3}
         />
         <div className="flex justify-end">
@@ -359,7 +371,9 @@ export function ApprovalDetail() {
             onClick={() => addCommentMutation.mutate()}
             disabled={!commentBody.trim() || addCommentMutation.isPending}
           >
-            {addCommentMutation.isPending ? "Posting…" : "Post comment"}
+            {addCommentMutation.isPending
+              ? t("pages.approvalDetail.posting", { defaultValue: "Posting…" })
+              : t("pages.approvalDetail.postComment", { defaultValue: "Post comment" })}
           </Button>
         </div>
       </div>

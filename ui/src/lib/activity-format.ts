@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import type { Agent } from "@paperclipai/shared";
 import type { CompanyUserProfile } from "./company-members";
 
@@ -19,6 +20,19 @@ interface ActivityFormatOptions {
   agentMap?: Map<string, Agent>;
   userProfileMap?: Map<string, CompanyUserProfile>;
   currentUserId?: string | null;
+  t?: TFunction;
+}
+
+/** Look up an activity verb/label with i18n, falling back to the English map value. */
+function localizeActivity(
+  map: Record<string, string>,
+  ns: string,
+  action: string,
+  options: ActivityFormatOptions,
+): string {
+  const fallback = map[action] ?? action.replace(/[._]/g, " ");
+  if (!options.t) return fallback;
+  return options.t(`${ns}.${action.replace(/\./g, "_")}`, { defaultValue: fallback });
 }
 
 const ACTIVITY_ROW_VERBS: Record<string, string> = {
@@ -346,7 +360,7 @@ export function formatActivityVerb(
   });
   if (structuredChange) return structuredChange;
 
-  return ACTIVITY_ROW_VERBS[action] ?? action.replace(/[._]/g, " ");
+  return localizeActivity(ACTIVITY_ROW_VERBS, "activity.rowVerbs", action, options);
 }
 
 export function formatIssueActivityAction(
@@ -376,7 +390,7 @@ export function formatIssueActivityAction(
     const serviceName = typeof details.serviceName === "string" && details.serviceName.trim()
       ? details.serviceName.trim()
       : null;
-    const base = ISSUE_ACTIVITY_LABELS[action] ?? action.replace(/[._]/g, " ");
+    const base = localizeActivity(ISSUE_ACTIVITY_LABELS, "activity.issueLabels", action, options);
     return serviceName ? `${base} for ${serviceName}` : base;
   }
 
@@ -392,8 +406,8 @@ export function formatIssueActivityAction(
   ) {
     const key = typeof details.key === "string" ? details.key : "document";
     const title = typeof details.title === "string" && details.title ? ` (${details.title})` : "";
-    return `${ISSUE_ACTIVITY_LABELS[action] ?? action} ${key}${title}`;
+    return `${localizeActivity(ISSUE_ACTIVITY_LABELS, "activity.issueLabels", action, options)} ${key}${title}`;
   }
 
-  return ISSUE_ACTIVITY_LABELS[action] ?? action.replace(/[._]/g, " ");
+  return localizeActivity(ISSUE_ACTIVITY_LABELS, "activity.issueLabels", action, options);
 }

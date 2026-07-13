@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "@/lib/router";
+import { t } from "@/i18n";
 import { Bot, User, Cog, ChevronDown, ListFilter } from "lucide-react";
 import type { CaseEvent, CaseEventKind } from "@/api/cases";
 import { Button } from "@/components/ui/button";
@@ -31,9 +33,11 @@ const EVENT_LABEL: Record<CaseEventKind, string> = {
 
 /** Human label for the actor, preferring the resolved agent name. */
 function actorLabel(event: CaseEvent): string {
-  if (event.actorType === "agent") return event.actorAgentName ?? "Agent";
-  if (event.actorType === "user") return "User";
-  return "System";
+  if (event.actorType === "agent")
+    return event.actorAgentName ?? t("components.caseActivityFeed.actor.agent", { defaultValue: "Agent" });
+  if (event.actorType === "user")
+    return t("components.caseActivityFeed.actor.user", { defaultValue: "User" });
+  return t("components.caseActivityFeed.actor.system", { defaultValue: "System" });
 }
 
 function ActorIcon({ event }: { event: CaseEvent }) {
@@ -42,11 +46,14 @@ function ActorIcon({ event }: { event: CaseEvent }) {
 }
 
 function issueRelationLabel(event: CaseEvent): string {
-  return event.kind === "issue_linked" || event.kind === "issue_unlinked" ? "issue" : "via";
+  return event.kind === "issue_linked" || event.kind === "issue_unlinked"
+    ? t("components.caseActivityFeed.relation.issue", { defaultValue: "issue" })
+    : t("components.caseActivityFeed.relation.via", { defaultValue: "via" });
 }
 
 /** One event with actor + run→issue attribution (P4 §1). */
 export function CaseEventRow({ event, compact = false }: { event: CaseEvent; compact?: boolean }) {
+  const { t } = useTranslation();
   const detail =
     event.kind === "status_changed" && event.payload
       ? `${(event.payload.previousStatus as string) ?? "?"} → ${(event.payload.status as string) ?? "?"}`
@@ -56,7 +63,11 @@ export function CaseEventRow({ event, compact = false }: { event: CaseEvent; com
       <span className="mt-1"><ActorIcon event={event} /></span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-1.5">
-          <span className="font-medium">{EVENT_LABEL[event.kind] ?? event.kind}</span>
+          <span className="font-medium">
+            {t(`components.caseActivityFeed.eventLabel.${event.kind}`, {
+              defaultValue: EVENT_LABEL[event.kind] ?? event.kind,
+            })}
+          </span>
           {detail && <span className="text-muted-foreground">· {detail}</span>}
         </div>
         <div className="flex flex-wrap items-center gap-x-1.5 text-muted-foreground">
@@ -86,6 +97,7 @@ export function CaseEventRow({ event, compact = false }: { event: CaseEvent; com
 
 /** The full activity feed with kind filters (detail-page Activity tab). */
 export function CaseActivityFeed({ events }: { events: CaseEvent[] }) {
+  const { t } = useTranslation();
   const [active, setActive] = useState<Set<CaseEventKind>>(new Set());
 
   // Only offer filters for kinds actually present, in first-seen order.
@@ -110,20 +122,30 @@ export function CaseActivityFeed({ events }: { events: CaseEvent[] }) {
   }
 
   const filterLabel = active.size === 0
-    ? "All activity"
+    ? t("components.caseActivityFeed.allActivity", { defaultValue: "All activity" })
     : active.size === 1
-      ? EVENT_LABEL[[...active][0]!] ?? [...active][0]!
-      : `${active.size} filters`;
+      ? t(`components.caseActivityFeed.eventLabel.${[...active][0]!}`, {
+          defaultValue: EVENT_LABEL[[...active][0]!] ?? [...active][0]!,
+        })
+      : t("components.caseActivityFeed.filtersCount", { defaultValue: "{{n}} filters", n: active.size });
 
   if (events.length === 0) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">No activity yet.</p>;
+    return (
+      <p className="py-6 text-center text-sm text-muted-foreground">
+        {t("components.caseActivityFeed.emptyState", { defaultValue: "No activity yet." })}
+      </p>
+    );
   }
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">
-          {filtered.length} of {events.length} events
+          {t("components.caseActivityFeed.eventCount", {
+            defaultValue: "{{filtered}} of {{total}} events",
+            filtered: filtered.length,
+            total: events.length,
+          })}
         </p>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -134,9 +156,11 @@ export function CaseActivityFeed({ events }: { events: CaseEvent[] }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Activity filter</DropdownMenuLabel>
+            <DropdownMenuLabel>
+              {t("components.caseActivityFeed.filterHeading", { defaultValue: "Activity filter" })}
+            </DropdownMenuLabel>
             <DropdownMenuItem onSelect={() => setActive(new Set())}>
-              All activity
+              {t("components.caseActivityFeed.allActivity", { defaultValue: "All activity" })}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             {presentKinds.map((kind) => (
@@ -145,14 +169,18 @@ export function CaseActivityFeed({ events }: { events: CaseEvent[] }) {
                 checked={active.has(kind)}
                 onCheckedChange={() => toggle(kind)}
               >
-                {EVENT_LABEL[kind] ?? kind}
+                {t(`components.caseActivityFeed.eventLabel.${kind}`, {
+                  defaultValue: EVENT_LABEL[kind] ?? kind,
+                })}
               </DropdownMenuCheckboxItem>
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
       {filtered.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">No events match this filter.</p>
+        <p className="py-6 text-center text-sm text-muted-foreground">
+          {t("components.caseActivityFeed.noMatch", { defaultValue: "No events match this filter." })}
+        </p>
       ) : (
         <div className="divide-y divide-border">
           {filtered.map((event) => (

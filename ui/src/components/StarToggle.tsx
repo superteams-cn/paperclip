@@ -1,5 +1,6 @@
 import type { MouseEvent } from "react";
 import { Loader2, Star } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "../lib/utils";
 
@@ -51,7 +52,16 @@ export function StarToggle({
   className,
   revealClassName,
 }: StarToggleProps) {
-  const ariaLabel = starred ? `Unstar ${resourceName}` : `Star ${resourceName}`;
+  const { t } = useTranslation();
+  const ariaLabel = starred
+    ? t("components.starToggle.unstarLabel", {
+        defaultValue: "Unstar {{resourceName}}",
+        resourceName,
+      })
+    : t("components.starToggle.starLabel", {
+        defaultValue: "Star {{resourceName}}",
+        resourceName,
+      });
   const Icon = pending ? Loader2 : Star;
 
   function handleClick(event: MouseEvent<HTMLButtonElement>) {
@@ -63,7 +73,13 @@ export function StarToggle({
   }
 
   if (size === "button") {
-    const label = pending ? "Saving..." : error ? "Retry star" : starred ? "Starred" : "Star";
+    const label = pending
+      ? t("components.starToggle.saving", { defaultValue: "Saving..." })
+      : error
+        ? t("components.starToggle.retry", { defaultValue: "Retry star" })
+        : starred
+          ? t("components.starToggle.starred", { defaultValue: "Starred" })
+          : t("components.starToggle.star", { defaultValue: "Star" });
     return (
       <Button
         type="button"
@@ -74,7 +90,13 @@ export function StarToggle({
         aria-busy={pending ? "true" : undefined}
         disabled={pending}
         onClick={handleClick}
-        title={error ? "Couldn't save — retry" : undefined}
+        title={
+          error
+            ? t("components.starToggle.saveErrorTitle", {
+                defaultValue: "Couldn't save — retry",
+              })
+            : undefined
+        }
         className={cn(
           error
             ? "text-red-500 hover:text-red-500"
@@ -111,7 +133,13 @@ export function StarToggle({
       aria-busy={pending ? "true" : undefined}
       disabled={pending}
       onClick={handleClick}
-      title={error ? "Couldn't save — retry" : undefined}
+      title={
+        error
+          ? t("components.starToggle.saveErrorTitle", {
+              defaultValue: "Couldn't save — retry",
+            })
+          : undefined
+      }
       className={cn(
         "h-6 w-6 shrink-0",
         visible ? "opacity-100" : revealClassName ?? DEFAULT_ROW_REVEAL,

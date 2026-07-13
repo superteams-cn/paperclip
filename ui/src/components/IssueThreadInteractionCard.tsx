@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Agent } from "@paperclipai/shared";
 import { AlertTriangle, ArrowUpRight, Check, CheckCircle2, ChevronRight, CircleDashed, ExternalLink, FileText, GitBranch, ImagePlus, Loader2, MessageSquareQuote, MinusCircle, ThumbsUp, X, XCircle } from "lucide-react";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import { Link } from "@/lib/router";
 import { formatAssigneeUserLabel } from "../lib/assignees";
 import {
@@ -78,50 +80,53 @@ function resolveActorLabel(args: {
   agentMap?: Map<string, Agent>;
   currentUserId?: string | null;
   userLabelMap?: ReadonlyMap<string, string> | null;
-}) {
+}, t?: TFunction) {
   const { agentId, userId, agentMap, currentUserId, userLabelMap } = args;
   if (agentId) {
     return agentMap?.get(agentId)?.name ?? agentId.slice(0, 8);
   }
   if (userId) {
-    return formatAssigneeUserLabel(userId, currentUserId, userLabelMap) ?? "Board";
+    return formatAssigneeUserLabel(userId, currentUserId, userLabelMap, {
+      you: t?.("common.you", { defaultValue: "You" }) ?? "You",
+      board: t?.("common.board", { defaultValue: "Board" }) ?? "Board",
+    }) ?? t?.("common.board", { defaultValue: "Board" }) ?? "Board";
   }
-  return "Unknown";
+  return t?.("common.unknown", { defaultValue: "Unknown" }) ?? "Unknown";
 }
 
-function statusLabel(status: IssueThreadInteraction["status"]) {
+function statusLabel(status: IssueThreadInteraction["status"], t: TFunction) {
   switch (status) {
     case "pending":
-      return "Pending";
+      return t("labels.status.pending", { defaultValue: "Pending" });
     case "accepted":
-      return "Accepted";
+      return t("pages.issues.interactions.status.accepted", { defaultValue: "Accepted" });
     case "rejected":
-      return "Rejected";
+      return t("labels.status.rejected", { defaultValue: "Rejected" });
     case "answered":
-      return "Answered";
+      return t("pages.issues.interactions.status.answered", { defaultValue: "Answered" });
     case "cancelled":
-      return "Cancelled";
+      return t("labels.status.cancelled", { defaultValue: "Cancelled" });
     case "expired":
-      return "Expired";
+      return t("pages.issues.interactions.status.expired", { defaultValue: "Expired" });
     case "failed":
-      return "Failed";
+      return t("labels.status.failed", { defaultValue: "Failed" });
     default:
       return status;
   }
 }
 
-function interactionKindLabel(kind: IssueThreadInteraction["kind"]) {
+function interactionKindLabel(kind: IssueThreadInteraction["kind"], t: TFunction) {
   switch (kind) {
     case "suggest_tasks":
-      return "Suggested tasks";
+      return t("pages.issues.interactions.kinds.suggestTasks", { defaultValue: "Suggested tasks" });
     case "ask_user_questions":
-      return "Ask user questions";
+      return t("pages.issues.interactions.kinds.askUserQuestions", { defaultValue: "Ask user questions" });
     case "request_confirmation":
-      return "Confirmation";
+      return t("pages.issues.interactions.kinds.confirmation", { defaultValue: "Confirmation" });
     case "request_checkbox_confirmation":
-      return "Checkbox confirmation";
+      return t("pages.issues.interactions.kinds.checkboxConfirmation", { defaultValue: "Checkbox confirmation" });
     case "request_item_verdicts":
-      return "Item verdicts";
+      return t("pages.issues.interactions.kinds.itemVerdicts", { defaultValue: "Item verdicts" });
     default:
       return kind;
   }
@@ -289,6 +294,7 @@ function TaskTreeNode({
   showSelection?: boolean;
   onToggleSelection?: (node: SuggestedTaskTreeNode, checked: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const visibleChildren = node.children.filter((child) => !child.task.hiddenInPreview);
   const hiddenChildCount = node.children
     .filter((child) => child.task.hiddenInPreview)
@@ -302,7 +308,7 @@ function TaskTreeNode({
     agentMap,
     currentUserId,
     userLabelMap,
-  });
+  }, t);
   const hasExplicitAssignee = Boolean(
     node.task.assigneeAgentId || node.task.assigneeUserId,
   );
@@ -328,7 +334,10 @@ function TaskTreeNode({
                 <Checkbox
                   checked={isSelected}
                   onCheckedChange={(checked) => onToggleSelection?.(node, checked === true)}
-                  aria-label={`Include ${node.task.title}`}
+                  aria-label={t("pages.issues.interactions.includeTask", {
+                    defaultValue: "Include {{title}}",
+                    title: node.task.title,
+                  })}
                   className="mt-0.5"
                 />
               ) : null}
@@ -346,7 +355,7 @@ function TaskTreeNode({
                 </div>
                 {depth > 0 ? (
                   <div className="mt-0.5 text-(length:--text-nano) font-medium uppercase tracking-(--tracking-eyebrow) text-muted-foreground">
-                    Child task
+                    {t("pages.issues.interactions.childTask", { defaultValue: "Child task" })}
                   </div>
                 ) : null}
                 {node.task.description ? (
@@ -368,7 +377,7 @@ function TaskTreeNode({
             </Link>
           ) : isSkipped ? (
             <span className="inline-flex shrink-0 items-center rounded-sm border border-amber-500/60 bg-amber-500/10 px-2.5 py-1 text-(length:--text-micro) font-medium text-amber-900 dark:text-amber-100">
-              Skipped
+              {t("pages.issues.interactions.skipped", { defaultValue: "Skipped" })}
             </span>
           ) : null}
         </div>
@@ -376,16 +385,16 @@ function TaskTreeNode({
         {hasMetadata ? (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {hasExplicitAssignee ? (
-              <TaskField label="Responsible" value={assigneeLabel} />
+              <TaskField label={t("pages.issues.interactions.assignee", { defaultValue: "Responsible" })} value={assigneeLabel} />
             ) : null}
             {node.task.billingCode ? (
-              <TaskField label="Billing" value={node.task.billingCode} />
+              <TaskField label={t("pages.issues.interactions.billing", { defaultValue: "Billing" })} value={node.task.billingCode} />
             ) : null}
             {node.task.projectId ? (
-              <TaskField label="Project" value={node.task.projectId} tone="subtle" />
+              <TaskField label={t("pages.issues.interactions.project", { defaultValue: "Project" })} value={node.task.projectId} tone="subtle" />
             ) : null}
             {labels.map((label) => (
-              <TaskField key={label} label="Label" value={label} tone="subtle" />
+              <TaskField key={label} label={t("pages.issues.interactions.label", { defaultValue: "Label" })} value={label} tone="subtle" />
             ))}
           </div>
         ) : null}
@@ -395,8 +404,8 @@ function TaskTreeNode({
             <GitBranch className="h-3.5 w-3.5 shrink-0" />
             <span>
               {hiddenChildCount === 1
-                ? "1 follow-on task hidden in preview"
-                : `${hiddenChildCount} follow-on tasks hidden in preview`}
+                ? t("pages.issues.interactions.hiddenFollowOnTask_one", { defaultValue: "1 follow-on task hidden in preview", count: hiddenChildCount })
+                : t("pages.issues.interactions.hiddenFollowOnTask_other", { defaultValue: "{{count}} follow-on tasks hidden in preview", count: hiddenChildCount })}
             </span>
           </div>
         ) : null}
@@ -446,6 +455,7 @@ function SuggestTasksCard({
     reason?: string,
   ) => Promise<void> | void;
 }) {
+  const { t } = useTranslation();
   const [rejecting, setRejecting] = useState(false);
   const [working, setWorking] = useState<"accept" | "reject" | null>(null);
   const [rejectReason, setRejectReason] = useState(
@@ -544,9 +554,15 @@ function SuggestTasksCard({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <span>{totalTasks === 1 ? "1 draft issue" : `${totalTasks} draft issues`}</span>
+        <span>
+          {t("pages.issues.interactions.draftIssues", {
+            defaultValue_one: "{{count}} draft issue",
+            defaultValue_other: "{{count}} draft issues",
+            count: totalTasks,
+          })}
+        </span>
         {interaction.payload.defaultParentId ? (
-          <TaskField label="Default parent" value={interaction.payload.defaultParentId} tone="subtle" />
+          <TaskField label={t("pages.issues.interactions.defaultParent", { defaultValue: "Default parent" })} value={interaction.payload.defaultParentId} tone="subtle" />
         ) : null}
       </div>
 
@@ -570,12 +586,29 @@ function SuggestTasksCard({
       {interaction.status === "accepted" ? (
         <div className="rounded-sm border border-emerald-500/60 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-900 dark:text-emerald-100">
           <div className="text-(length:--text-micro) font-semibold uppercase tracking-(--tracking-eyebrow) text-emerald-700">
-            Resolution summary
+            {t("pages.issues.interactions.resolutionSummary", { defaultValue: "Resolution summary" })}
           </div>
           <p className="mt-1 leading-6">
             {skippedCount > 0
-              ? `Created ${createdCount} draft ${createdCount === 1 ? "issue" : "issues"} and skipped ${skippedCount} during review.`
-              : `Created all ${createdCount} draft ${createdCount === 1 ? "issue" : "issues"}.`}
+              ? t("pages.issues.interactions.createdAndSkipped", {
+                defaultValue: "Created {{created}} draft {{issueLabel}} and skipped {{skipped}} during review.",
+                created: createdCount,
+                issueLabel: t("pages.issues.interactions.issueWord", {
+                  defaultValue_one: "issue",
+                  defaultValue_other: "issues",
+                  count: createdCount,
+                }),
+                skipped: skippedCount,
+              })
+              : t("pages.issues.interactions.createdAll", {
+                defaultValue: "Created all {{count}} draft {{issueLabel}}.",
+                count: createdCount,
+                issueLabel: t("pages.issues.interactions.issueWord", {
+                  defaultValue_one: "issue",
+                  defaultValue_other: "issues",
+                  count: createdCount,
+                }),
+              })}
           </p>
         </div>
       ) : null}
@@ -583,13 +616,13 @@ function SuggestTasksCard({
       {interaction.status === "rejected" ? (
         <div className="rounded-sm border border-rose-500/60 bg-rose-500/10 px-4 py-3 text-sm text-rose-900 dark:text-rose-100">
           <div className="text-(length:--text-micro) font-semibold uppercase tracking-(--tracking-eyebrow) text-rose-700">
-            Rejection reason
+            {t("pages.issues.interactions.rejectionReason", { defaultValue: "Rejection reason" })}
           </div>
           <p className={cn(
             "mt-1 leading-6",
             !interaction.result?.rejectionReason && "text-rose-900/75",
           )}>
-            {interaction.result?.rejectionReason || "No reason provided."}
+            {interaction.result?.rejectionReason || t("pages.issues.interactions.noReasonProvided", { defaultValue: "No reason provided." })}
           </p>
         </div>
       ) : null}
@@ -600,12 +633,32 @@ function SuggestTasksCard({
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span>
                 {selectedCount === totalTasks
-                  ? `All ${totalTasks} draft ${totalTasks === 1 ? "issue" : "issues"} selected`
-                  : `${selectedCount} of ${totalTasks} draft ${totalTasks === 1 ? "issue" : "issues"} selected`}
+                  ? t("pages.issues.interactions.allDraftsSelected", {
+                    defaultValue: "All {{count}} draft {{issueLabel}} selected",
+                    count: totalTasks,
+                    issueLabel: t("pages.issues.interactions.issueWord", {
+                      defaultValue_one: "issue",
+                      defaultValue_other: "issues",
+                      count: totalTasks,
+                    }),
+                  })
+                  : t("pages.issues.interactions.someDraftsSelected", {
+                    defaultValue: "{{selected}} of {{total}} draft {{issueLabel}} selected",
+                    selected: selectedCount,
+                    total: totalTasks,
+                    issueLabel: t("pages.issues.interactions.issueWord", {
+                      defaultValue_one: "issue",
+                      defaultValue_other: "issues",
+                      count: totalTasks,
+                    }),
+                  })}
               </span>
               {selectedCount < totalTasks ? (
                 <span>
-                  {totalTasks - selectedCount} will be skipped if you accept this interaction.
+                  {t("pages.issues.interactions.skippedIfAccepted", {
+                    defaultValue: "{{count}} will be skipped if you accept this interaction.",
+                    count: totalTasks - selectedCount,
+                  })}
                 </span>
               ) : null}
             </div>
@@ -617,12 +670,14 @@ function SuggestTasksCard({
                 onClick={() => void handleAccept()}
               >
                 {working === "accept" ? (
-                  <>
-                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                    Accepting...
-                  </>
-                ) : (
-                  selectedCount === totalTasks ? "Accept drafts" : "Accept selected drafts"
+                    <>
+                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                      {t("pages.issues.interactions.accepting", { defaultValue: "Accepting..." })}
+                    </>
+                  ) : (
+                  selectedCount === totalTasks
+                    ? t("pages.issues.interactions.acceptDrafts", { defaultValue: "Accept drafts" })
+                    : t("pages.issues.interactions.acceptSelectedDrafts", { defaultValue: "Accept selected drafts" })
                 )}
               </Button>
               <Button
@@ -631,7 +686,7 @@ function SuggestTasksCard({
                 disabled={!onRejectInteraction || working !== null}
                 onClick={() => setRejecting((current) => !current)}
               >
-                Reject
+                {t("pages.issues.interactions.reject", { defaultValue: "Reject" })}
               </Button>
               {selectedCount < totalTasks ? (
                 <Button
@@ -640,7 +695,7 @@ function SuggestTasksCard({
                   disabled={working !== null}
                   onClick={() => setSelectedClientKeys(new Set(interaction.payload.tasks.map((task) => task.clientKey)))}
                 >
-                  Reset selection
+                  {t("pages.issues.interactions.resetSelection", { defaultValue: "Reset selection" })}
                 </Button>
               ) : null}
             </div>
@@ -651,7 +706,7 @@ function SuggestTasksCard({
               <Textarea
                 value={rejectReason}
                 onChange={(event) => setRejectReason(event.target.value)}
-                placeholder="Add a short reason for rejecting this suggestion"
+                placeholder={t("pages.issues.interactions.rejectSuggestionPlaceholder", { defaultValue: "Add a short reason for rejecting this suggestion" })}
                 className="min-h-24 bg-background text-sm"
               />
               <div className="flex justify-end">
@@ -664,10 +719,10 @@ function SuggestTasksCard({
                   {working === "reject" ? (
                     <>
                       <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                      Saving...
+                      {t("common.saving", { defaultValue: "Saving..." })}
                     </>
                   ) : (
-                    "Save rejection"
+                    t("pages.issues.interactions.saveRejection", { defaultValue: "Save rejection" })
                   )}
                 </Button>
               </div>
@@ -748,6 +803,7 @@ function AskUserQuestionsCard({
   ) => Promise<void> | void;
   externalReferences?: MarkdownExternalReferenceMap;
 }) {
+  const { t } = useTranslation();
   const [draftAnswers, setDraftAnswers] = useState<Record<string, string[]>>(() =>
     Object.fromEntries(
       (interaction.result?.answers ?? []).map((answer) => [
@@ -873,12 +929,14 @@ function AskUserQuestionsCard({
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <Badge variant="outline" className="border-border/70 bg-background/70 px-2.5 py-1 uppercase tracking-(--tracking-eyebrow) text-foreground/70">
           <MessageSquareQuote className="h-3 w-3" />
-          Ask user questions
+          {t("pages.issues.interactions.kinds.askUserQuestions", { defaultValue: "Ask user questions" })}
         </Badge>
         <span>
-          {questions.length === 1
-            ? "1 question"
-            : `${questions.length} questions`}
+          {t("pages.issues.interactions.questions", {
+            defaultValue_one: "{{count}} question",
+            defaultValue_other: "{{count}} questions",
+            count: questions.length,
+          })}
         </span>
       </div>
 
@@ -892,7 +950,10 @@ function AskUserQuestionsCard({
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-(length:--text-micro) font-semibold uppercase tracking-(--tracking-eyebrow) text-muted-foreground">
-                    Question {index + 1}
+                    {t("pages.issues.interactions.questionNumber", {
+                      defaultValue: "Question {{number}}",
+                      number: index + 1,
+                    })}
                   </div>
                   <div
                     id={`${interaction.id}-${question.id}-prompt`}
@@ -907,8 +968,12 @@ function AskUserQuestionsCard({
                   ) : null}
                 </div>
                 <TaskField
-                  label={question.selectionMode === "single" ? "Pick" : "Pick many"}
-                  value={question.required ? "Required" : "Optional"}
+                  label={question.selectionMode === "single"
+                    ? t("pages.issues.interactions.pick", { defaultValue: "Pick" })
+                    : t("pages.issues.interactions.pickMany", { defaultValue: "Pick many" })}
+                  value={question.required
+                    ? t("pages.issues.interactions.required", { defaultValue: "Required" })
+                    : t("common.optional", { defaultValue: "Optional" })}
                   tone="subtle"
                 />
               </div>
@@ -956,7 +1021,7 @@ function AskUserQuestionsCard({
                         ...current,
                         [question.id]: event.target.value,
                       }))}
-                    placeholder="Type your answer"
+                    placeholder={t("pages.issues.interactions.typeYourAnswer", { defaultValue: "Type your answer" })}
                     className="min-h-24 bg-background text-sm"
                   />
                 ) : null}
@@ -966,7 +1031,7 @@ function AskUserQuestionsCard({
 
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-background/75 p-4">
             <div className="text-sm text-muted-foreground">
-              Submit once after you finish the full form.
+              {t("pages.issues.interactions.submitOnce", { defaultValue: "Submit once after you finish the full form." })}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {onCancelInteraction ? (
@@ -979,10 +1044,10 @@ function AskUserQuestionsCard({
                   {cancelling ? (
                     <>
                       <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                      Cancelling...
+                      {t("pages.issues.interactions.cancelling", { defaultValue: "Cancelling..." })}
                     </>
                   ) : (
-                    "Cancel question"
+                    t("pages.issues.interactions.cancelQuestion", { defaultValue: "Cancel question" })
                   )}
                   </Button>
                 ) : null}
@@ -994,10 +1059,10 @@ function AskUserQuestionsCard({
                 {working ? (
                   <>
                     <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                    Submitting...
+                    {t("pages.issues.interactions.submitting", { defaultValue: "Submitting..." })}
                   </>
                 ) : (
-                  interaction.payload.submitLabel ?? "Submit answers"
+                  interaction.payload.submitLabel ?? t("pages.issues.interactions.submitAnswers", { defaultValue: "Submit answers" })
                 )}
               </Button>
             </div>
@@ -1005,11 +1070,11 @@ function AskUserQuestionsCard({
         </div>
       ) : interaction.status === "cancelled" ? (
         <div className="rounded-2xl border border-rose-300/60 bg-rose-50/85 p-4 text-sm leading-6 text-rose-950 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-100">
-          <div className="font-semibold">Question cancelled</div>
+          <div className="font-semibold">{t("pages.issues.interactions.questionCancelled", { defaultValue: "Question cancelled" })}</div>
           {interaction.result?.cancellationReason ? (
             <p className="mt-1">{interaction.result.cancellationReason}</p>
           ) : (
-            <p className="mt-1">No answer was recorded.</p>
+            <p className="mt-1">{t("pages.issues.interactions.noAnswerRecordedSentence", { defaultValue: "No answer was recorded." })}</p>
           )}
         </div>
       ) : interaction.status === "expired" ? (
@@ -1019,14 +1084,14 @@ function AskUserQuestionsCard({
             {questions.length === 1 ? "Question expired by comment" : "Questions expired by comment"}
           </div>
           <p className="mt-1">
-            A later board/user comment superseded this question request. Create a fresh request if answers are still needed.
+            {t("pages.issues.interactions.questionSupersededByComment", { defaultValue: "A later board/user comment superseded this question request. Create a fresh request if answers are still needed." })}
           </p>
           {interaction.result?.commentId ? (
             <a
               href={`#comment-${interaction.result.commentId}`}
               className="mt-3 inline-flex text-sm font-medium underline underline-offset-4"
             >
-              Jump to comment
+              {t("pages.issues.interactions.jumpToComment", { defaultValue: "Jump to comment" })}
             </a>
           ) : null}
         </div>
@@ -1048,10 +1113,12 @@ function AskUserQuestionsCard({
                 <div className="mt-2 flex flex-wrap gap-2">
                   {labels.length > 0 ? (
                     labels.map((label) => (
-                      <TaskField key={label} label="Answer" value={label} />
+                      <TaskField key={label} label={t("pages.issues.interactions.answer", { defaultValue: "Answer" })} value={label} />
                     ))
                   ) : (
-                    <span className="text-sm text-muted-foreground">No answer recorded.</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t("pages.issues.interactions.noAnswerRecorded", { defaultValue: "No answer recorded." })}
+                    </span>
                   )}
                 </div>
               </div>
@@ -1061,7 +1128,7 @@ function AskUserQuestionsCard({
           {interaction.result?.summaryMarkdown ? (
             <div className="rounded-2xl border border-emerald-300/60 bg-emerald-50/85 p-4">
               <div className="mb-2 text-(length:--text-micro) font-semibold uppercase tracking-(--tracking-eyebrow) text-emerald-700">
-                Submitted summary
+                {t("pages.issues.interactions.submittedSummary", { defaultValue: "Submitted summary" })}
               </div>
               <MarkdownBody externalReferences={externalReferences}>{interaction.result.summaryMarkdown}</MarkdownBody>
             </div>
@@ -1142,6 +1209,7 @@ function RequestConfirmationResolution({
 }: {
   interaction: RequestConfirmationInteraction;
 }) {
+  const { t } = useTranslation();
   const outcome = interaction.result?.outcome;
   const target = interaction.payload.target ?? null;
   const staleTarget = interaction.result?.staleTarget ?? null;
@@ -1157,7 +1225,7 @@ function RequestConfirmationResolution({
           </div>
           <div className="rounded-sm border border-amber-500/60 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
             <div className="text-(length:--text-micro) font-semibold uppercase tracking-(--tracking-eyebrow) text-amber-700">
-              Agent resume failed
+              {t("pages.issues.interactions.agentResumeFailed", { defaultValue: "Agent resume failed" })}
             </div>
             <p className="mt-1 leading-6">
               {resumeFailure.status === "retrying"
@@ -1166,7 +1234,7 @@ function RequestConfirmationResolution({
             </p>
             {resumeFailure.errorCode ? (
               <p className="mt-1 leading-6">
-                Latest cause: <code className="font-mono text-(length:--text-micro)">{resumeFailure.errorCode}</code>
+                {t("pages.issues.interactions.latestCause", { defaultValue: "Latest cause:" })}{" "}<code className="font-mono text-(length:--text-micro)">{resumeFailure.errorCode}</code>
               </p>
             ) : null}
           </div>
@@ -1175,7 +1243,7 @@ function RequestConfirmationResolution({
     }
     return (
       <div className="flex flex-wrap items-center gap-2 text-sm leading-6 text-foreground">
-        <span className="font-medium">Confirmed</span>
+        <span className="font-medium">{t("pages.issues.interactions.confirmed", { defaultValue: "Confirmed" })}</span>
         <RequestConfirmationTargetChip interaction={interaction} target={target} />
       </div>
     );
@@ -1185,7 +1253,7 @@ function RequestConfirmationResolution({
     return (
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2 text-sm leading-6 text-foreground">
-          <span className="font-medium">Declined</span>
+          <span className="font-medium">{t("pages.issues.interactions.declined", { defaultValue: "Declined" })}</span>
           <RequestConfirmationTargetChip interaction={interaction} target={target} />
         </div>
         {interaction.result?.reason ? (
@@ -1203,16 +1271,20 @@ function RequestConfirmationResolution({
     return (
       <div className="space-y-3 rounded-sm border border-amber-500/60 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
         <div className="text-(length:--text-micro) font-semibold uppercase tracking-(--tracking-eyebrow) text-amber-700">
-          {expiredByComment ? "Expired by comment" : "Expired by target change"}
+          {expiredByComment
+            ? t("pages.issues.interactions.expiredByComment", { defaultValue: "Expired by comment" })
+            : t("pages.issues.interactions.expiredByTargetChange", { defaultValue: "Expired by target change" })}
         </div>
         <p className="leading-6">
           {expiredByComment
-            ? "A board comment superseded this confirmation before it was resolved."
-            : "The requested target changed before this confirmation was resolved."}
+            ? t("pages.issues.interactions.commentSupersededConfirmation", { defaultValue: "A board comment superseded this confirmation before it was resolved." })
+            : t("pages.issues.interactions.targetChangedBeforeResolved", { defaultValue: "The requested target changed before this confirmation was resolved." })}
         </p>
         {expiredByComment && interaction.result?.commentId ? (
           <Button asChild size="sm" variant="ghost" className="h-7 px-2 text-amber-950 hover:bg-amber-500/15 dark:text-amber-50">
-            <a href={`#comment-${interaction.result.commentId}`}>Jump to comment</a>
+            <a href={`#comment-${interaction.result.commentId}`}>
+              {t("pages.issues.interactions.jumpToComment", { defaultValue: "Jump to comment" })}
+            </a>
           </Button>
         ) : null}
         {expiredByTargetChange ? (
@@ -1235,7 +1307,9 @@ function RequestConfirmationResolution({
   if (interaction.status === "failed") {
     return (
       <p className="text-sm leading-6 text-muted-foreground">
-        This request could not be resolved. Try again or create a new request.
+        {t("pages.issues.interactions.requestCouldNotResolve", {
+          defaultValue: "This request could not be resolved. Try again or create a new request.",
+        })}
       </p>
     );
   }
@@ -1263,6 +1337,7 @@ function RequestConfirmationCard({
   onUploadImage?: (file: File) => Promise<string>;
   externalReferences?: MarkdownExternalReferenceMap;
 }) {
+  const { t } = useTranslation();
   const [rejecting, setRejecting] = useState(false);
   const [working, setWorking] = useState<"accept" | "reject" | null>(null);
   const [rejectReason, setRejectReason] = useState(interaction.result?.reason ?? "");
@@ -1283,8 +1358,8 @@ function RequestConfirmationCard({
   const declineReasonPlaceholder =
     interaction.payload.declineReasonPlaceholder
     ?? (interaction.payload.acceptLabel === "Approve plan"
-      ? "Optional: what would you like revised?"
-      : "Optional: tell the agent what you'd change.");
+      ? t("pages.issues.interactions.revisePlaceholder", { defaultValue: "Optional: what would you like revised?" })
+      : t("pages.issues.interactions.declinePlaceholder", { defaultValue: "Optional: tell the agent what you'd change." }));
 
   useEffect(() => {
     setRejectReason(interaction.result?.reason ?? "");
@@ -1331,7 +1406,7 @@ function RequestConfirmationCard({
     try {
       await onAcceptInteraction(interaction);
     } catch {
-      setActionError("Try again");
+      setActionError(t("common.tryAgain", { defaultValue: "Try again" }));
     } finally {
       setWorking(null);
     }
@@ -1346,7 +1421,7 @@ function RequestConfirmationCard({
       await onRejectInteraction(interaction, composeReason());
       setRejecting(false);
     } catch {
-      setActionError("Try again");
+      setActionError(t("common.tryAgain", { defaultValue: "Try again" }));
     } finally {
       setWorking(null);
     }
@@ -1383,10 +1458,10 @@ function RequestConfirmationCard({
               {working === "accept" ? (
                 <>
                   <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                  Confirming...
+                  {t("pages.issues.interactions.confirming", { defaultValue: "Confirming..." })}
                 </>
               ) : (
-                interaction.payload.acceptLabel ?? "Confirm"
+                interaction.payload.acceptLabel ?? t("pages.issues.interactions.confirm", { defaultValue: "Confirm" })
               )}
             </Button>
             <Button
@@ -1402,7 +1477,7 @@ function RequestConfirmationCard({
                 setRejecting((current) => !current);
               }}
             >
-              {interaction.payload.rejectLabel ?? "Decline"}
+              {interaction.payload.rejectLabel ?? t("pages.issues.interactions.decline", { defaultValue: "Decline" })}
             </Button>
           </div>
 
@@ -1420,7 +1495,9 @@ function RequestConfirmationCard({
                 )}
               />
               {rejectAttempted && declineReasonInvalid ? (
-                <p className="text-xs text-destructive">A decline reason is required.</p>
+                <p className="text-xs text-destructive">
+                  {t("pages.issues.interactions.declineReasonRequired", { defaultValue: "A decline reason is required." })}
+                </p>
               ) : null}
               {allowScreenshots ? (
                 <div className="space-y-2">
@@ -1471,12 +1548,12 @@ function RequestConfirmationCard({
                     {uploading ? (
                       <>
                         <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                        Uploading...
+                        {t("pages.issues.interactions.uploading", { defaultValue: "Uploading..." })}
                       </>
                     ) : (
                       <>
                         <ImagePlus className="mr-2 h-3.5 w-3.5" />
-                        Attach screenshots
+                        {t("pages.issues.interactions.attachScreenshots", { defaultValue: "Attach screenshots" })}
                       </>
                     )}
                   </Button>
@@ -1495,7 +1572,7 @@ function RequestConfirmationCard({
                     setRejectAttempted(false);
                   }}
                 >
-                  Cancel decline
+                  {t("pages.issues.interactions.cancelDecline", { defaultValue: "Cancel decline" })}
                 </Button>
                 <Button
                   size="sm"
@@ -1506,10 +1583,10 @@ function RequestConfirmationCard({
                   {working === "reject" ? (
                     <>
                       <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                      Saving...
+                      {t("common.saving", { defaultValue: "Saving..." })}
                     </>
                   ) : (
-                    interaction.payload.rejectLabel ?? "Decline"
+                    interaction.payload.rejectLabel ?? t("pages.issues.interactions.decline", { defaultValue: "Decline" })
                   )}
                 </Button>
               </div>
@@ -1536,6 +1613,7 @@ function RequestCheckboxConfirmationResolution({
 }: {
   interaction: RequestCheckboxConfirmationInteraction;
 }) {
+  const { t } = useTranslation();
   const target = interaction.payload.target ?? null;
   const [expanded, setExpanded] = useState(false);
 
@@ -1599,7 +1677,7 @@ function RequestCheckboxConfirmationResolution({
   if (interaction.status === "failed") {
     return (
       <p className="text-sm leading-6 text-muted-foreground">
-        This request could not be resolved. Try again or create a new request.
+        {t("pages.issues.interactions.requestCouldNotResolve", { defaultValue: "This request could not be resolved. Try again or create a new request." })}
       </p>
     );
   }
@@ -1667,6 +1745,7 @@ function RequestCheckboxConfirmationCard({
   ) => Promise<void> | void;
   externalReferences?: MarkdownExternalReferenceMap;
 }) {
+  const { t } = useTranslation();
   const options = interaction.payload.options;
   const optionIds = useMemo(() => options.map((option) => option.id), [options]);
   const validOptionIds = useMemo(() => new Set(optionIds), [optionIds]);
@@ -1823,7 +1902,7 @@ function RequestCheckboxConfirmationCard({
               disabled={working !== null || selectedCount === totalOptions || (maxSelected != null && selectedCount >= maxSelected)}
               onClick={handleSelectAll}
             >
-              Select all
+              {t("pages.issues.interactions.selectAll", { defaultValue: "Select all" })}
             </Button>
             <Button
               size="sm"
@@ -1831,14 +1910,14 @@ function RequestCheckboxConfirmationCard({
               disabled={working !== null || selectedCount === 0}
               onClick={handleClearSelection}
             >
-              Clear selection
+              {t("pages.issues.interactions.clearSelection", { defaultValue: "Clear selection" })}
             </Button>
           </div>
         </div>
 
         <div
           role="group"
-          aria-label="Selectable options"
+          aria-label={t("pages.issues.interactions.selectableOptions", { defaultValue: "Selectable options" })}
           className="max-h-80 overflow-y-auto rounded-sm border border-border/70"
         >
           {options.map((option) => {
@@ -1871,7 +1950,7 @@ function RequestCheckboxConfirmationCard({
             {working === "accept" ? (
               <>
                 <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                Confirming...
+                {t("pages.issues.interactions.confirming", { defaultValue: "Confirming..." })}
               </>
             ) : (
               interaction.payload.acceptLabel ?? "Confirm selected"
@@ -1908,7 +1987,7 @@ function RequestCheckboxConfirmationCard({
               )}
             />
             {rejectAttempted && declineReasonInvalid ? (
-              <p className="text-xs text-destructive">A reason is required.</p>
+              <p className="text-xs text-destructive">{t("pages.issues.interactions.reasonRequired", { defaultValue: "A reason is required." })}</p>
             ) : null}
             <div className="flex flex-wrap justify-end gap-2">
               <Button
@@ -1931,7 +2010,7 @@ function RequestCheckboxConfirmationCard({
                 {working === "reject" ? (
                   <>
                     <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                    Saving...
+                    {t("common.saving", { defaultValue: "Saving..." })}
                   </>
                 ) : (
                   interaction.payload.rejectLabel ?? "Request changes"
@@ -2031,10 +2110,11 @@ function ItemVerdictSegmentedControl({
   disabled: boolean;
   onSelect: (verdict: RequestItemVerdictValue) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div
       role="group"
-      aria-label="Choose a verdict"
+      aria-label={t("pages.issues.interactions.chooseVerdict", { defaultValue: "Choose a verdict" })}
       className="flex shrink-0 flex-wrap items-center gap-2"
     >
       {verdicts.map((verdict) => {
@@ -2086,6 +2166,7 @@ function RequestItemVerdictsCard({
   ) => Promise<void> | void;
   externalReferences?: MarkdownExternalReferenceMap;
 }) {
+  const { t } = useTranslation();
   const payload = interaction.payload;
   const items = payload.items;
   const enabledVerdicts = useMemo<RequestItemVerdictValue[]>(
@@ -2247,7 +2328,7 @@ function RequestItemVerdictsCard({
       ) : null}
 
       {/* Item list (S1/S2/S3/S4) */}
-      <ul className="space-y-2" aria-label="Items to review">
+      <ul className="space-y-2" aria-label={t("pages.issues.interactions.itemsToReview", { defaultValue: "Items to review" })}>
         {items.map((item) => {
           const resolved = resolvedById.get(item.id);
           const applying = applyingItemIds.has(item.id);
@@ -2295,7 +2376,7 @@ function RequestItemVerdictsCard({
                   ) : isTerminal ? (
                     <span className="inline-flex items-center gap-1 rounded-sm border border-border/70 bg-muted/30 px-2 py-0.5 text-(length:--text-micro) font-semibold uppercase tracking-(--tracking-eyebrow) text-muted-foreground">
                       <CircleDashed className="h-3.5 w-3.5" aria-hidden />
-                      Not decided
+                      {t("pages.issues.interactions.notDecided", { defaultValue: "Not decided" })}
                     </span>
                   ) : (
                     <ItemVerdictSegmentedControl
@@ -2322,7 +2403,7 @@ function RequestItemVerdictsCard({
                     id={`${interaction.id}-${item.id}-reason`}
                     value={draft.reason}
                     onChange={(event) => setDraftReason(item.id, event.target.value)}
-                    placeholder="Give the agent a reason so it can act on this item."
+                    placeholder={t("pages.issues.interactions.verdictReasonPlaceholder", { defaultValue: "Give the agent a reason so it can act on this item." })}
                     aria-invalid={attempted && invalidDraftIds.has(item.id)}
                     className={cn(
                       "min-h-16 bg-background text-sm",
@@ -2368,7 +2449,7 @@ function RequestItemVerdictsCard({
                 onClick={handleApproveAll}
               >
                 <ThumbsUp className="h-4 w-4" aria-hidden />
-                Approve all
+                {t("pages.issues.interactions.approveAll", { defaultValue: "Approve all" })}
               </Button>
             ) : null}
             <Button
@@ -2408,6 +2489,7 @@ function VerdictProgressBadge({
   progress: ReturnType<typeof getItemVerdictProgress>;
   pendingReason: boolean;
 }) {
+  const { t } = useTranslation();
   const pct = progress.total > 0 ? Math.round((progress.decided / progress.total) * 100) : 0;
   return (
     <div className="flex items-center gap-2">
@@ -2415,7 +2497,7 @@ function VerdictProgressBadge({
       {pendingReason ? (
         <span className="inline-flex items-center gap-1 rounded-sm border border-amber-500/60 bg-amber-500/10 px-1.5 py-0.5 text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-eyebrow) text-amber-900 dark:text-amber-100">
           <AlertTriangle className="h-3 w-3" aria-hidden />
-          Reason needed
+          {t("pages.issues.interactions.reasonNeeded", { defaultValue: "Reason needed" })}
         </span>
       ) : null}
       <div
@@ -2453,6 +2535,7 @@ export function IssueThreadInteractionCard({
   onUploadImage,
   externalReferences,
 }: IssueThreadInteractionCardProps) {
+  const { t } = useTranslation();
   const isPlan = isPlanConfirmation(interaction);
   const resumeFailure = requestConfirmationResumeFailure(interaction);
   const planStyles = isPlan ? planStatusClasses(interaction.status, resumeFailure) : null;
@@ -2464,7 +2547,7 @@ export function IssueThreadInteractionCard({
     agentMap,
     currentUserId,
     userLabelMap,
-  });
+  }, t);
   const resolvedByLabel =
     interaction.resolvedByAgentId || interaction.resolvedByUserId
       ? resolveActorLabel({
@@ -2473,7 +2556,7 @@ export function IssueThreadInteractionCard({
           agentMap,
           currentUserId,
           userLabelMap,
-        })
+        }, t)
       : null;
 
   return (
@@ -2483,25 +2566,25 @@ export function IssueThreadInteractionCard({
           <div className="flex flex-wrap items-center gap-2">
             <span className={cn("inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-(length:--text-micro) font-semibold uppercase tracking-(--tracking-eyebrow)", styles.badge)}>
               <StatusIcon className="h-3.5 w-3.5" />
-              {isPlan ? "Plan" : interactionKindLabel(interaction.kind)}
+              {isPlan ? t("pages.issues.interactions.plan", { defaultValue: "Plan" }) : interactionKindLabel(interaction.kind, t)}
               <span className="text-current/60">/</span>
-              {planStyles ? planStyles.label : statusLabel(interaction.status)}
+              {planStyles ? planStyles.label : statusLabel(interaction.status, t)}
             </span>
           </div>
 
           <div className="mt-3 text-lg font-bold text-foreground">
             {interaction.title
               ?? (interaction.kind === "suggest_tasks"
-                ? "Suggested task tree"
+                ? t("pages.issues.interactions.suggestedTaskTree", { defaultValue: "Suggested task tree" })
                 : interaction.kind === "ask_user_questions"
-                  ? interaction.payload.title ?? "Questions for the operator"
+                  ? interaction.payload.title ?? t("pages.issues.interactions.questionsForOperator", { defaultValue: "Questions for the operator" })
                 : interaction.kind === "request_checkbox_confirmation"
-                  ? "Checkbox confirmation requested"
+                  ? t("pages.issues.interactions.checkboxConfirmationRequested", { defaultValue: "Checkbox confirmation requested" })
                 : interaction.kind === "request_item_verdicts"
-                  ? "Review these items"
+                  ? t("pages.issues.interactions.reviewItems", { defaultValue: "Review these items" })
                   : isPlan
-                    ? "Plan review"
-                    : "Confirmation requested")}
+                    ? t("pages.issues.interactions.planReview", { defaultValue: "Plan review" })
+                    : t("pages.issues.interactions.confirmationRequested", { defaultValue: "Confirmation requested" }))}
           </div>
           {interaction.summary ? (
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
@@ -2514,11 +2597,19 @@ export function IssueThreadInteractionCard({
           <TooltipTrigger asChild>
             <div className="rounded-sm border border-border/70 bg-transparent px-3 py-2 text-right text-xs text-muted-foreground">
               <div className="font-medium text-foreground">{formatShortDate(interaction.createdAt)}</div>
-              <div>proposed by {createdByLabel}</div>
+              <div>
+                {t("pages.issues.interactions.proposedBy", {
+                  defaultValue: "proposed by {{actor}}",
+                  actor: createdByLabel,
+                })}
+              </div>
             </div>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="text-xs">
-            Created {formatDateTime(interaction.createdAt)}
+            {t("pages.issues.interactions.createdAt", {
+              defaultValue: "Created {{date}}",
+              date: formatDateTime(interaction.createdAt),
+            })}
           </TooltipContent>
         </Tooltip>
       </div>
@@ -2567,8 +2658,14 @@ export function IssueThreadInteractionCard({
 
       {resolvedByLabel ? (
         <div className="mt-4 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-          Resolved by <span className="font-medium text-foreground">{resolvedByLabel}</span>
-          {interaction.resolvedAt ? ` on ${formatShortDate(interaction.resolvedAt)}` : ""}
+          {t("pages.issues.interactions.resolvedBy", { defaultValue: "Resolved by" })}{" "}
+          <span className="font-medium text-foreground">{resolvedByLabel}</span>
+          {interaction.resolvedAt
+            ? ` ${t("pages.issues.interactions.onDate", {
+              defaultValue: "on {{date}}",
+              date: formatShortDate(interaction.resolvedAt),
+            })}`
+            : ""}
         </div>
       ) : null}
     </div>

@@ -1,5 +1,6 @@
 import type { MouseEvent, ReactNode } from "react";
 import { FileCode2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { WorkspaceFileRef } from "@paperclipai/shared";
 import { useFileViewer } from "@/context/FileViewerContext";
@@ -29,18 +30,41 @@ export function ArtifactFileChip({
   showIcon = true,
   title,
 }: ArtifactFileChipProps) {
+  const { t } = useTranslation();
   const viewer = useFileViewer();
   const display = typeof label !== "undefined" ? label : artifactFileDisplay(workspaceFileRef);
   const canOpen = !!(onOpen || viewer);
   const lineSuffix = workspaceFileRef.line
-    ? ` line ${workspaceFileRef.line}${workspaceFileRef.column ? ` column ${workspaceFileRef.column}` : ""}`
+    ? workspaceFileRef.column
+      ? t("components.artifactFileChip.lineColumnSuffix", {
+          defaultValue: " line {{line}} column {{column}}",
+          line: workspaceFileRef.line,
+          column: workspaceFileRef.column,
+        })
+      : t("components.artifactFileChip.lineSuffix", {
+          defaultValue: " line {{line}}",
+          line: workspaceFileRef.line,
+        })
     : "";
+  const targetPath = `${workspaceFileRef.displayPath}${lineSuffix}`;
   const ariaLabel = canOpen
-    ? `Open ${workspaceFileRef.displayPath}${lineSuffix} in the file viewer`
-    : `Workspace file ${workspaceFileRef.displayPath}${lineSuffix}`;
+    ? t("components.artifactFileChip.openLabel", {
+        defaultValue: "Open {{path}} in the file viewer",
+        path: targetPath,
+      })
+    : t("components.artifactFileChip.workspaceFileLabel", {
+        defaultValue: "Workspace file {{path}}",
+        path: targetPath,
+      });
   const tooltip = title ?? (canOpen
-    ? `Open ${workspaceFileRef.displayPath}${lineSuffix} in the file viewer`
-    : `Workspace file ${workspaceFileRef.displayPath}${lineSuffix}`);
+    ? t("components.artifactFileChip.openLabel", {
+        defaultValue: "Open {{path}} in the file viewer",
+        path: targetPath,
+      })
+    : t("components.artifactFileChip.workspaceFileLabel", {
+        defaultValue: "Workspace file {{path}}",
+        path: targetPath,
+      }));
 
   const classNames = cn(
     "paperclip-artifact-file-chip inline-flex items-center gap-1 rounded-sm border border-border bg-muted/60 px-1.5 py-0.5 font-mono text-xs leading-tight text-foreground/90 align-middle no-underline hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",

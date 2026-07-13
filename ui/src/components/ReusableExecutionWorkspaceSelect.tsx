@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { SearchableSelect } from "@/components/SearchableSelect";
 import {
   buildReusableExecutionWorkspaceOptionGroups,
@@ -28,7 +29,7 @@ export function ReusableExecutionWorkspaceSelect<TWorkspace extends ReusableExec
   value,
   workspaces,
   onValueChange,
-  placeholder = "Choose an existing workspace",
+  placeholder,
   loading = false,
   error = false,
   disabled = false,
@@ -36,17 +37,35 @@ export function ReusableExecutionWorkspaceSelect<TWorkspace extends ReusableExec
   triggerClassName,
   disablePortal,
 }: ReusableExecutionWorkspaceSelectProps<TWorkspace>) {
+  const { t } = useTranslation();
   const groups = useMemo(() => buildReusableExecutionWorkspaceOptionGroups(workspaces), [workspaces]);
+  const resolvedPlaceholder =
+    placeholder ??
+    t("components.reusableExecutionWorkspaceSelect.placeholder", {
+      defaultValue: "Choose an existing workspace",
+    });
 
   return (
     <SearchableSelect<string, ReusableWorkspaceOption<TWorkspace>>
       value={value}
       groups={groups}
       onValueChange={onValueChange}
-      placeholder={placeholder}
-      searchPlaceholder="Search workspaces..."
-      emptyMessage={error ? "Workspaces failed to load." : "No matching workspaces."}
-      loadingMessage="Loading workspaces..."
+      placeholder={resolvedPlaceholder}
+      searchPlaceholder={t("components.reusableExecutionWorkspaceSelect.searchPlaceholder", {
+        defaultValue: "Search workspaces...",
+      })}
+      emptyMessage={
+        error
+          ? t("components.reusableExecutionWorkspaceSelect.errorMessage", {
+              defaultValue: "Workspaces failed to load.",
+            })
+          : t("components.reusableExecutionWorkspaceSelect.emptyMessage", {
+              defaultValue: "No matching workspaces.",
+            })
+      }
+      loadingMessage={t("components.reusableExecutionWorkspaceSelect.loadingMessage", {
+        defaultValue: "Loading workspaces...",
+      })}
       loading={loading}
       disabled={disabled}
       className={className}

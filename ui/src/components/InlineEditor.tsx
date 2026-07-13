@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "../lib/utils";
 import { MarkdownBody, type MarkdownExternalReferenceMap } from "./MarkdownBody";
 import { MarkdownEditor, type MarkdownEditorRef, type MentionOption } from "./MarkdownEditor";
@@ -53,7 +54,7 @@ export function InlineEditor({
   onSave,
   as: Tag = "span",
   className,
-  placeholder = "Click to edit...",
+  placeholder,
   multiline = false,
   nullable = false,
   imageUploadHandler,
@@ -62,6 +63,8 @@ export function InlineEditor({
   foldable = false,
   externalReferences,
 }: InlineEditorProps) {
+  const { t } = useTranslation();
+  const resolvedPlaceholder = placeholder ?? t("components.inlineEditor.placeholder", { defaultValue: "Click to edit..." });
   const [editing, setEditing] = useState(false);
   const [multilineEditing, setMultilineEditing] = useState(false);
   const [multilineFocused, setMultilineFocused] = useState(false);
@@ -289,7 +292,7 @@ export function InlineEditor({
           }}
           role="textbox"
           aria-multiline="true"
-          aria-label={placeholder}
+          aria-label={resolvedPlaceholder}
           tabIndex={0}
         >
           {foldable ? (
@@ -342,7 +345,7 @@ export function InlineEditor({
           ref={markdownRef}
           value={draft}
           onChange={setDraft}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           bordered={false}
           className="bg-transparent"
           contentClassName={cn("paperclip-edit-in-place-content", className)}
@@ -412,7 +415,7 @@ export function InlineEditor({
       )}
       onClick={() => setEditing(true)}
     >
-      {value || placeholder}
+      {value || resolvedPlaceholder}
     </DisplayTag>
   );
 }

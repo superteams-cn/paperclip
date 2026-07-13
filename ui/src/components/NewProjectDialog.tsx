@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { useDialog } from "../context/DialogContext";
 import { useCompany } from "../context/CompanyContext";
 import { accessApi } from "../api/access";
@@ -47,6 +48,7 @@ const projectStatuses = [
 ];
 
 export function NewProjectDialog() {
+  const { t } = useTranslation();
   const { newProjectOpen, closeNewProject } = useDialog();
   const { selectedCompanyId, selectedCompany } = useCompany();
   const queryClient = useQueryClient();
@@ -96,7 +98,7 @@ export function NewProjectDialog() {
 
   const uploadDescriptionImage = useMutation({
     mutationFn: async (file: File) => {
-      if (!selectedCompanyId) throw new Error("No company selected");
+      if (!selectedCompanyId) throw new Error(t("common.noCompanySelected", { defaultValue: "No company selected" }));
       return assetsApi.uploadImage(selectedCompanyId, file, "projects/drafts");
     },
   });
@@ -129,7 +131,7 @@ export function NewProjectDialog() {
   const deriveWorkspaceNameFromPath = (value: string) => {
     const normalized = value.trim().replace(/[\\/]+$/, "");
     const segments = normalized.split(/[\\/]/).filter(Boolean);
-    return segments[segments.length - 1] ?? "Local folder";
+    return segments[segments.length - 1] ?? t("pages.projects.newDialog.localFolder", { defaultValue: "Local folder" });
   };
 
   const deriveWorkspaceNameFromRepo = (value: string) => {
@@ -137,9 +139,9 @@ export function NewProjectDialog() {
       const parsed = new URL(value);
       const segments = parsed.pathname.split("/").filter(Boolean);
       const repo = segments[segments.length - 1]?.replace(/\.git$/i, "") ?? "";
-      return repo || "GitHub repo";
+      return repo || t("pages.projects.newDialog.githubRepo", { defaultValue: "GitHub repo" });
     } catch {
-      return "GitHub repo";
+      return t("pages.projects.newDialog.githubRepo", { defaultValue: "GitHub repo" });
     }
   };
 
@@ -149,11 +151,11 @@ export function NewProjectDialog() {
     const repoUrl = workspaceRepoUrl.trim();
 
     if (localPath && !isAbsolutePath(localPath)) {
-      setWorkspaceError("Local folder must be a full absolute path.");
+      setWorkspaceError(t("pages.projects.newDialog.localFolderAbsoluteError", { defaultValue: "Local folder must be a full absolute path." }));
       return;
     }
     if (repoUrl && !looksLikeRepoUrl(repoUrl)) {
-      setWorkspaceError("Repo must use a valid GitHub or GitHub Enterprise repo URL.");
+      setWorkspaceError(t("pages.projects.newDialog.repoUrlError", { defaultValue: "Repo must use a valid GitHub or GitHub Enterprise repo URL." }));
       return;
     }
 
@@ -223,7 +225,7 @@ export function NewProjectDialog() {
               </span>
             )}
             <span className="text-muted-foreground/60">&rsaquo;</span>
-            <span>New project</span>
+            <span>{t("pages.projects.newDialog.newProject", { defaultValue: "New project" })}</span>
           </div>
           <div className="flex items-center gap-1">
             <Button
@@ -249,7 +251,7 @@ export function NewProjectDialog() {
         <div className="px-4 pt-4 pb-2 shrink-0">
           <input
             className="w-full text-lg font-semibold bg-transparent outline-none placeholder:text-muted-foreground/50"
-            placeholder="Project name"
+            placeholder={t("pages.projects.newDialog.projectName", { defaultValue: "Project name" })}
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
@@ -268,7 +270,7 @@ export function NewProjectDialog() {
             ref={descriptionEditorRef}
             value={description}
             onChange={setDescription}
-            placeholder="Add description..."
+            placeholder={t("pages.issues.newDialog.descriptionPlaceholder", { defaultValue: "Add description..." })}
             bordered={false}
             mentions={mentionOptions}
             contentClassName={cn("text-sm text-muted-foreground", expanded ? "min-h-(--sz-220px)" : "min-h-(--sz-120px)")}
@@ -282,14 +284,14 @@ export function NewProjectDialog() {
         <div className="px-4 pt-3 pb-3 space-y-3 border-t border-border">
           <div>
             <div className="mb-1 flex items-center gap-1.5">
-              <label className="block text-xs text-muted-foreground">Repo URL</label>
-              <span className="text-xs text-muted-foreground/50">optional</span>
+              <label className="block text-xs text-muted-foreground">{t("pages.projects.newDialog.repoUrl", { defaultValue: "Repo URL" })}</label>
+              <span className="text-xs text-muted-foreground/50">{t("common.optional", { defaultValue: "optional" })}</span>
               <Tooltip delayDuration={300}>
                 <TooltipTrigger asChild>
                   <HelpCircle className="h-3 w-3 text-muted-foreground/50 cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-(--sz-240px) text-xs">
-                  Link a GitHub repository so agents can clone, read, and push code for this project.
+                  {t("pages.projects.newDialog.repoUrlHint", { defaultValue: "Link a GitHub repository so agents can clone, read, and push code for this project." })}
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -303,14 +305,14 @@ export function NewProjectDialog() {
 
           <div>
             <div className="mb-1 flex items-center gap-1.5">
-              <label className="block text-xs text-muted-foreground">Local folder</label>
-              <span className="text-xs text-muted-foreground/50">optional</span>
+              <label className="block text-xs text-muted-foreground">{t("pages.projects.newDialog.localFolder", { defaultValue: "Local folder" })}</label>
+              <span className="text-xs text-muted-foreground/50">{t("common.optional", { defaultValue: "optional" })}</span>
               <Tooltip delayDuration={300}>
                 <TooltipTrigger asChild>
                   <HelpCircle className="h-3 w-3 text-muted-foreground/50 cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-(--sz-240px) text-xs">
-                  Set an absolute path on this machine where local agents will read and write files for this project.
+                  {t("pages.projects.newDialog.localFolderHint", { defaultValue: "Set an absolute path on this machine where local agents will read and write files for this project." })}
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -349,7 +351,7 @@ export function NewProjectDialog() {
                   )}
                   onClick={() => { setStatus(s.value); setStatusOpen(false); }}
                 >
-                  {s.label}
+                  {t(`labels.status.${s.value}`, { defaultValue: s.label })}
                 </button>
               ))}
             </PopoverContent>
@@ -365,7 +367,10 @@ export function NewProjectDialog() {
               <button
                 className="text-muted-foreground hover:text-foreground"
                 onClick={() => setGoalIds((prev) => prev.filter((id) => id !== goal.id))}
-                aria-label={`Remove goal ${goal.title}`}
+                aria-label={t("pages.projects.newDialog.removeGoal", {
+                  goal: goal.title,
+                  defaultValue: "Remove goal {{goal}}",
+                })}
                 type="button"
               >
                 <X className="h-3 w-3" />
@@ -380,7 +385,9 @@ export function NewProjectDialog() {
                 disabled={selectedGoals.length > 0 && availableGoals.length === 0}
               >
                 {selectedGoals.length > 0 ? <Plus className="h-3 w-3 text-muted-foreground" /> : <Target className="h-3 w-3 text-muted-foreground" />}
-                {selectedGoals.length > 0 ? "+ Goal" : "Goal"}
+                {selectedGoals.length > 0
+                  ? t("pages.projects.newDialog.addAnotherGoal", { defaultValue: "+ Goal" })
+                  : t("pages.projects.newDialog.goal", { defaultValue: "Goal" })}
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-56 p-1" align="start">
@@ -389,7 +396,7 @@ export function NewProjectDialog() {
                   className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50 text-muted-foreground"
                   onClick={() => setGoalOpen(false)}
                 >
-                  No goal
+                  {t("pages.projects.newDialog.noGoal", { defaultValue: "No goal" })}
                 </button>
               )}
               {availableGoals.map((g) => (
@@ -406,7 +413,7 @@ export function NewProjectDialog() {
               ))}
               {selectedGoals.length > 0 && availableGoals.length === 0 && (
                 <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                  All goals already selected.
+                  {t("pages.projects.newDialog.allGoalsSelected", { defaultValue: "All goals already selected." })}
                 </div>
               )}
             </PopoverContent>
@@ -420,7 +427,7 @@ export function NewProjectDialog() {
               className="bg-transparent outline-none text-xs w-24"
               value={targetDate}
               onChange={(e) => setTargetDate(e.target.value)}
-              placeholder="Target date"
+              placeholder={t("pages.projects.newDialog.targetDate", { defaultValue: "Target date" })}
             />
           </div>
         </div>
@@ -428,7 +435,7 @@ export function NewProjectDialog() {
         {/* Footer */}
         <div className="flex items-center justify-between px-4 py-2.5 border-t border-border">
           {createProject.isError ? (
-            <p className="text-xs text-destructive">Failed to create project.</p>
+            <p className="text-xs text-destructive">{t("pages.projects.newDialog.createError", { defaultValue: "Failed to create project." })}</p>
           ) : (
             <span />
           )}
@@ -437,7 +444,9 @@ export function NewProjectDialog() {
             disabled={!name.trim() || createProject.isPending}
             onClick={handleSubmit}
           >
-            {createProject.isPending ? "Creating…" : "Create project"}
+            {createProject.isPending
+              ? t("pages.projects.newDialog.creating", { defaultValue: "Creating..." })
+              : t("pages.projects.newDialog.createProject", { defaultValue: "Create project" })}
           </Button>
         </div>
       </DialogContent>

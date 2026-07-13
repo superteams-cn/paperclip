@@ -12,6 +12,7 @@ import {
 } from "@/plugins/slots";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { NotFoundPage } from "./NotFound";
 
 /**
@@ -23,6 +24,7 @@ import { NotFoundPage } from "./NotFound";
  * @see doc/plugins/PLUGIN_SPEC.md §24.4 — Company-Context Plugin Page
  */
 export function PluginPage() {
+  const { t } = useTranslation();
   const params = useParams<{
     companyPrefix?: string;
     pluginId?: string;
@@ -119,25 +121,25 @@ export function PluginPage() {
       return;
     }
     setBreadcrumbs([
-      { label: "Plugins", href: "/company/settings/instance/plugins" },
+      { label: t("nav.plugins", { defaultValue: "Plugins" }), href: "/company/settings/instance/plugins" },
       { label: pageSlot.pluginDisplayName },
     ]);
-  }, [pageSlot, pluginRouteSplat, setBreadcrumbs, routeSidebarActive]);
+  }, [pageSlot, pluginRouteSplat, setBreadcrumbs, routeSidebarActive, t]);
 
   if (!resolvedCompanyId) {
     if (hasInvalidCompanyPrefix) {
       return <NotFoundPage scope="invalid_company_prefix" requestedPrefix={routeCompanyPrefix} />;
     }
-    return (
-      <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">Select a company to view this page.</p>
-      </div>
-    );
-  }
+	    return (
+	      <div className="space-y-4">
+	        <p className="text-sm text-muted-foreground">{t("pages.pluginPage.selectCompany", { defaultValue: "Select a company to view this page." })}</p>
+	      </div>
+	    );
+	  }
 
-  if (!contributions) {
-    return <div className="text-sm text-muted-foreground">Loading…</div>;
-  }
+	  if (!contributions) {
+	    return <div className="text-sm text-muted-foreground">{t("common.loading", { defaultValue: "Loading..." })}</div>;
+	  }
 
   if (!pluginId && pluginRoutePath) {
     const duplicateMatches = contributions.filter((contribution) =>
@@ -145,9 +147,9 @@ export function PluginPage() {
     );
     if (duplicateMatches.length > 1) {
       return (
-        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-          Multiple plugins declare the route <code>{pluginRoutePath}</code>. Use the plugin-id route until the conflict is resolved.
-        </div>
+	        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+	          {t("pages.pluginPage.duplicateRoutePrefix", { defaultValue: "Multiple plugins declare the route" })} <code>{pluginRoutePath}</code>. {t("pages.pluginPage.duplicateRouteSuffix", { defaultValue: "Use the plugin-id route until the conflict is resolved." })}
+	        </div>
       );
     }
   }
@@ -168,10 +170,10 @@ export function PluginPage() {
       {!routeSidebarActive && (
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" asChild>
-            <Link to={companyPrefix ? `/${companyPrefix}/dashboard` : "/dashboard"}>
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back
-            </Link>
+	            <Link to={companyPrefix ? `/${companyPrefix}/dashboard` : "/dashboard"}>
+	              <ArrowLeft className="h-4 w-4 mr-1" />
+	              {t("common.back", { defaultValue: "Back" })}
+	            </Link>
           </Button>
         </div>
       )}

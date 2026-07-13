@@ -25,6 +25,7 @@ import { heartbeatsApi } from "../api/heartbeats";
 import { SIDEBAR_SCROLL_RESET_STATE } from "../lib/navigation-scroll";
 import { queryKeys } from "../lib/queryKeys";
 import { cn, agentRouteRef, agentUrl, SIDEBAR_RAIL_HIDDEN_LABEL } from "../lib/utils";
+import { formatApiError } from "../lib/api-error";
 import { useAgentOrder } from "../hooks/useAgentOrder";
 import {
   isStarred,
@@ -48,6 +49,7 @@ import { SidebarNavItem } from "./SidebarNavItem";
 import { SidebarSection, type SidebarSectionRadioChoice } from "./SidebarSection";
 import { StarToggle } from "./StarToggle";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/i18n";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,12 +66,6 @@ import type { Agent } from "@paperclipai/shared";
  */
 const RECENT_AGENT_LIMIT = 3;
 const LIVE_AGENT_LINGER_MS = 120_000;
-
-const AGENT_SORT_CHOICES: SidebarSectionRadioChoice[] = [
-  { value: "top", label: "Top" },
-  { value: "alphabetical", label: "Alphabetical" },
-  { value: "recent", label: "Recent" },
-];
 
 function agentTimestamp(agent: Agent, field: "lastHeartbeatAt" | "updatedAt" | "createdAt"): number {
   const raw = agent[field];
@@ -137,6 +133,7 @@ function SidebarAgentItem({
   onToggleStar?: (agent: Agent, starred: boolean) => void;
   starPending?: boolean;
 }) {
+  const { t } = useTranslation();
   const routeRef = agentRouteRef(agent);
   const href = activeTab ? `${agentUrl(agent)}/${activeTab}` : agentUrl(agent);
   const editHref = `${agentUrl(agent)}/configuration`;
@@ -144,18 +141,20 @@ function SidebarAgentItem({
   const isPaused = agent.status === "paused";
   const isBudgetPaused = isPaused && agent.pauseReason === "budget";
   const hasInvalidOrgChain = agent.orgChainHealth?.status === "invalid_org_chain";
-  const pauseResumeLabel = isPaused ? "Resume agent" : "Pause agent";
+  const pauseResumeLabel = isPaused
+    ? t("sidebar.agents.resume", { defaultValue: "Resume agent" })
+    : t("sidebar.agents.pause", { defaultValue: "Pause agent" });
   const pauseResumeDisabled = disabled || agent.status === "pending_approval" || isBudgetPaused || (isPaused && hasInvalidOrgChain);
   const pauseResumeDisabledLabel = disabled
-    ? "Updating..."
+    ? t("sidebar.agents.updating", { defaultValue: "Updating..." })
     : isBudgetPaused
-      ? "Budget paused"
+      ? t("sidebar.agents.budgetPaused", { defaultValue: "Budget paused" })
       : isPaused && hasInvalidOrgChain
-        ? "Invalid org chain"
+        ? t("sidebar.agents.invalidOrgChain", { defaultValue: "Invalid org chain" })
       : pauseResumeLabel;
   const trailingLabel = [
     builtInStatus ? `Built-in agent ${builtInStatus.replace(/_/g, " ")}` : null,
-    hasInvalidOrgChain ? "Invalid reporting chain" : null,
+    hasInvalidOrgChain ? t("sidebar.agents.invalidReportingChain", { defaultValue: "Invalid reporting chain" }) : null,
   ].filter(Boolean).join(", ") || undefined;
 
   // C11 (DECISION-SHEET.md): the row itself is a SidebarNavItem, so agent rows
@@ -184,14 +183,14 @@ function SidebarAgentItem({
               </>
             ) : null}
             {hasInvalidOrgChain ? (
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label="Invalid reporting chain" />
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label={t("sidebar.agents.invalidReportingChain", { defaultValue: "Invalid reporting chain" })} />
             ) : null}
           </span>
         ) : undefined
       }
       trailingLabel={trailingLabel}
       liveAccessory={
-        agent.pauseReason === "budget" ? <BudgetSidebarMarker title="Agent paused by budget" /> : undefined
+        agent.pauseReason === "budget" ? <BudgetSidebarMarker title={t("sidebar.agents.pausedByBudget", { defaultValue: "Agent paused by budget" })} /> : undefined
       }
     />
   );
@@ -231,7 +230,10 @@ function SidebarAgentItem({
                 ? "opacity-100"
                 : "pointer-events-none opacity-0 group-hover/agent:pointer-events-auto group-hover/agent:opacity-100 group-focus-within/agent:pointer-events-auto group-focus-within/agent:opacity-100",
             )}
-            aria-label={`Open actions for ${agent.name}`}
+            aria-label={t("sidebar.agents.openActions", {
+              name: agent.name,
+              defaultValue: "Open actions for {{name}}",
+            })}
           >
             <MoreHorizontal className="h-3.5 w-3.5" />
           </Button>
@@ -264,7 +266,7 @@ function SidebarAgentItem({
               }}
             >
               <Pencil className="size-4" />
-              <span>Edit agent</span>
+              <span>{t("sidebar.agents.edit", { defaultValue: "Edit agent" })}</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -274,7 +276,7 @@ function SidebarAgentItem({
               onPauseResume(agent, isPaused ? "resume" : "pause");
             }}
             disabled={pauseResumeDisabled}
-            title={isBudgetPaused ? "Agent was paused by budget limits" : undefined}
+            title={isBudgetPaused ? t("sidebar.agents.budgetPausedTitle", { defaultValue: "Agent was paused by budget limits" }) : undefined}
           >
             {isPaused ? <PlayCircle className="size-4" /> : <PauseCircle className="size-4" />}
             <span>{pauseResumeDisabledLabel}</span>
@@ -297,6 +299,7 @@ function SidebarAgentItem({
 }
 
 export function SidebarAgents({ streamlined = false }: { streamlined?: boolean } = {}) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(true);
   const [pendingAgentIds, setPendingAgentIds] = useState<Set<string>>(() => new Set());
   const [liveLingerVersion, setLiveLingerVersion] = useState(0);
@@ -393,6 +396,14 @@ export function SidebarAgents({ streamlined = false }: { streamlined?: boolean }
   const sortedAgents = useMemo(
     () => sortAgents(orderedAgents, sortMode),
     [orderedAgents, sortMode],
+  );
+  const agentSortChoices = useMemo<SidebarSectionRadioChoice[]>(
+    () => [
+      { value: "top", label: t("sidebar.sort.top", { defaultValue: "Top" }) },
+      { value: "alphabetical", label: t("sidebar.sort.alphabetical", { defaultValue: "Alphabetical" }) },
+      { value: "recent", label: t("sidebar.sort.recent", { defaultValue: "Recent" }) },
+    ],
+    [t],
   );
   const sortedAgentIdSet = useMemo(
     () => new Set(sortedAgents.map((agent: Agent) => agent.id)),
@@ -532,15 +543,19 @@ export function SidebarAgents({ streamlined = false }: { streamlined?: boolean }
         queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agentRouteRef(agent)) }),
       ]);
       pushToast({
-        title: action === "pause" ? "Agent paused" : "Agent resumed",
+        title: action === "pause"
+          ? t("sidebar.agents.pausedToast", { defaultValue: "Agent paused" })
+          : t("sidebar.agents.resumedToast", { defaultValue: "Agent resumed" }),
         body: agent.name,
         tone: "success",
       });
     },
     onError: (error, { agent, action }) => {
       pushToast({
-        title: action === "pause" ? "Could not pause agent" : "Could not resume agent",
-        body: error instanceof Error ? error.message : agent.name,
+        title: action === "pause"
+          ? t("sidebar.agents.pauseError", { defaultValue: "Could not pause agent" })
+          : t("sidebar.agents.resumeError", { defaultValue: "Could not resume agent" }),
+        body: formatApiError(error, t, agent.name),
         tone: "error",
       });
     },
@@ -626,21 +641,21 @@ export function SidebarAgents({ streamlined = false }: { streamlined?: boolean }
 
   return (
     <SidebarSection
-      label="Agents"
+      label={t("nav.agents", { defaultValue: "Agents" })}
       collapsible={{ open, onOpenChange: setOpen }}
       headerAction={{
-        ariaLabel: "New agent",
+        ariaLabel: t("sidebar.agents.newAgent", { defaultValue: "New agent" }),
         icon: Plus,
         onClick: openNewAgent,
       }}
       menu={{
-        ariaLabel: "Agents section actions",
+        ariaLabel: t("sidebar.agents.sectionActions", { defaultValue: "Agents section actions" }),
         actions: [
-          { type: "item", label: "Browse agents", icon: Users, href: "/agents/all" },
+          { type: "item", label: t("sidebar.agents.browse", { defaultValue: "Browse agents" }), icon: Users, href: "/agents/all" },
           { type: "separator" },
         ],
-        radioLabel: "Agent sort",
-        radioChoices: AGENT_SORT_CHOICES,
+        radioLabel: t("sidebar.agents.sort", { defaultValue: "Agent sort" }),
+        radioChoices: agentSortChoices,
         radioValue: sortMode,
         onRadioValueChange: persistSortMode,
       }}
@@ -654,20 +669,20 @@ export function SidebarAgents({ streamlined = false }: { streamlined?: boolean }
           <Link
             to="/agents/all"
             state={SIDEBAR_SCROLL_RESET_STATE}
-            aria-label={rail ? "See all agents" : undefined}
+            aria-label={rail ? t("sidebar.agents.seeAll", { defaultValue: "See all agents" }) : undefined}
             onClick={() => {
               if (isMobile) setSidebarOpen(false);
             }}
             className="flex items-center gap-2.5 mx-2 rounded-lg px-2 py-1.5 pointer-coarse:py-1 text-(length:--text-compact) font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
           >
             <Users className="shrink-0 h-4 w-4" />
-            <span className={rail ? SIDEBAR_RAIL_HIDDEN_LABEL : undefined}>See all agents</span>
+            <span className={rail ? SIDEBAR_RAIL_HIDDEN_LABEL : undefined}>{t("sidebar.agents.seeAll", { defaultValue: "See all agents" })}</span>
           </Link>
         );
         return rail ? (
           <Tooltip>
             <TooltipTrigger asChild>{seeAllLink}</TooltipTrigger>
-            <TooltipContent side="right">See all agents</TooltipContent>
+            <TooltipContent side="right">{t("sidebar.agents.seeAll", { defaultValue: "See all agents" })}</TooltipContent>
           </Tooltip>
         ) : (
           seeAllLink

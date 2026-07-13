@@ -1,26 +1,28 @@
 import { memo, type ComponentType, type SVGProps } from "react";
 import { Bot, FileText, Hexagon, MessageSquare, Paperclip, Quote } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Agent, CompanySearchResult } from "@paperclipai/shared";
 import { Link } from "@/lib/router";
 import { cn } from "@/lib/utils";
+import { t } from "@/i18n";
 import { StatusIcon } from "../StatusIcon";
 import { Identity } from "../Identity";
 import { HighlightedText, type HighlightedTextProps } from "./HighlightedText";
 
 type SnippetStyle = {
   Icon: ComponentType<SVGProps<SVGSVGElement>>;
-  label: string;
+  labelKey: string;
 };
 
 const SNIPPET_STYLES: Record<string, SnippetStyle> = {
-  comment: { Icon: MessageSquare, label: "Comment" },
-  document: { Icon: FileText, label: "Doc" },
-  artifact: { Icon: Paperclip, label: "Artifact" },
-  description: { Icon: Quote, label: "Description" },
+  comment: { Icon: MessageSquare, labelKey: "comment" },
+  document: { Icon: FileText, labelKey: "document" },
+  artifact: { Icon: Paperclip, labelKey: "artifact" },
+  description: { Icon: Quote, labelKey: "description" },
 };
 
 function snippetStyle(field: string, fallbackLabel: string): SnippetStyle {
-  return SNIPPET_STYLES[field] ?? { Icon: Quote, label: fallbackLabel };
+  return SNIPPET_STYLES[field] ?? { Icon: Quote, labelKey: fallbackLabel };
 }
 
 function formatRelativeTime(input: string | null): string {
@@ -29,19 +31,19 @@ function formatRelativeTime(input: string | null): string {
   if (Number.isNaN(value.getTime())) return "";
   const diffMs = Date.now() - value.getTime();
   const seconds = Math.round(diffMs / 1000);
-  if (seconds < 60) return "just now";
+  if (seconds < 60) return t("common.time.compact.justNow", { defaultValue: "just now" });
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 60) return t("common.time.compact.minutes", { defaultValue: "{{n}}m", n: minutes });
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h`;
+  if (hours < 24) return t("common.time.compact.hours", { defaultValue: "{{n}}h", n: hours });
   const days = Math.round(hours / 24);
-  if (days < 7) return `${days}d`;
+  if (days < 7) return t("common.time.compact.days", { defaultValue: "{{n}}d", n: days });
   const weeks = Math.round(days / 7);
-  if (weeks < 5) return `${weeks}w`;
+  if (weeks < 5) return t("common.time.compact.weeks", { defaultValue: "{{n}}w", n: weeks });
   const months = Math.round(days / 30);
-  if (months < 12) return `${months}mo`;
+  if (months < 12) return t("common.time.compact.months", { defaultValue: "{{n}}mo", n: months });
   const years = Math.round(days / 365);
-  return `${years}y`;
+  return t("common.time.compact.years", { defaultValue: "{{n}}y", n: years });
 }
 
 export interface SearchResultRowProps {
@@ -60,6 +62,7 @@ function SearchResultRowImpl({
   isActive,
   className,
 }: SearchResultRowProps) {
+  const { t } = useTranslation();
   if (result.type === "agent") {
     return (
       <Link
@@ -79,7 +82,7 @@ function SearchResultRowImpl({
               text={result.snippets[0]?.text ?? result.snippet}
               highlights={result.snippets[0]?.highlights}
               field="agent"
-              fallbackLabel={result.sourceLabel ?? "Agent"}
+              fallbackLabel={result.sourceLabel ?? t("pages.search.resultTypes.agent")}
             />
           ) : null}
         </div>
@@ -102,7 +105,7 @@ function SearchResultRowImpl({
               text={result.snippets[0]?.text ?? result.snippet}
               highlights={result.snippets[0]?.highlights}
               field="project"
-              fallbackLabel={result.sourceLabel ?? "Project"}
+              fallbackLabel={result.sourceLabel ?? t("pages.search.resultTypes.project")}
             />
           ) : null}
         </div>
@@ -244,7 +247,11 @@ interface SnippetLineProps {
 }
 
 function SnippetLine({ text, highlights, field, fallbackLabel, multiline = false }: SnippetLineProps) {
-  const { Icon, label } = snippetStyle(field, fallbackLabel);
+  const { t } = useTranslation();
+  const { Icon, labelKey } = snippetStyle(field, fallbackLabel);
+  const label = SNIPPET_STYLES[field]
+    ? t(`pages.search.snippetLabels.${labelKey}`, { defaultValue: fallbackLabel })
+    : labelKey;
   return (
     <div
       className={cn(

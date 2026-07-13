@@ -1,5 +1,6 @@
 import { memo, useState, type KeyboardEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import {
   AlarmClock,
   ChevronDown,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import type { Agent, AttentionDetailImage, AttentionItem } from "@paperclipai/shared";
 import { Link } from "@/lib/router";
+import { t } from "@/i18n";
 import { accessApi } from "../api/access";
 import { approvalsApi } from "../api/approvals";
 import { issuesApi } from "../api/issues";
@@ -61,10 +63,10 @@ function tomorrowMorningIso(): string {
 
 /** Snooze presets, resolved to a future ISO timestamp at click time. */
 const SNOOZE_PRESETS: ReadonlyArray<{ label: string; resolve: () => string }> = [
-  { label: "1 hour", resolve: () => new Date(Date.now() + HOUR_MS).toISOString() },
-  { label: "4 hours", resolve: () => new Date(Date.now() + 4 * HOUR_MS).toISOString() },
-  { label: "Tomorrow morning", resolve: tomorrowMorningIso },
-  { label: "Next week", resolve: () => new Date(Date.now() + 7 * DAY_MS).toISOString() },
+  { label: t("components.attentionQueueRow.snooze.oneHour", { defaultValue: "1 hour" }), resolve: () => new Date(Date.now() + HOUR_MS).toISOString() },
+  { label: t("components.attentionQueueRow.snooze.fourHours", { defaultValue: "4 hours" }), resolve: () => new Date(Date.now() + 4 * HOUR_MS).toISOString() },
+  { label: t("components.attentionQueueRow.snooze.tomorrowMorning", { defaultValue: "Tomorrow morning" }), resolve: tomorrowMorningIso },
+  { label: t("components.attentionQueueRow.snooze.nextWeek", { defaultValue: "Next week" }), resolve: () => new Date(Date.now() + 7 * DAY_MS).toISOString() },
 ];
 
 interface AttentionQueueRowProps {
@@ -106,6 +108,7 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
   userLabelMap,
   selected = false,
 }: AttentionQueueRowProps) {
+  const { t } = useTranslation();
   const meta = sourceMeta(item.sourceKind);
   const tone = attentionToneStyle(item);
   const sevBadge = severityBadge(item.severity);
@@ -170,7 +173,9 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
           <button
             type="button"
             className="mt-0.5 shrink-0 rounded-sm p-0.5 text-muted-foreground hover:text-foreground focus-visible:ring-ring focus-visible:ring-(length:--rad-3) focus-visible:outline-none"
-            aria-label={expanded ? "Collapse decision" : "Expand decision"}
+            aria-label={expanded
+              ? t("components.attentionQueueRow.collapse", { defaultValue: "Collapse decision" })
+              : t("components.attentionQueueRow.expand", { defaultValue: "Expand decision" })}
             aria-expanded={expanded}
             onClick={activate}
           >
@@ -216,9 +221,9 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
               {isHidden && snoozedUntil ? (
                 <span
                   className="text-(length:--text-nano) text-muted-foreground"
-                  title={`Reappears ${new Date(snoozedUntil).toLocaleString()}`}
+                  title={t("components.attentionQueueRow.reappearsTitle", { defaultValue: "Reappears {{date}}", date: new Date(snoozedUntil).toLocaleString() })}
                 >
-                  Reappears {reappearLabel(snoozedUntil)}
+                  {t("components.attentionQueueRow.reappears", { defaultValue: "Reappears {{when}}", when: reappearLabel(snoozedUntil) })}
                 </span>
               ) : (
                 <span className="text-(length:--text-nano) text-muted-foreground">{relativeTime(item.activityAt)}</span>
@@ -230,7 +235,7 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
                       variant="ghost"
                       size="icon-xs"
                       className="text-muted-foreground"
-                      aria-label="Row actions"
+                      aria-label={t("components.attentionQueueRow.rowActions", { defaultValue: "Row actions" })}
                     >
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
@@ -239,13 +244,13 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
                     {onSnooze && <SnoozeSubmenu onSnooze={(iso) => onSnooze(item, iso)} />}
                     <DropdownMenuItem onClick={() => onDismiss(item)}>
                       <X className="h-4 w-4" />
-                      Dismiss
+                      {t("components.attentionQueueRow.dismiss", { defaultValue: "Dismiss" })}
                     </DropdownMenuItem>
                     {href && (
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                          <Link to={href}>Open source</Link>
+                          <Link to={href}>{t("components.attentionQueueRow.openSource", { defaultValue: "Open source" })}</Link>
                         </DropdownMenuItem>
                       </>
                     )}
@@ -267,7 +272,9 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
                   role: "button",
                   tabIndex: 0,
                   "aria-expanded": expanded,
-                  "aria-label": expanded ? "Collapse decision" : "Expand decision",
+                  "aria-label": expanded
+                    ? t("components.attentionQueueRow.collapse", { defaultValue: "Collapse decision" })
+                    : t("components.attentionQueueRow.expand", { defaultValue: "Expand decision" }),
                   onClick: activate,
                   onKeyDown: onHeaderKeyDown,
                 }
@@ -307,7 +314,7 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
               {showOpen && (
                 <Button asChild variant="outline" size="xs" className={cn(ACTION_BTN, "w-full @xl:w-auto")}>
                   <Link to={href!}>
-                    Open
+                    {t("components.attentionQueueRow.open", { defaultValue: "Open" })}
                     <ExternalLink className="h-3 w-3" />
                   </Link>
                 </Button>
@@ -322,7 +329,7 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
                   onClick={() => onRestore(item)}
                 >
                   <RotateCcw className="h-3 w-3" />
-                  Restore
+                  {t("components.attentionQueueRow.restore", { defaultValue: "Restore" })}
                 </Button>
               )}
             </div>
@@ -381,6 +388,7 @@ function CompactDecisionActions({
   companyId: string;
   onOpen: () => void;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { pushToast } = useToastActions();
   const actions = collectCompactActions(item);
@@ -399,11 +407,11 @@ function CompactDecisionActions({
       }
       if (item.sourceKind === "issue_thread_interaction") {
         const issueId = item.subject.metadata?.issueId;
-        if (typeof issueId !== "string") throw new Error("Missing issue reference for this decision.");
+        if (typeof issueId !== "string") throw new Error(t("components.attentionQueueRow.missingIssueReference", { defaultValue: "Missing issue reference for this decision." }));
         if (action === "accept") return issuesApi.acceptInteraction(issueId, item.subject.id);
         return issuesApi.rejectInteraction(issueId, item.subject.id);
       }
-      throw new Error("This decision must be completed from its detail view.");
+      throw new Error(t("components.attentionQueueRow.completeFromDetail", { defaultValue: "This decision must be completed from its detail view." }));
     },
     onSuccess: (_result, action) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.attention(companyId) });
@@ -419,8 +427,8 @@ function CompactDecisionActions({
     },
     onError: (error, action) => {
       pushToast({
-        title: `Could not ${decisionLabel(action)}`,
-        body: error instanceof Error ? error.message : "Please try again.",
+        title: t("components.attentionQueueRow.couldNot", { defaultValue: "Could not {{action}}", action: decisionLabel(action) }),
+        body: error instanceof Error ? error.message : t("components.attentionQueueRow.pleaseTryAgain", { defaultValue: "Please try again." }),
         tone: "error",
       });
     },
@@ -429,7 +437,7 @@ function CompactDecisionActions({
   if (actions.length === 0) return null;
 
   return (
-    <div className="flex w-full flex-wrap items-center gap-2 @xl:w-auto @xl:justify-end @xl:gap-1" aria-label="Decision actions">
+    <div className="flex w-full flex-wrap items-center gap-2 @xl:w-auto @xl:justify-end @xl:gap-1" aria-label={t("components.attentionQueueRow.decisionActions", { defaultValue: "Decision actions" })}>
       {actions.map(({ action, id, label }) => (
         <Button
           key={id}
@@ -456,15 +464,17 @@ function CompactDecisionActions({
 }
 
 function decisionLabel(action: CompactDecisionAction): string {
-  if (action === "request_revision") return "sent for revision";
-  if (action === "accept" || action === "approve") return "approved";
-  return "rejected";
+  if (action === "request_revision") return t("components.attentionQueueRow.action.sentForRevision", { defaultValue: "sent for revision" });
+  if (action === "accept" || action === "approve") return t("components.attentionQueueRow.action.approved", { defaultValue: "approved" });
+  return t("components.attentionQueueRow.action.rejected", { defaultValue: "rejected" });
 }
 
 function compactDecisionSuccessLabel(sourceKind: AttentionItem["sourceKind"], action: CompactDecisionAction): string {
-  if (sourceKind === "approval") return `Approval ${decisionLabel(action)}`;
-  if (sourceKind === "join_request") return `Join request ${decisionLabel(action)}`;
-  return action === "accept" ? "Confirmation accepted" : "Confirmation declined";
+  if (sourceKind === "approval") return t("components.attentionQueueRow.toast.approval", { defaultValue: "Approval {{result}}", result: decisionLabel(action) });
+  if (sourceKind === "join_request") return t("components.attentionQueueRow.toast.joinRequest", { defaultValue: "Join request {{result}}", result: decisionLabel(action) });
+  return action === "accept"
+    ? t("components.attentionQueueRow.toast.confirmationAccepted", { defaultValue: "Confirmation accepted" })
+    : t("components.attentionQueueRow.toast.confirmationDeclined", { defaultValue: "Confirmation declined" });
 }
 
 function decisionVerbVariant(verb: AttentionItem["decisionVerbs"][number]): "default" | "outline" | "destructive" {
@@ -517,6 +527,7 @@ function ThumbnailStack({ images }: { images: AttentionDetailImage[] }) {
 
 /** Snooze submenu: presets + a custom date-time (plan §6). */
 function SnoozeSubmenu({ onSnooze }: { onSnooze: (snoozedUntil: string) => void }) {
+  const { t } = useTranslation();
   const [customValue, setCustomValue] = useState("");
   const applyCustom = () => {
     if (!customValue) return;
@@ -528,7 +539,7 @@ function SnoozeSubmenu({ onSnooze }: { onSnooze: (snoozedUntil: string) => void 
     <DropdownMenuSub>
       <DropdownMenuSubTrigger>
         <AlarmClock className="h-4 w-4" />
-        Snooze
+        {t("components.attentionQueueRow.snooze.trigger", { defaultValue: "Snooze" })}
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent>
         {SNOOZE_PRESETS.map((preset) => (
@@ -545,7 +556,7 @@ function SnoozeSubmenu({ onSnooze }: { onSnooze: (snoozedUntil: string) => void 
           onClick={(e) => e.stopPropagation()}
         >
           <span className="text-(length:--text-nano) font-medium uppercase tracking-(--tracking-eyebrow) text-muted-foreground">
-            Custom
+            {t("components.attentionQueueRow.snooze.custom", { defaultValue: "Custom" })}
           </span>
           <input
             type="datetime-local"
@@ -554,7 +565,7 @@ function SnoozeSubmenu({ onSnooze }: { onSnooze: (snoozedUntil: string) => void 
             className="w-full rounded-sm border border-border bg-background px-2 py-1 text-xs"
           />
           <Button type="button" size="xs" disabled={!customValue} onClick={applyCustom}>
-            Snooze until…
+            {t("components.attentionQueueRow.snooze.until", { defaultValue: "Snooze until…" })}
           </Button>
         </div>
       </DropdownMenuSubContent>
@@ -565,13 +576,13 @@ function SnoozeSubmenu({ onSnooze }: { onSnooze: (snoozedUntil: string) => void 
 /** Compact "when does this snooze end" label, e.g. `in 2h`, `in 3d`. */
 function reappearLabel(snoozedUntil: string): string {
   const diffMs = new Date(snoozedUntil).getTime() - Date.now();
-  if (!Number.isFinite(diffMs) || diffMs <= 0) return "soon";
+  if (!Number.isFinite(diffMs) || diffMs <= 0) return t("components.attentionQueueRow.reappear.soon", { defaultValue: "soon" });
   const diffMin = Math.round(diffMs / 60000);
-  if (diffMin < 60) return `in ${diffMin}m`;
+  if (diffMin < 60) return t("components.attentionQueueRow.reappear.minutes", { defaultValue: "in {{value}}m", value: diffMin });
   const diffHr = Math.round(diffMin / 60);
-  if (diffHr < 24) return `in ${diffHr}h`;
+  if (diffHr < 24) return t("components.attentionQueueRow.reappear.hours", { defaultValue: "in {{value}}h", value: diffHr });
   const diffDay = Math.round(diffHr / 24);
-  return `in ${diffDay}d`;
+  return t("components.attentionQueueRow.reappear.days", { defaultValue: "in {{value}}d", value: diffDay });
 }
 
 function InlineResolver({
@@ -587,10 +598,11 @@ function InlineResolver({
   currentUserId?: string | null;
   userLabelMap?: ReadonlyMap<string, string> | null;
 }) {
+  const { t } = useTranslation();
   if (item.sourceKind === "issue_thread_interaction") {
     const issueId = (item.subject.metadata?.issueId as string | undefined) ?? item.relatedIssue?.id;
     if (!issueId) {
-      return <p className="text-xs text-muted-foreground">Missing issue reference for this decision.</p>;
+      return <p className="text-xs text-muted-foreground">{t("components.attentionQueueRow.missingIssueReference", { defaultValue: "Missing issue reference for this decision." })}</p>;
     }
     return (
       <AttentionInteractionResolver
@@ -616,6 +628,7 @@ function InlineResolver({
 }
 
 function ApprovalResolver({ item, companyId }: { item: AttentionItem; companyId: string }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [note, setNote] = useState("");
   const invalidate = () => {
@@ -641,21 +654,21 @@ function ApprovalResolver({ item, companyId }: { item: AttentionItem; companyId:
       <Textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
-        placeholder="Optional decision note…"
+        placeholder={t("components.attentionQueueRow.decisionNotePlaceholder", { defaultValue: "Optional decision note…" })}
         className="min-h-16 text-sm"
       />
       <div className="flex flex-wrap gap-2">
         <Button size="sm" onClick={() => approve.mutate()} disabled={pending}>
           {approve.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-          Approve
+          {t("components.attentionQueueRow.approve", { defaultValue: "Approve" })}
         </Button>
         <Button size="sm" variant="outline" onClick={() => revise.mutate()} disabled={pending}>
           {revise.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-          Request revision
+          {t("components.attentionQueueRow.requestRevision", { defaultValue: "Request revision" })}
         </Button>
         <Button size="sm" variant="destructive" onClick={() => reject.mutate()} disabled={pending}>
           {reject.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-          Reject
+          {t("components.attentionQueueRow.reject", { defaultValue: "Reject" })}
         </Button>
       </div>
     </div>
@@ -663,6 +676,7 @@ function ApprovalResolver({ item, companyId }: { item: AttentionItem; companyId:
 }
 
 function JoinRequestResolver({ item, companyId }: { item: AttentionItem; companyId: string }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.attention(companyId) });
@@ -682,11 +696,11 @@ function JoinRequestResolver({ item, companyId }: { item: AttentionItem; company
     <div className="flex flex-wrap gap-2">
       <Button size="sm" onClick={() => approve.mutate()} disabled={pending}>
         {approve.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-        Approve
+        {t("components.attentionQueueRow.approve", { defaultValue: "Approve" })}
       </Button>
       <Button size="sm" variant="destructive" onClick={() => reject.mutate()} disabled={pending}>
         {reject.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-        Reject
+        {t("components.attentionQueueRow.reject", { defaultValue: "Reject" })}
       </Button>
     </div>
   );

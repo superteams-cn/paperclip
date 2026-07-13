@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn, relativeTime } from "../lib/utils";
 import { Button } from "@/components/ui/button";
@@ -86,6 +87,7 @@ export function DocumentFrameHeader({
   titleSlot,
   actionsSlot,
 }: DocumentFrameHeaderProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
@@ -94,7 +96,17 @@ export function DocumentFrameHeader({
             type="button"
             className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
             onClick={onToggleFolded}
-            aria-label={folded ? `Expand ${documentKey} document` : `Collapse ${documentKey} document`}
+            aria-label={
+              folded
+                ? t("components.documentFrameHeader.expandDocument", {
+                    defaultValue: "Expand {{documentKey}} document",
+                    documentKey,
+                  })
+                : t("components.documentFrameHeader.collapseDocument", {
+                    defaultValue: "Collapse {{documentKey}} document",
+                    documentKey,
+                  })
+            }
             aria-expanded={!folded}
           >
             {folded ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -123,14 +135,25 @@ export function DocumentFrameHeader({
                     revisionMenu.historicalPreview && "text-amber-700 hover:text-amber-800 dark:text-amber-300 dark:hover:text-amber-200",
                   )}
                 >
-                  rev {revisionMenu.displayedRevisionNumber}
+                  {t("components.documentFrameHeader.revisionLabel", {
+                    defaultValue: "rev {{number}}",
+                    number: revisionMenu.displayedRevisionNumber,
+                  })}
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-72">
-                <DropdownMenuLabel>Revision history</DropdownMenuLabel>
+                <DropdownMenuLabel>
+                  {t("components.documentFrameHeader.revisionHistory", {
+                    defaultValue: "Revision history",
+                  })}
+                </DropdownMenuLabel>
                 {revisionMenu.loading && revisionMenu.revisions.length === 0 ? (
-                  <DropdownMenuItem disabled>Loading revisions...</DropdownMenuItem>
+                  <DropdownMenuItem disabled>
+                    {t("components.documentFrameHeader.loadingRevisions", {
+                      defaultValue: "Loading revisions...",
+                    })}
+                  </DropdownMenuItem>
                 ) : revisionMenu.revisions.length > 0 ? (
                   <DropdownMenuRadioGroup value={revisionMenu.selectedRevisionId ?? revisionMenu.currentRevisionId ?? ""}>
                     {revisionMenu.revisions.map((revision) => {
@@ -144,10 +167,17 @@ export function DocumentFrameHeader({
                         >
                           <div className="flex min-w-0 flex-col">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium">rev {revision.revisionNumber}</span>
+                              <span className="font-medium">
+                                {t("components.documentFrameHeader.revisionLabel", {
+                                  defaultValue: "rev {{number}}",
+                                  number: revision.revisionNumber,
+                                })}
+                              </span>
                               {isCurrentRevision ? (
                                 <Badge variant="outline" className="border-border px-1.5 text-(length:--text-nano) uppercase tracking-(--tracking-eyebrow) text-muted-foreground">
-                                  Current
+                                  {t("components.documentFrameHeader.currentBadge", {
+                                    defaultValue: "Current",
+                                  })}
                                 </Badge>
                               ) : null}
                             </div>
@@ -163,7 +193,11 @@ export function DocumentFrameHeader({
                     })}
                   </DropdownMenuRadioGroup>
                 ) : (
-                  <DropdownMenuItem disabled>No revisions yet</DropdownMenuItem>
+                  <DropdownMenuItem disabled>
+                    {t("components.documentFrameHeader.noRevisions", {
+                      defaultValue: "No revisions yet",
+                    })}
+                  </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
@@ -173,7 +207,10 @@ export function DocumentFrameHeader({
               href={updatedHref ?? `#document-${encodeURIComponent(documentKey)}`}
               className="truncate text-(length:--text-micro) text-muted-foreground transition-colors hover:text-foreground hover:underline"
             >
-              updated {relativeTime(updatedAt)}
+              {t("components.documentFrameHeader.updatedAt", {
+                defaultValue: "updated {{time}}",
+                time: relativeTime(updatedAt),
+              })}
             </a>
           ) : null}
           {annotationSlot}

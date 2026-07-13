@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { User, UserX } from "lucide-react";
 import {
   COMPANY_SEARCH_UPDATED_WITHIN_OPTIONS,
@@ -18,6 +19,7 @@ import {
   updatedWithinLabel,
   type SearchFilters,
 } from "@/lib/search-filters";
+import { t } from "@/i18n";
 
 export interface SearchFilterAgent {
   id: string;
@@ -89,7 +91,7 @@ export function buildSearchFilterOptions({
   if (currentUserId) {
     assignee.push({
       value: "me",
-      label: "Me",
+      label: t("components.search.searchFilterBar.assigneeMe", { defaultValue: "Me" }),
       icon: <User className="h-3.5 w-3.5 text-muted-foreground" />,
       count: count(counts?.assigneeUserId, currentUserId),
       searchText: "me mine",
@@ -97,7 +99,7 @@ export function buildSearchFilterOptions({
   }
   assignee.push({
     value: "none",
-    label: "Unassigned",
+    label: t("components.search.searchFilterBar.assigneeUnassigned", { defaultValue: "Unassigned" }),
     icon: <UserX className="h-3.5 w-3.5 text-muted-foreground" />,
     searchText: "unassigned none nobody",
   });
@@ -147,6 +149,7 @@ export function SearchFilterBar({
   onSortChange: (next: CompanySearchSort) => void;
   data: SearchFilterDataProps;
 }) {
+  const { t } = useTranslation();
   const options = useMemo(() => buildSearchFilterOptions(data), [data]);
 
   function toggleMulti(dimension: "status" | "priority", value: string) {
@@ -162,43 +165,62 @@ export function SearchFilterBar({
   return (
     <div className="flex flex-wrap items-center gap-1.5" data-testid="search-filter-bar">
       <SearchFilterMenu
-        label="Status"
+        label={t("components.search.searchFilterBar.statusLabel", { defaultValue: "Status" })}
         multi
         options={options.status}
         selected={filters.status ?? []}
         onToggle={(value) => toggleMulti("status", value)}
         onClear={() => onChange({ ...filters, status: [] })}
-        presets={[{ label: "Open items", values: OPEN_STATUS_PRESET }]}
+        presets={[
+          {
+            label: t("components.search.searchFilterBar.openItemsPreset", {
+              defaultValue: "Open items",
+            }),
+            values: OPEN_STATUS_PRESET,
+          },
+        ]}
       />
       <SearchFilterMenu
-        label="Assignee"
+        label={t("components.search.searchFilterBar.assigneeLabel", { defaultValue: "Assignee" })}
         options={options.assignee}
         selected={selectedAssignee ? [selectedAssignee] : []}
         onSelect={(value) => onChange(applyAssigneeToken(filters, value, data.currentUserId))}
         searchable
-        searchPlaceholder="Search assignees…"
-        emptyMessage="No assignees"
+        searchPlaceholder={t("components.search.searchFilterBar.searchAssigneesPlaceholder", {
+          defaultValue: "Search assignees…",
+        })}
+        emptyMessage={t("components.search.searchFilterBar.noAssignees", {
+          defaultValue: "No assignees",
+        })}
       />
       <SearchFilterMenu
-        label="Project"
+        label={t("components.search.searchFilterBar.projectLabel", { defaultValue: "Project" })}
         options={options.project}
         selected={filters.projectId ? [filters.projectId] : []}
         onSelect={(value) => onChange({ ...filters, projectId: value })}
         searchable
-        searchPlaceholder="Search projects…"
-        emptyMessage="No projects"
+        searchPlaceholder={t("components.search.searchFilterBar.searchProjectsPlaceholder", {
+          defaultValue: "Search projects…",
+        })}
+        emptyMessage={t("components.search.searchFilterBar.noProjects", {
+          defaultValue: "No projects",
+        })}
       />
       <SearchFilterMenu
-        label="Label"
+        label={t("components.search.searchFilterBar.labelLabel", { defaultValue: "Label" })}
         options={options.label}
         selected={filters.labelId ? [filters.labelId] : []}
         onSelect={(value) => onChange({ ...filters, labelId: value })}
         searchable
-        searchPlaceholder="Search labels…"
-        emptyMessage="No labels"
+        searchPlaceholder={t("components.search.searchFilterBar.searchLabelsPlaceholder", {
+          defaultValue: "Search labels…",
+        })}
+        emptyMessage={t("components.search.searchFilterBar.noLabels", {
+          defaultValue: "No labels",
+        })}
       />
       <SearchFilterMenu
-        label="Priority"
+        label={t("components.search.searchFilterBar.priorityLabel", { defaultValue: "Priority" })}
         multi
         options={options.priority}
         selected={filters.priority ?? []}
@@ -206,7 +228,7 @@ export function SearchFilterBar({
         onClear={() => onChange({ ...filters, priority: [] })}
       />
       <SearchFilterMenu
-        label="Updated"
+        label={t("components.search.searchFilterBar.updatedLabel", { defaultValue: "Updated" })}
         options={options.updated}
         selected={filters.updatedWithin ? [filters.updatedWithin] : []}
         onSelect={(value) => onChange({ ...filters, updatedWithin: value })}

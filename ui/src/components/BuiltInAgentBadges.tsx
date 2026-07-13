@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { brandChipBadge } from "@/lib/status-colors";
@@ -15,6 +16,7 @@ export function BuiltInAgentBadge({
   className?: string;
   compact?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <Badge
       variant="outline"
@@ -23,9 +25,11 @@ export function BuiltInAgentBadge({
         compact && "px-1.5 py-0 text-(length:--text-nano)",
         className,
       )}
-      title="Ships with Paperclip"
+      title={t("components.builtInAgentBadges.builtInTooltip", {
+        defaultValue: "Ships with Paperclip",
+      })}
     >
-      Built-in
+      {t("components.builtInAgentBadges.builtInLabel", { defaultValue: "Built-in" })}
     </Badge>
   );
 }
@@ -44,6 +48,7 @@ export function BuiltInLifecycleChip({
   compact?: boolean;
   className?: string;
 }) {
+  const { t } = useTranslation();
   if (status !== "needs_setup" && status !== "pending_approval") return null;
   const isPendingApproval = status === "pending_approval";
   return (
@@ -56,11 +61,21 @@ export function BuiltInLifecycleChip({
       )}
       title={
         isPendingApproval
-          ? "Waiting on board hire approval before the feature can run"
-          : "Needs adapter/model setup before the feature can run"
+          ? t("components.builtInAgentBadges.pendingApprovalTooltip", {
+              defaultValue: "Waiting on board hire approval before the feature can run",
+            })
+          : t("components.builtInAgentBadges.needsSetupTooltip", {
+              defaultValue: "Needs adapter/model setup before the feature can run",
+            })
       }
     >
-      {isPendingApproval ? (compact ? "Approval" : "Pending approval") : compact ? "Setup" : "Needs setup"}
+      {isPendingApproval
+        ? compact
+          ? t("components.builtInAgentBadges.approvalCompact", { defaultValue: "Approval" })
+          : t("components.builtInAgentBadges.pendingApproval", { defaultValue: "Pending approval" })
+        : compact
+          ? t("components.builtInAgentBadges.setupCompact", { defaultValue: "Setup" })
+          : t("components.builtInAgentBadges.needsSetup", { defaultValue: "Needs setup" })}
     </Badge>
   );
 }
