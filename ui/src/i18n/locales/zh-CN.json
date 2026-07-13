@@ -6585,7 +6585,8 @@
         "searchGithub": "搜索 GitHub",
         "searchGithubDesc": "查找包含 `SKILL.md` 的仓库，然后粘贴该仓库的 URL。"
       },
-      "backToStore": "返回商店"
+      "backToStore": "返回商店",
+      "import": "导入"
     },
     "search": {
       "title": "搜索",
@@ -7541,7 +7542,8 @@
       "selectCompany": "请选择一家公司来管理密钥。",
       "tabs": {
         "secrets": "密钥",
-        "providerVaults": "提供商 Vault"
+        "providerVaults": "提供商 Vault",
+        "mySecrets": "我的密钥"
       },
       "searchPlaceholder": "按名称、键或引用搜索",
       "searchAria": "搜索密钥",
