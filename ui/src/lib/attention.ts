@@ -21,6 +21,7 @@ import type {
   AttentionSourceKind,
   AttentionWorkspaceRef,
 } from "@paperclipai/shared";
+import type { TFunction } from "i18next";
 
 /**
  * Source kinds the queue can fully resolve in-row. Everything else deep-links
@@ -187,8 +188,9 @@ function quote(text: string | null | undefined): string | null {
   return `“${trimmed}”`;
 }
 
-function countNoun(count: number, singular: string): string {
-  return `${count} ${count === 1 ? singular : `${singular}s`}`;
+function countNoun(count: number, singular: string, key: string, t?: TFunction): string {
+  const fallback = `${count} ${count === 1 ? singular : `${singular}s`}`;
+  return t?.(`pages.whatNeedsMe.detail.${key}`, { count, defaultValue: fallback }) ?? fallback;
 }
 
 /**
@@ -198,7 +200,7 @@ function countNoun(count: number, singular: string): string {
  * Returns `null` when the detail carries nothing beyond the title, so the row
  * can fall back to `whyNow`.
  */
-export function attentionDetailLine(item: AttentionItem): string | null {
+export function attentionDetailLine(item: AttentionItem, t?: TFunction): string | null {
   const detail = item.detail;
   if (!detail) return null;
   switch (detail.kind) {
@@ -210,21 +212,25 @@ export function attentionDetailLine(item: AttentionItem): string | null {
       return quote(detail.promptExcerpt);
     case "checkbox_confirmation": {
       const q = quote(detail.promptExcerpt);
-      return q ? `${countNoun(detail.optionCount, "option")} — ${q}` : countNoun(detail.optionCount, "option");
+      const label = countNoun(detail.optionCount, "option", "options", t);
+      return q ? `${label} — ${q}` : label;
     }
     case "questions": {
       const q = quote(detail.firstQuestionText);
-      const label = countNoun(detail.questionCount, "question");
+      const label = countNoun(detail.questionCount, "question", "questions", t);
       return q ? `${label} — ${q}` : label;
     }
     case "suggested_tasks": {
       const q = quote(detail.firstTaskTitle);
-      const label = countNoun(detail.taskCount, "suggested task");
+      const label = countNoun(detail.taskCount, "suggested task", "suggestedTasks", t);
       return q ? `${label} — ${q}` : label;
     }
     case "item_verdicts": {
       const q = quote(detail.promptExcerpt);
-      const label = `${countNoun(detail.itemCount, "item")} to verdict`;
+      const label = t?.("pages.whatNeedsMe.detail.itemsToVerdict", {
+        count: detail.itemCount,
+        defaultValue: `${countNoun(detail.itemCount, "item", "items", t)} to verdict`,
+      }) ?? `${countNoun(detail.itemCount, "item", "items")} to verdict`;
       return q ? `${label} — ${q}` : label;
     }
     case "failed_run":
@@ -237,10 +243,18 @@ export function attentionDetailLine(item: AttentionItem): string | null {
       const b = detail.blockingIssue;
       if (!b) return null;
       const id = b.identifier ? `${b.identifier} ` : "";
-      return b.title ? `Blocked by ${id}${b.title}` : b.identifier ? `Blocked by ${b.identifier}` : null;
+      const blocker = b.title ? `${id}${b.title}` : b.identifier;
+      return blocker
+        ? t?.("pages.whatNeedsMe.detail.blockedBy", { defaultValue: "Blocked by {{blocker}}", blocker }) ?? `Blocked by ${blocker}`
+        : null;
     }
     case "budget":
-      return `${Math.round(detail.observedPercent)}% of budget used ($${detail.amountObserved} / $${detail.amountLimit})`;
+      return t?.("pages.whatNeedsMe.detail.budgetUsed", {
+        defaultValue: "{{percent}}% of budget used (${{observed}} / ${{limit}})",
+        percent: Math.round(detail.observedPercent),
+        observed: detail.amountObserved,
+        limit: detail.amountLimit,
+      }) ?? `${Math.round(detail.observedPercent)}% of budget used ($${detail.amountObserved} / $${detail.amountLimit})`;
     case "generic":
       return quote(detail.summaryExcerpt);
     default:

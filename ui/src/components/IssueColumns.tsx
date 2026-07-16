@@ -160,6 +160,7 @@ export function InboxIssueMetaLeading({
   statusSlot?: ReactNode;
   checklistStepNumber?: number | string | null;
 }) {
+  const { t } = useTranslation();
   return (
     <>
       {showStatus ? (
@@ -199,7 +200,7 @@ export function InboxIssueMetaLeading({
               "text-blue-600 dark:text-blue-400",
             )}
           >
-            Live
+            {t("components.issueColumns.live", { defaultValue: "Live" })}
           </span>
         </Badge>
       )}
@@ -209,7 +210,10 @@ export function InboxIssueMetaLeading({
             "px-1.5 sm:gap-1.5 sm:px-2",
             "border-border bg-transparent",
           )}
-          title={`${subtreeLiveCount} sub-task${subtreeLiveCount === 1 ? "" : "s"} running below`}
+          title={t("components.issueColumns.subtasksRunningBelow", {
+            count: subtreeLiveCount,
+            defaultValue: `${subtreeLiveCount} sub-task${subtreeLiveCount === 1 ? "" : "s"} running below`,
+          })}
         >
           <span
             className={cn(
@@ -219,7 +223,10 @@ export function InboxIssueMetaLeading({
             aria-hidden="true"
           />
           <span className="hidden text-(length:--text-micro) font-medium text-muted-foreground sm:inline">
-            {subtreeLiveCount} live below
+            {t("components.issueColumns.liveBelow", {
+              count: subtreeLiveCount,
+              defaultValue: `${subtreeLiveCount} live below`,
+            })}
           </span>
         </Badge>
       )}
@@ -340,7 +347,13 @@ export function InboxIssueTrailingColumns({
           }
 
           if (originatingActor?.kind === "user") {
-            const tooltipText = viaAgentName ? `${creatorUserLabel} · via ${viaAgentName}` : creatorUserLabel;
+            const tooltipText = viaAgentName
+              ? t("components.issueColumns.viaAgent", {
+                  user: creatorUserLabel,
+                  agent: viaAgentName,
+                  defaultValue: `${creatorUserLabel} · via ${viaAgentName}`,
+                })
+              : creatorUserLabel;
             return (
               <Tooltip key={column}>
                 <TooltipTrigger asChild>
@@ -360,7 +373,7 @@ export function InboxIssueTrailingColumns({
 
           return (
             <span key={column} className="min-w-0 truncate text-xs text-muted-foreground">
-              Unknown
+              {t("common.unknown", { defaultValue: "Unknown" })}
             </span>
           );
         }

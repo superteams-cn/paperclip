@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { MoreHorizontal, Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { t as translate } from "@/i18n";
 import { Link } from "@/lib/router";
 import { AgentIcon } from "@/components/AgentIconPicker";
 import { Button } from "@/components/ui/button";
@@ -36,13 +37,14 @@ export type RoutineListRowItem = {
 };
 
 export function formatLastRunTimestamp(value: Date | string | null | undefined) {
-  if (!value) return "Never";
+  if (!value) return translate("common.never", { defaultValue: "Never" });
   return new Date(value).toLocaleString();
 }
 
 export function formatRoutineRunStatus(value: string | null | undefined) {
   if (!value) return null;
-  return value.replaceAll("_", " ");
+  const fallback = value.replaceAll("_", " ");
+  return translate(`labels.status.${value}`, { defaultValue: fallback });
 }
 
 export function nextRoutineStatus(currentStatus: string, enabled: boolean) {

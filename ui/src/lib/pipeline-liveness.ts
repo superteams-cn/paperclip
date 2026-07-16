@@ -1,4 +1,6 @@
 import type { PipelineCaseLiveness } from "@paperclipai/shared";
+import type { TFunction } from "i18next";
+import { t as translate } from "@/i18n";
 
 /**
  * Visual tone for a pipeline item liveness banner. Each tone maps to a palette
@@ -39,19 +41,6 @@ export interface LivenessBannerView {
   helperNote: string | null;
 }
 
-const AUTO_RETRY_NOTE =
-  "Paperclip retries automatically once the blocker clears — you don't need to move the item by hand.";
-
-/**
- * Prosumer-voice body for the `no_action_path` "stuck" banner. The server's
- * raw `liveness.message` ("No lease, linked work, blocker, automation retry,
- * review, or breakdown action path is visible.") leaks implementation vocabulary
- * the PAP-11245 voice rule forbids, so we translate it here. See PAP-11259.
- */
-const NO_ACTION_PATH_BODY =
-  "Paperclip can't see anything to work on next here — no automation, retry, blocker, or review. " +
-  "Re-run the stage to nudge it, or use the ⋯ menu to move it by hand.";
-
 /**
  * The `pipelines:write` permission key is the only permission the Phase 2
  * preflight blocks on today. The fingerprint encodes it as the final two
@@ -89,8 +78,13 @@ function automationLinkFromLiveness(liveness: PipelineCaseLiveness): LivenessBan
  */
 export function derivePipelineLivenessBanner(
   liveness: PipelineCaseLiveness | null | undefined,
+  t?: TFunction,
 ): LivenessBannerView | null {
   if (!liveness) return null;
+  const tr = t ?? (translate as unknown as TFunction);
+  const autoRetryNote = tr("components.pipelineLivenessBanner.view.autoRetryNote", {
+    defaultValue: "Paperclip retries automatically once the blocker clears — you don't need to move the item by hand.",
+  });
 
   switch (liveness.reason) {
     // Handled elsewhere or not "stuck" — no banner.
@@ -106,46 +100,47 @@ export function derivePipelineLivenessBanner(
       return {
         reason: liveness.reason,
         tone: "blocked",
-        title: "Automation paused — waiting on a blocker",
-        body: liveness.message,
+        title: tr("components.pipelineLivenessBanner.view.blockedTitle", { defaultValue: "Automation paused — waiting on a blocker" }),
+        body: tr("components.pipelineLivenessBanner.view.blockedBody", { defaultValue: "This item is waiting for its blocker to clear." }),
         blockerLink: blockerLinkFromLiveness(liveness),
         automationLink: automationLinkFromLiveness(liveness),
         permissionKey: null,
         showRetry: false,
         retryKind: null,
         retryLabel: "",
-        helperNote: AUTO_RETRY_NOTE,
+        helperNote: autoRetryNote,
       };
 
     case "linked_issue_blocked":
       return {
         reason: liveness.reason,
         tone: "blocked",
-        title: "Automation paused — waiting on a blocker",
-        body: liveness.message,
+        title: tr("components.pipelineLivenessBanner.view.blockedTitle", { defaultValue: "Automation paused — waiting on a blocker" }),
+        body: tr("components.pipelineLivenessBanner.view.linkedBlockedBody", { defaultValue: "Linked work is blocked and must be resolved before automation can continue." }),
         blockerLink: blockerLinkFromLiveness(liveness),
         automationLink: automationLinkFromLiveness(liveness),
         permissionKey: null,
         showRetry: false,
         retryKind: null,
         retryLabel: "",
-        helperNote: AUTO_RETRY_NOTE,
+        helperNote: autoRetryNote,
       };
 
     case "permission_preflight_failed":
       return {
         reason: liveness.reason,
         tone: "permission",
-        title: "Permission needed before this can run",
-        body: liveness.message,
+        title: tr("components.pipelineLivenessBanner.view.permissionTitle", { defaultValue: "Permission needed before this can run" }),
+        body: tr("components.pipelineLivenessBanner.view.permissionBody", { defaultValue: "The configured responsible does not have the permission required to run this automation." }),
         blockerLink: null,
         automationLink: automationLinkFromLiveness(liveness),
         permissionKey: permissionKeyFromFingerprint(liveness.automation?.fingerprint) ?? "pipelines:write",
         showRetry: false,
         retryKind: null,
         retryLabel: "",
-        helperNote:
-          "Grant the access above to the configured responsible, then Paperclip retries automatically.",
+        helperNote: tr("components.pipelineLivenessBanner.view.permissionHelper", {
+          defaultValue: "Grant the access above to the configured responsible, then Paperclip retries automatically.",
+        }),
       };
 
     case "automation_failed": {
@@ -157,15 +152,19 @@ export function derivePipelineLivenessBanner(
       return {
         reason: liveness.reason,
         tone: recovered ? "retry" : "attention",
-        title: recovered ? "Blocker resolved — ready to retry" : "Automation failed",
-        body: liveness.message,
+        title: recovered
+          ? tr("components.pipelineLivenessBanner.view.recoveredTitle", { defaultValue: "Blocker resolved — ready to retry" })
+          : tr("components.pipelineLivenessBanner.view.failedTitle", { defaultValue: "Automation failed" }),
+        body: recovered
+          ? tr("components.pipelineLivenessBanner.view.recoveredBody", { defaultValue: "The permission blocker has cleared. You can retry now." })
+          : tr("components.pipelineLivenessBanner.view.failedBody", { defaultValue: "The last automation attempt failed. Retry it to continue." }),
         blockerLink: null,
         automationLink: automationLinkFromLiveness(liveness),
         permissionKey: null,
         showRetry: true,
         retryKind: automationId ? "automation" : "stage",
-        retryLabel: "Retry now",
-        helperNote: recovered ? AUTO_RETRY_NOTE : null,
+        retryLabel: tr("components.pipelineLivenessBanner.view.retryNow", { defaultValue: "Retry now" }),
+        helperNote: recovered ? autoRetryNote : null,
       };
     }
 
@@ -173,14 +172,14 @@ export function derivePipelineLivenessBanner(
       return {
         reason: liveness.reason,
         tone: "attention",
-        title: "Waiting on breakdown evidence",
-        body: liveness.message,
+        title: tr("components.pipelineLivenessBanner.view.breakdownPendingTitle", { defaultValue: "Waiting on breakdown evidence" }),
+        body: tr("components.pipelineLivenessBanner.view.breakdownPendingBody", { defaultValue: "The stage has not produced enough breakdown evidence yet." }),
         blockerLink: null,
         automationLink: null,
         permissionKey: null,
         showRetry: true,
         retryKind: "stage",
-        retryLabel: "Re-run stage automation",
+        retryLabel: tr("components.pipelineLivenessBanner.view.rerunStage", { defaultValue: "Re-run stage automation" }),
         helperNote: null,
       };
 
@@ -188,14 +187,14 @@ export function derivePipelineLivenessBanner(
       return {
         reason: liveness.reason,
         tone: "blocked",
-        title: "Breakdown is incomplete",
-        body: missingPiecesBody(liveness),
+        title: tr("components.pipelineLivenessBanner.view.breakdownIncompleteTitle", { defaultValue: "Breakdown is incomplete" }),
+        body: missingPiecesBody(liveness, tr),
         blockerLink: null,
         automationLink: null,
         permissionKey: null,
         showRetry: true,
         retryKind: "stage",
-        retryLabel: "Re-run stage automation",
+        retryLabel: tr("components.pipelineLivenessBanner.view.rerunStage", { defaultValue: "Re-run stage automation" }),
         helperNote: null,
       };
 
@@ -203,14 +202,16 @@ export function derivePipelineLivenessBanner(
       return {
         reason: liveness.reason,
         tone: "attention",
-        title: "This item is stuck",
-        body: NO_ACTION_PATH_BODY,
+        title: tr("components.pipelineLivenessBanner.view.stuckTitle", { defaultValue: "This item is stuck" }),
+        body: tr("components.pipelineLivenessBanner.view.stuckBody", {
+          defaultValue: "Paperclip can't see anything to work on next here — no automation, retry, blocker, or review. Re-run the stage to nudge it, or use the ⋯ menu to move it by hand.",
+        }),
         blockerLink: null,
         automationLink: null,
         permissionKey: null,
         showRetry: true,
         retryKind: "stage",
-        retryLabel: "Re-run stage automation",
+        retryLabel: tr("components.pipelineLivenessBanner.view.rerunStage", { defaultValue: "Re-run stage automation" }),
         helperNote: null,
       };
 
@@ -219,12 +220,17 @@ export function derivePipelineLivenessBanner(
   }
 }
 
-function missingPiecesBody(liveness: PipelineCaseLiveness): string {
+function missingPiecesBody(liveness: PipelineCaseLiveness, t: TFunction): string {
   const missing = liveness.breakdown?.missingRequestKeys?.length ?? 0;
   if (missing > 0) {
-    return `${liveness.message} ${missing} expected ${missing === 1 ? "piece is" : "pieces are"} still missing.`;
+    return t("components.pipelineLivenessBanner.view.breakdownMissingPieces", {
+      count: missing,
+      defaultValue: "{{count}} expected pieces are still missing.",
+    });
   }
-  return liveness.message;
+  return t("components.pipelineLivenessBanner.view.breakdownIncompleteBody", {
+    defaultValue: "The breakdown is missing required evidence.",
+  });
 }
 
 /** True when the PAP-11238 "Re-run stage automation" menu item must be disabled. */

@@ -419,7 +419,7 @@ export function NewIssueDialog() {
   const { t } = useTranslation();
   const { newIssueOpen, newIssueDefaults, closeNewIssue } = useDialog();
   const { companies, selectedCompanyId, selectedCompany } = useCompany();
-  const workModeOptions = useMemo(() => workModeMetaList(), []);
+  const workModeOptions = useMemo(() => workModeMetaList(), [t]);
   const statuses = useMemo(() => buildStatusOptions(), []);
   const queryClient = useQueryClient();
   const { pushToast } = useToastActions();
@@ -1660,7 +1660,7 @@ export function NewIssueDialog() {
                       }}
                     >
                       <ScanEye className="h-3 w-3" />
-                      Watchdog
+                      {t("pages.issues.newDialog.watchdog.label", { defaultValue: "Watchdog" })}
                     </button>
                   )}
                 </PopoverContent>
@@ -1793,9 +1793,9 @@ export function NewIssueDialog() {
                         value={watchdogAgentId}
                         options={watchdogAgentOptions}
                         placeholder={t("pages.issues.newDialog.watchdog.selectAgent", { defaultValue: "Select agent" })}
-                        noneLabel="No watchdog agent"
-                        searchPlaceholder="Search agents..."
-                        emptyMessage="No agents found."
+                        noneLabel={t("pages.issues.newDialog.watchdog.noAgent", { defaultValue: "No watchdog agent" })}
+                        searchPlaceholder={t("pages.issues.newDialog.watchdog.searchAgents", { defaultValue: "Search agents..." })}
+                        emptyMessage={t("pages.issues.newDialog.watchdog.noAgentsFound", { defaultValue: "No agents found." })}
                         onChange={setWatchdogAgentId}
                         renderTriggerValue={(option) =>
                           option ? (
@@ -1821,7 +1821,12 @@ export function NewIssueDialog() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <div className="text-xs font-medium text-foreground">Instructions <span className="font-normal text-muted-foreground">(optional)</span></div>
+                      <div className="text-xs font-medium text-foreground">
+                        {t("pages.issues.newDialog.watchdog.instructions", { defaultValue: "Instructions" })}{" "}
+                        <span className="font-normal text-muted-foreground">
+                          {t("common.optional", { defaultValue: "(optional)" })}
+                        </span>
+                      </div>
                       <Textarea
                         value={watchdogInstructions}
                         onChange={(event) => setWatchdogInstructions(event.target.value)}
@@ -1841,10 +1846,10 @@ export function NewIssueDialog() {
                           setWatchdogEditorOpen(false);
                         }}
                       >
-                        Remove
+                        {t("common.remove", { defaultValue: "Remove" })}
                       </button>
                       <Button type="button" size="sm" className="h-7 text-xs" onClick={() => setWatchdogEditorOpen(false)}>
-                        Done
+                        {t("common.done", { defaultValue: "Done" })}
                       </Button>
                     </div>
                   </PopoverContent>

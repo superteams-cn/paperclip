@@ -75,14 +75,14 @@ export function buildSearchFilterOptions({
 }: SearchFilterDataProps): SearchFilterOptionGroups {
   const status: FilterMenuOption[] = ISSUE_STATUSES.map((value) => ({
     value,
-    label: humanize(value),
+    label: t(`labels.status.${value}`, { defaultValue: humanize(value) }),
     icon: <StatusIcon status={value} />,
     count: count(counts?.status as Record<string, number> | undefined, value),
   }));
 
   const priority: FilterMenuOption[] = ISSUE_PRIORITIES.map((value) => ({
     value,
-    label: humanize(value),
+    label: t(`labels.priority.${value}`, { defaultValue: humanize(value) }),
     icon: <PriorityIcon priority={value} />,
     count: count(counts?.priority as Record<string, number> | undefined, value),
   }));
@@ -150,7 +150,7 @@ export function SearchFilterBar({
   data: SearchFilterDataProps;
 }) {
   const { t } = useTranslation();
-  const options = useMemo(() => buildSearchFilterOptions(data), [data]);
+  const options = useMemo(() => buildSearchFilterOptions(data), [data, t]);
 
   function toggleMulti(dimension: "status" | "priority", value: string) {
     const current = (filters[dimension] ?? []) as string[];

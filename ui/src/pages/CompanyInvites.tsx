@@ -120,7 +120,11 @@ export function CompanyInvites() {
   }
 
   async function copyInviteUrl(url: string) {
-    return copyText(url, "The invite URL is selected. Copy it manually from the field.", selectLatestInviteUrl);
+    return copyText(
+      url,
+      t("pages.companyInvites.copyManually", { defaultValue: "Copy the invite URL manually from the field below." }),
+      selectLatestInviteUrl,
+    );
   }
 
   useEffect(() => {

@@ -2,6 +2,7 @@ import { Eye } from "lucide-react";
 import type { IssueProductivityReview } from "@paperclipai/shared";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
+import { t as translate } from "@/i18n";
 import { Link } from "../lib/router";
 import { cn } from "../lib/utils";
 import { createIssueDetailPath } from "../lib/issueDetailBreadcrumb";
@@ -24,8 +25,10 @@ const REVIEW_STATUS_LABELS: Record<string, string> = {
 export function productivityReviewTriggerLabel(
   trigger: IssueProductivityReview["trigger"],
 ): string {
-  if (!trigger) return "Productivity review";
-  return TRIGGER_LABELS[trigger] ?? "Productivity review";
+  if (!trigger) return translate("components.productivityReview.triggerFallback", { defaultValue: "Productivity review" });
+  return translate(`components.productivityReview.triggers.${trigger}`, {
+    defaultValue: TRIGGER_LABELS[trigger] ?? "Productivity review",
+  });
 }
 
 export function translatedProductivityReviewTriggerLabel(

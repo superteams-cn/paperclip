@@ -279,7 +279,7 @@ export function CommandPalette() {
 
         {showSearchAll ? <CommandSeparator /> : null}
 
-        <CommandGroup heading="Quick filters">
+        <CommandGroup heading={t("command.quickFilters", { defaultValue: "Quick filters" })}>
           {SEARCH_OPERATOR_QUICK_FILTERS.map((chip) => (
             <CommandItem
               key={chip}
@@ -297,7 +297,7 @@ export function CommandPalette() {
 
         {showPromotedProjects && (
           <>
-            <CommandGroup heading="Projects">
+            <CommandGroup heading={t("command.projects", { defaultValue: "Projects" })}>
               {matchedProjects.map((project) => (
                 <CommandItem
                   key={project.id}

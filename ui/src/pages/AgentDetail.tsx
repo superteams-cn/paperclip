@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link, Navigate, useBeforeUnload, type NavigateF
 import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
+import { i18n } from "@/i18n";
 import {
   agentsApi,
   type AgentKey,
@@ -608,7 +609,7 @@ function WorkspaceOperationLogViewer({
               {chunks.map((chunk, index) => (
                 <div key={`${chunk.ts}-${index}`} className="flex gap-2">
                   <span className="shrink-0 text-neutral-500">
-                    {new Date(chunk.ts).toLocaleTimeString("en-US", { hour12: false })}
+                    {new Date(chunk.ts).toLocaleTimeString(i18n.resolvedLanguage ?? i18n.language, { hour12: false })}
                   </span>
                   <span
                     className={cn(
@@ -835,7 +836,9 @@ export function AgentDetail() {
       builtInAgentsApi.reset(resolvedCompanyId!, builtInState!.definition.key, [kind]),
     onSuccess: invalidateBuiltIn,
     onError: (error) => {
-      setActionError(error instanceof Error ? error.message : "Failed to update bundle resource");
+      setActionError(error instanceof Error
+        ? error.message
+        : t("pages.agentDetail.builtIn.updateBundleFailed", { defaultValue: "Failed to update bundle resource" }));
     },
   });
   const runBuiltInRoutine = useMutation({
@@ -843,7 +846,9 @@ export function AgentDetail() {
       builtInAgentsApi.runRoutine(resolvedCompanyId!, builtInState!.definition.key, routineKey),
     onSuccess: invalidateBuiltIn,
     onError: (error) => {
-      setActionError(error instanceof Error ? error.message : "Failed to run built-in routine");
+      setActionError(error instanceof Error
+        ? error.message
+        : t("pages.agentDetail.builtIn.runRoutineFailed", { defaultValue: "Failed to run built-in routine" }));
     },
   });
   const enableBuiltInSchedule = useMutation({
@@ -851,7 +856,9 @@ export function AgentDetail() {
       builtInAgentsApi.enableRoutineSchedule(resolvedCompanyId!, builtInState!.definition.key, routineKey),
     onSuccess: invalidateBuiltIn,
     onError: (error) => {
-      setActionError(error instanceof Error ? error.message : "Failed to enable routine schedule");
+      setActionError(error instanceof Error
+        ? error.message
+        : t("pages.agentDetail.builtIn.enableScheduleFailed", { defaultValue: "Failed to enable routine schedule" }));
     },
   });
   const disableBuiltInSchedule = useMutation({
@@ -859,7 +866,9 @@ export function AgentDetail() {
       builtInAgentsApi.disableRoutineSchedule(resolvedCompanyId!, builtInState!.definition.key, routineKey),
     onSuccess: invalidateBuiltIn,
     onError: (error) => {
-      setActionError(error instanceof Error ? error.message : "Failed to disable routine schedule");
+      setActionError(error instanceof Error
+        ? error.message
+        : t("pages.agentDetail.builtIn.disableScheduleFailed", { defaultValue: "Failed to disable routine schedule" }));
     },
   });
   const builtInRoutineActionPending =
@@ -919,7 +928,7 @@ export function AgentDetail() {
       companyId: resolvedCompanyId ?? "",
       scopeType: "agent",
       scopeId: agent?.id ?? routeAgentRef,
-      scopeName: agent?.name ?? "Agent",
+      scopeName: agent?.name ?? t("pages.agentDetail.agent", { defaultValue: "Agent" }),
       metric: "billed_cents",
       windowKind: "calendar_month_utc",
       amount: budgetMonthlyCents,
@@ -937,7 +946,7 @@ export function AgentDetail() {
       windowStart: new Date(),
       windowEnd: new Date(),
     } satisfies BudgetPolicySummary;
-  }, [agent, budgetOverview?.policies, resolvedCompanyId, routeAgentRef]);
+  }, [agent, budgetOverview?.policies, resolvedCompanyId, routeAgentRef, t]);
   const mobileLiveRun = useMemo(
     () => (heartbeats ?? []).find((r) => r.status === "running" || r.status === "queued") ?? null,
     [heartbeats],
@@ -981,7 +990,11 @@ export function AgentDetail() {
   // which is surfaced via the pending-approval banner below.
   const agentAction = useMutation({
     mutationFn: async (action: "approve") => {
-      if (!agentLookupRef) return Promise.reject(new Error("No agent reference"));
+      if (!agentLookupRef) {
+        return Promise.reject(new Error(t("pages.agentDetail.noAgentReference", {
+          defaultValue: "No agent reference",
+        })));
+      }
       if (action === "approve") {
         return agentsApi.approve(agentLookupRef, resolvedCompanyId ?? undefined);
       }
@@ -1068,7 +1081,7 @@ export function AgentDetail() {
       // } else if (activeView === "skills") { // TODO: bring back later
       //   crumbs.push({ label: "Skills" });
       } else if (activeView === "tools") {
-        crumbs.push({ label: "Tools" });
+        crumbs.push({ label: t("pages.agentDetail.tabs.tools", { defaultValue: "Tools" }) });
       } else if (activeView === "runs") {
         crumbs.push({ label: t("pages.agentDetail.tabs.runs", { defaultValue: "Runs" }) });
       } else if (activeView === "budget") {
@@ -1163,7 +1176,10 @@ export function AgentDetail() {
           <div className="min-w-0 space-y-1">
             <p className="font-medium">{t("pages.agentDetail.invalidReportingChain", { defaultValue: "Invalid reporting chain" })}</p>
             <p className="text-amber-900/90 dark:text-amber-100/90">
-              {agent.name} cannot accept tasks or start runs until its reporting chain is repaired.
+              {t("pages.agentDetail.invalidChainBlocked", {
+                defaultValue: "{{name}} cannot accept tasks or start runs until its reporting chain is repaired.",
+                name: agent.name,
+              })}
             </p>
             <p className="break-words font-mono text-xs text-amber-900/80 dark:text-amber-100/80">
               {formatOrgChainHealthPath(agent)}
@@ -1195,7 +1211,7 @@ export function AgentDetail() {
               {builtInState && <BuiltInAgentBadge />}
             </div>
             <p className="text-sm text-muted-foreground truncate">
-              {roleLabels[agent.role] ?? agent.role}
+              {t(`labels.agentRole.${agent.role}`, { defaultValue: roleLabels[agent.role] ?? agent.role })}
               {agent.title ? ` - ${agent.title}` : ""}
             </p>
           </div>
@@ -1216,22 +1232,29 @@ export function AgentDetail() {
           <AgentActionButtons
             agent={agent}
             companyId={resolvedCompanyId}
-            assignLabel="Assign Task"
-            runLabel="Run Heartbeat"
+            assignLabel={t("pages.agentDetail.assignTask", { defaultValue: "Assign Task" })}
+            runLabel={t("pages.agentDetail.runHeartbeat", { defaultValue: "Run Heartbeat" })}
             actionsDisabled={agentAction.isPending}
             workActionsDisabled={hasInvalidOrgChain}
-            workActionsDisabledReason="Repair this agent's reporting chain before assigning tasks or starting runs"
+            workActionsDisabledReason={t("pages.agentDetail.invalidChainActionHint", {
+              defaultValue: "Repair this agent's reporting chain before assigning tasks or starting runs",
+            })}
             onActionError={setActionError}
             hideTerminate={Boolean(builtInState)}
             pauseConfirm={
               builtInState
                 ? {
-                    title: `Pause the ${builtInState.definition.displayName}?`,
+                    title: t("pages.agentDetail.builtIn.pauseTitle", {
+                      defaultValue: "Pause the {{name}}?",
+                      name: builtInState.definition.displayName,
+                    }),
                     description: (
                       <>
-                        {builtInFeatureLabel} depends on this agent. While paused,{" "}
-                        {builtInFeatureLabel.toLowerCase()} generation is skipped and the{" "}
-                        {builtInFeatureLabel} page shows a warning.
+                        {t("pages.agentDetail.builtIn.pauseDescription", {
+                          defaultValue: "{{feature}} depends on this agent. While paused, {{featureLower}} generation is skipped and the {{feature}} page shows a warning.",
+                          feature: builtInFeatureLabel,
+                          featureLower: builtInFeatureLabel.toLowerCase(),
+                        })}
                       </>
                     ),
                   }
@@ -1265,7 +1288,9 @@ export function AgentDetail() {
               onClick={() => resetBuiltIn.mutate()}
               disabled={resetBuiltIn.isPending}
             >
-              {resetBuiltIn.isPending ? "Resetting…" : "Reset to defaults"}
+              {resetBuiltIn.isPending
+                ? t("pages.agentDetail.builtIn.resetting", { defaultValue: "Resetting…" })
+                : t("pages.agentDetail.builtIn.resetDefaults", { defaultValue: "Reset to defaults" })}
             </Button>
           }
         >
@@ -1939,7 +1964,10 @@ function ConfigurationTab({
       if (!syncAgentRouteAfterRename(queryClient, navigate, agent, updated, urlTab ?? "configuration")) {
         queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agent.urlKey) });
       }
-      pushToast({ title: "Agent saved", tone: "success" });
+      pushToast({
+        title: t("pages.agentDetail.configuration.agentSaved", { defaultValue: "Agent saved" }),
+        tone: "success",
+      });
     },
     onError: (err) => {
       setAwaitingRefreshAfterSave(false);
@@ -2949,7 +2977,14 @@ function RunListItem({ run, isSelected, agentId }: { run: HeartbeatRun; isSelect
       )}
       {(metrics.totalTokens > 0 || metrics.cost > 0) && (
         <div className="flex items-center gap-2 pl-5.5 text-(length:--text-micro) text-muted-foreground tabular-nums">
-          {metrics.totalTokens > 0 && <span>{formatTokens(metrics.totalTokens)} tok</span>}
+          {metrics.totalTokens > 0 && (
+            <span>
+              {t("components.spendCards.tokensShort", {
+                count: formatTokens(metrics.totalTokens),
+                defaultValue: `${formatTokens(metrics.totalTokens)} tok`,
+              })}
+            </span>
+          )}
           {metrics.cost > 0 && <span>${metrics.cost.toFixed(3)}</span>}
         </div>
       )}
@@ -3194,8 +3229,9 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
   }, [isRunning, run.startedAt]);
 
   const timeFormat: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false };
-  const startTime = run.startedAt ? new Date(run.startedAt).toLocaleTimeString("en-US", timeFormat) : null;
-  const endTime = run.finishedAt ? new Date(run.finishedAt).toLocaleTimeString("en-US", timeFormat) : null;
+  const locale = i18n.resolvedLanguage ?? i18n.language;
+  const startTime = run.startedAt ? new Date(run.startedAt).toLocaleTimeString(locale, timeFormat) : null;
+  const endTime = run.finishedAt ? new Date(run.finishedAt).toLocaleTimeString(locale, timeFormat) : null;
   const durationSec = run.startedAt && run.finishedAt
     ? Math.round((new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime()) / 1000)
     : null;
@@ -3288,7 +3324,7 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
                 data-testid="run-detail-on-behalf-of"
                 className="text-xs text-muted-foreground"
               >
-                On behalf of{" "}
+                {t("pages.agentDetail.run.onBehalfOf", { defaultValue: "On behalf of" })}{" "}
                 <span className="text-foreground">
                   {responsibleUserName ?? responsibleUserLabel(null)}
                 </span>
@@ -3386,8 +3422,15 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
             )}
             {hasNonZeroExit && (
               <div className="text-xs text-red-600 dark:text-red-400">
-                Exit code {run.exitCode}
-                {run.signal && <span className="text-muted-foreground ml-1">(signal: {run.signal})</span>}
+                {t("pages.agentDetail.run.exitCode", {
+                  defaultValue: "Exit code {{code}}",
+                  code: run.exitCode,
+                })}
+                {run.signal && (
+                  <span className="text-muted-foreground ml-1">
+                    {t("pages.agentDetail.run.signal", { defaultValue: "(signal: {{signal}})", signal: run.signal })}
+                  </span>
+                )}
               </div>
             )}
             {retryState && (
@@ -3534,7 +3577,9 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
       {/* stderr excerpt for failed runs */}
       {run.stderrExcerpt && (
         <div className="space-y-1">
-          <span className="text-xs font-medium text-red-600 dark:text-red-400">stderr</span>
+          <span className="text-xs font-medium text-red-600 dark:text-red-400">
+            {t("pages.agentDetail.run.stderr", { defaultValue: "stderr" })}
+          </span>
           <pre className="bg-neutral-100 dark:bg-neutral-950 rounded-md p-3 text-xs font-mono text-red-700 dark:text-red-300 overflow-x-auto whitespace-pre-wrap">{run.stderrExcerpt}</pre>
         </div>
       )}
@@ -3542,7 +3587,9 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
       {/* stdout excerpt when no log is available */}
       {run.stdoutExcerpt && !run.logRef && (
         <div className="space-y-1">
-          <span className="text-xs font-medium text-muted-foreground">stdout</span>
+          <span className="text-xs font-medium text-muted-foreground">
+            {t("pages.agentDetail.run.stdout", { defaultValue: "stdout" })}
+          </span>
           <pre className="bg-neutral-100 dark:bg-neutral-950 rounded-md p-3 text-xs font-mono text-foreground overflow-x-auto whitespace-pre-wrap">{run.stdoutExcerpt}</pre>
         </div>
       )}
@@ -4096,12 +4143,12 @@ function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType: strin
             <span className="text-xs text-muted-foreground">
               {t("pages.agentDetail.run.showingFirstKb", {
                 defaultValue: "Showing the first {{shown}} KB",
-                shown: Math.round(logOffset / 1024).toLocaleString("en-US"),
+                shown: Math.round(logOffset / 1024).toLocaleString(i18n.resolvedLanguage ?? i18n.language),
               })}
               {typeof run.logBytes === "number" && run.logBytes > 0
                 ? t("pages.agentDetail.run.ofTotalKb", {
                     defaultValue: " of {{total}} KB",
-                    total: Math.round(run.logBytes / 1024).toLocaleString("en-US"),
+                    total: Math.round(run.logBytes / 1024).toLocaleString(i18n.resolvedLanguage ?? i18n.language),
                   })
                 : ""}
             </span>
@@ -4169,7 +4216,7 @@ function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType: strin
               return (
                 <div key={evt.id} className="flex gap-2">
                   <span className="text-neutral-400 dark:text-neutral-600 shrink-0 select-none w-16">
-                    {new Date(evt.createdAt).toLocaleTimeString("en-US", { hour12: false })}
+                    {new Date(evt.createdAt).toLocaleTimeString(i18n.resolvedLanguage ?? i18n.language, { hour12: false })}
                   </span>
                   <span className={cn("shrink-0 w-14", evt.stream ? (streamColors[evt.stream] ?? "text-neutral-500") : "text-neutral-500")}>
                     {evt.stream ? `[${evt.stream}]` : ""}

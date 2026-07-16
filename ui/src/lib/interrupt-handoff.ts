@@ -1,4 +1,5 @@
 import { parseAgentMentionHref } from "@paperclipai/shared";
+import type { TFunction } from "i18next";
 
 /**
  * Shared logic for the "interrupt handoff" UX clarity surfaces (PAP-10669).
@@ -68,16 +69,20 @@ export interface RunStatusPresentation {
 export function resolveRunStatusPresentation(
   status: string,
   opts: { operatorInterrupted?: boolean } = {},
+  t?: TFunction,
 ): RunStatusPresentation {
   if (status === "cancelled" && opts.operatorInterrupted) {
     return {
-      label: "interrupted",
+      label: t?.("components.interruptHandoff.interruptHandoffViews.runStatus.interrupted", { defaultValue: "interrupted" }) ?? "interrupted",
       className: "text-amber-700 dark:text-amber-300",
-      srHint: "interrupted by board comment",
+      srHint: t?.("components.interruptHandoff.interruptHandoffViews.runStatus.interruptedSr", { defaultValue: "interrupted by board comment" }) ?? "interrupted by board comment",
     };
   }
+  const normalizedStatus = status === "timed_out" ? "timedOut" : status;
   return {
-    label: status === "timed_out" ? "timed out" : status.replace(/_/g, " "),
+    label: t?.(`components.interruptHandoff.interruptHandoffViews.runStatus.${normalizedStatus}`, {
+      defaultValue: status === "timed_out" ? "timed out" : status.replace(/_/g, " "),
+    }) ?? (status === "timed_out" ? "timed out" : status.replace(/_/g, " ")),
     className: runStatusClassName(status),
     srHint: null,
   };
@@ -215,6 +220,7 @@ export interface ComposerHandoffPreviewInput {
  */
 export function computeComposerHandoffPreview(
   input: ComposerHandoffPreviewInput,
+  t?: TFunction,
 ): ComposerHandoffPreview {
   const hasReassignment = input.reassignTarget !== input.currentAssigneeValue;
 
@@ -225,13 +231,13 @@ export function computeComposerHandoffPreview(
         ? {
             kind: "interrupt_handoff_agent",
             tone: "neutral",
-            text: "Interrupt current run, hand off to",
+            text: t?.("components.interruptHandoff.interruptHandoffViews.composer.interruptAndHandOff", { defaultValue: "Interrupt current run, hand off to" }) ?? "Interrupt current run, hand off to",
             chip: { kind: "agent", id: target.id },
           }
         : {
             kind: "wake_agent",
             tone: "neutral",
-            text: "Wake",
+            text: t?.("components.interruptHandoff.interruptHandoffViews.composer.wake", { defaultValue: "Wake" }) ?? "Wake",
             chip: { kind: "agent", id: target.id },
           };
     }
@@ -239,16 +245,16 @@ export function computeComposerHandoffPreview(
       return {
         kind: "user_handoff",
         tone: "neutral",
-        text: "Hand off to",
+        text: t?.("components.interruptHandoff.interruptHandoffViews.composer.handOffTo", { defaultValue: "Hand off to" }) ?? "Hand off to",
         chip: { kind: "user", id: target.id },
-        suffix: "— no agent will be notified",
+        suffix: t?.("components.interruptHandoff.interruptHandoffViews.composer.noAgentNotifiedSuffix", { defaultValue: "— no agent will be notified" }) ?? "— no agent will be notified",
       };
     }
     // Cleared / no target chosen for the mutation.
     return {
       kind: "clear_assignee",
       tone: "neutral",
-      text: "Clear responsible — no agent will be notified",
+      text: t?.("components.interruptHandoff.interruptHandoffViews.composer.clearResponsible", { defaultValue: "Clear responsible — no agent will be notified" }) ?? "Clear responsible — no agent will be notified",
     };
   }
 
@@ -256,9 +262,9 @@ export function computeComposerHandoffPreview(
     return {
       kind: "notify_agent",
       tone: "neutral",
-      text: "Notify",
+      text: t?.("components.interruptHandoff.interruptHandoffViews.composer.notify", { defaultValue: "Notify" }) ?? "Notify",
       chip: input.mentionedAgentId ? { kind: "agent", id: input.mentionedAgentId } : undefined,
-      suffix: input.mentionedAgentId ? undefined : "the mentioned agent",
+      suffix: input.mentionedAgentId ? undefined : (t?.("components.interruptHandoff.interruptHandoffViews.composer.mentionedAgent", { defaultValue: "the mentioned agent" }) ?? "the mentioned agent"),
     };
   }
 
@@ -266,7 +272,7 @@ export function computeComposerHandoffPreview(
     return {
       kind: "plain_text_only",
       tone: "warn",
-      text: "No agent will be notified. Use @ to mention an agent.",
+      text: t?.("components.interruptHandoff.interruptHandoffViews.composer.useMention", { defaultValue: "No agent will be notified. Use @ to mention an agent." }) ?? "No agent will be notified. Use @ to mention an agent.",
     };
   }
 
@@ -296,21 +302,26 @@ export interface AssigneeHandoffInfo {
 export function classifyAssigneeHandoff(
   to: TimelineAssigneeLike,
   opts: { agentName?: string | null; interruptedRunAttached?: boolean } = {},
+  t?: TFunction,
 ): AssigneeHandoffInfo {
   if (to.agentId) {
-    const who = opts.agentName ?? "the responsible agent";
-    const suffix = opts.interruptedRunAttached ? " (interrupted run attached)" : "";
-    return { kind: "agent_wake", wakeText: `queued for ${who}${suffix}` };
+    const who = opts.agentName ?? (t?.("components.interruptHandoff.interruptHandoffViews.wakeRow.responsibleAgent", { defaultValue: "the responsible agent" }) ?? "the responsible agent");
+    return {
+      kind: "agent_wake",
+      wakeText: opts.interruptedRunAttached
+        ? t?.("components.interruptHandoff.interruptHandoffViews.wakeRow.queuedWithInterruptedRun", { defaultValue: "queued for {{agent}} (interrupted run attached)", agent: who }) ?? `queued for ${who} (interrupted run attached)`
+        : t?.("components.interruptHandoff.interruptHandoffViews.wakeRow.queuedFor", { defaultValue: "queued for {{agent}}", agent: who }) ?? `queued for ${who}`,
+    };
   }
   if (to.userId) {
     return {
       kind: "user_handoff",
-      wakeText: "not created — this is a handoff to a board user",
+      wakeText: t?.("components.interruptHandoff.interruptHandoffViews.wakeRow.boardUserHandoff", { defaultValue: "not created — this is a handoff to a board user" }) ?? "not created — this is a handoff to a board user",
     };
   }
   return {
     kind: "unassigned",
-    wakeText: "not created — no agent selected. Mention @agent or pick a responsible to dispatch.",
+    wakeText: t?.("components.interruptHandoff.interruptHandoffViews.wakeRow.noAgentSelected", { defaultValue: "not created — no agent selected. Mention @agent or pick a responsible to dispatch." }) ?? "not created — no agent selected. Mention @agent or pick a responsible to dispatch.",
   };
 }
 
@@ -333,13 +344,16 @@ export interface ReassignInterruptCopy {
  * operator picks a *different* target mid-run. Naming the running agent keeps
  * the interrupt consequence concrete instead of a bare "are you sure".
  */
-export function describeReassignInterrupt(opts: { runningAgentName?: string | null } = {}): ReassignInterruptCopy {
-  const who = opts.runningAgentName?.trim() || "An agent";
+export function describeReassignInterrupt(
+  opts: { runningAgentName?: string | null } = {},
+  t?: TFunction,
+): ReassignInterruptCopy {
+  const who = opts.runningAgentName?.trim() || (t?.("components.interruptHandoff.interruptHandoffViews.reassign.agentFallback", { defaultValue: "An agent" }) ?? "An agent");
   return {
-    banner: `${who} is running — changing the responsible will interrupt this run.`,
-    confirmTitle: "Interrupt the current run?",
-    confirmAction: "Interrupt & assign",
-    cancelAction: "Cancel",
+    banner: t?.("components.interruptHandoff.interruptHandoffViews.reassign.banner", { defaultValue: "{{agent}} is running — changing the responsible will interrupt this run.", agent: who }) ?? `${who} is running — changing the responsible will interrupt this run.`,
+    confirmTitle: t?.("components.interruptHandoff.interruptHandoffViews.reassign.confirmTitle", { defaultValue: "Interrupt the current run?" }) ?? "Interrupt the current run?",
+    confirmAction: t?.("components.interruptHandoff.interruptHandoffViews.reassign.confirmAction", { defaultValue: "Interrupt & assign" }) ?? "Interrupt & assign",
+    cancelAction: t?.("common.cancel", { defaultValue: "Cancel" }) ?? "Cancel",
   };
 }
 
@@ -398,6 +412,7 @@ const PAUSE_BUCKET_DETAIL: Record<PauseAffectsBucketKey, string> = {
  */
 export function computePauseAffectsSummary(
   issues: readonly PauseAffectsIssueLike[],
+  t?: TFunction,
 ): PauseAffectsSummary {
   const counts: Record<PauseAffectsBucketKey, number> = {
     live_runs: 0,
@@ -429,9 +444,9 @@ export function computePauseAffectsSummary(
   return {
     buckets: order.map((key) => ({
       key,
-      label: PAUSE_BUCKET_LABEL[key],
+      label: t?.(`components.interruptHandoff.interruptHandoffViews.pauseAffects.buckets.${key}.label`, { defaultValue: PAUSE_BUCKET_LABEL[key] }) ?? PAUSE_BUCKET_LABEL[key],
       count: counts[key],
-      detail: PAUSE_BUCKET_DETAIL[key],
+      detail: t?.(`components.interruptHandoff.interruptHandoffViews.pauseAffects.buckets.${key}.detail`, { defaultValue: PAUSE_BUCKET_DETAIL[key] }) ?? PAUSE_BUCKET_DETAIL[key],
     })),
     affectedIssueCount,
     nothingLive: counts.live_runs === 0 && counts.queued_wakes === 0,

@@ -159,7 +159,11 @@ export function Workspaces() {
           {overviewQuery.hasNextPage ? (
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
               <p className="text-sm text-muted-foreground">
-                Showing {overviewItems.length} of {totalWorkspaceCount} workspaces.
+                {t("pages.workspaces.showing", {
+                  defaultValue: "Showing {{shown}} of {{total}} workspaces.",
+                  shown: overviewItems.length,
+                  total: totalWorkspaceCount,
+                })}
               </p>
               <Button
                 type="button"
@@ -168,7 +172,9 @@ export function Workspaces() {
                 onClick={() => void overviewQuery.fetchNextPage()}
                 disabled={overviewQuery.isFetchingNextPage}
               >
-                {overviewQuery.isFetchingNextPage ? "Loading..." : "Load more"}
+                {overviewQuery.isFetchingNextPage
+                  ? t("common.loading", { defaultValue: "Loading..." })
+                  : t("common.loadMore", { defaultValue: "Load more" })}
               </Button>
             </div>
           ) : null}

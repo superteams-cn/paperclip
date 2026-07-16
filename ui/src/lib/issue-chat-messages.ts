@@ -646,7 +646,7 @@ function createInteractionMessage(interaction: IssueThreadInteraction, t?: Trans
     id: `interaction:${interaction.id}`,
     role: "system",
     createdAt: toDate(interaction.createdAt),
-    content: [{ type: "text", text: buildIssueThreadInteractionSummary(interaction) }],
+    content: [{ type: "text", text: buildIssueThreadInteractionSummary(interaction, t) }],
     metadata: {
       custom: {
         kind: "interaction",
@@ -767,6 +767,11 @@ function runDurationLabel(run: {
       return durationText ? `Timed out after ${durationText}` : "Run timed out";
     case "cancelled":
       if (isOperatorInterruptedRun(run.resultJson, run.errorCode)) {
+        if (t) {
+          return durationText
+            ? t("components.issueChat.runDuration.interruptedByBoardAfter", { duration: durationText })
+            : t("components.issueChat.runDuration.interruptedByBoard");
+        }
         return durationText ? `Interrupted by board after ${durationText}` : "Interrupted by board";
       }
       if (stopReason === "paused") {
@@ -786,13 +791,22 @@ function runDurationLabel(run: {
   }
 }
 
-function createHistoricalRunMessage(run: IssueChatLinkedRun, agentMap?: Map<string, Agent>) {
+function createHistoricalRunMessage(run: IssueChatLinkedRun, agentMap?: Map<string, Agent>, t?: Translate) {
   const agentName = run.agentName ?? agentMap?.get(run.agentId)?.name ?? run.agentId.slice(0, 8);
   const message: ThreadSystemMessage = {
     id: `run:${run.runId}`,
     role: "system",
     createdAt: toDate(runTimestamp(run)),
-    content: [{ type: "text", text: `${agentName} run ${run.runId.slice(0, 8)} ${formatStatusLabel(run.status)}` }],
+    content: [{
+      type: "text",
+      text: t
+        ? t("components.issueChat.historicalRun", {
+            agent: agentName,
+            runId: run.runId.slice(0, 8),
+            status: t(`components.issueChat.runStatuses.${run.status}`, { defaultValue: formatStatusLabel(run.status) }),
+          })
+        : `${agentName} run ${run.runId.slice(0, 8)} ${formatStatusLabel(run.status)}`,
+    }],
     metadata: {
       custom: {
         kind: "run",
@@ -1169,7 +1183,7 @@ export function buildIssueChatMessages(args: {
     orderedMessages.push({
       createdAtMs: toTimestamp(runTimestamp(run)),
       order: 2,
-      message: createHistoricalRunMessage(run, agentMap),
+      message: createHistoricalRunMessage(run, agentMap, t),
     });
   }
 

@@ -1,5 +1,6 @@
 import type { IssueWorkMode } from "@paperclipai/shared";
 import { ClipboardList, Hammer, MessageCircleQuestion, type LucideIcon } from "lucide-react";
+import { t as translate } from "@/i18n";
 
 export type WorkModeTone = "neutral" | "ask" | "planning";
 
@@ -46,24 +47,24 @@ export function workModeMetaList(): WorkModeMeta[] {
   return [
     {
       value: "standard",
-      label: "Agent mode",
-      shortLabel: "Agent",
+      label: translate("common.workModes.standard.label", { defaultValue: "Agent mode" }),
+      shortLabel: translate("common.workModes.standard.shortLabel", { defaultValue: "Agent" }),
       icon: Hammer,
       tone: "neutral",
       classes: STANDARD_CLASSES,
     },
     {
       value: "planning",
-      label: "Plan mode",
-      shortLabel: "Plan",
+      label: translate("common.workModes.planning.label", { defaultValue: "Plan mode" }),
+      shortLabel: translate("common.workModes.planning.shortLabel", { defaultValue: "Plan" }),
       icon: ClipboardList,
       tone: "planning",
       classes: PLANNING_CLASSES,
     },
     {
       value: "ask",
-      label: "Ask mode",
-      shortLabel: "Ask",
+      label: translate("common.workModes.ask.label", { defaultValue: "Ask mode" }),
+      shortLabel: translate("common.workModes.ask.shortLabel", { defaultValue: "Ask" }),
       icon: MessageCircleQuestion,
       tone: "ask",
       classes: ASK_CLASSES,
@@ -84,10 +85,16 @@ export function nextWorkMode(mode: IssueWorkMode): IssueWorkMode {
 
 export function titleForPendingWorkMode(mode: IssueWorkMode): string {
   if (mode === "ask") {
-    return "Ask mode for this submission. Click to change. The responsible will answer in this thread; no implementation work.";
+    return translate("common.workModes.ask.pendingTitle", {
+      defaultValue: "Ask mode for this submission. Click to change. The responsible will answer in this thread; no implementation work.",
+    });
   }
   if (mode === "planning") {
-    return "Plan mode is on for this submission. Click to change.";
+    return translate("common.workModes.planning.pendingTitle", {
+      defaultValue: "Plan mode is on for this submission. Click to change.",
+    });
   }
-  return "Agent mode for this submission. Click to change.";
+  return translate("common.workModes.standard.pendingTitle", {
+    defaultValue: "Agent mode for this submission. Click to change.",
+  });
 }

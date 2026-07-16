@@ -33,6 +33,9 @@ function readStoredLocale(): SupportedLocale | null {
 }
 
 export function detectPreferredLocale(): SupportedLocale {
+  // Non-browser consumers (tests and server-side utilities) use the stable
+  // English fallback. The client still defaults first-time visitors to Chinese.
+  if (typeof window === "undefined") return DEFAULT_LOCALE;
   // A previously stored choice always wins; otherwise default to Chinese.
   return readStoredLocale() ?? INITIAL_LOCALE;
 }

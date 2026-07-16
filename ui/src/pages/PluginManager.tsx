@@ -61,12 +61,13 @@ function isExperimentalPluginIdentity(input: {
 }
 
 function ExperimentalBadge() {
+  const { t } = useTranslation();
   return (
     <Badge
       variant="outline"
       className="border-amber-500/30 bg-amber-500/10 text-amber-700 hover:bg-amber-500/10 dark:text-amber-200"
     >
-      Experimental
+      {t("pages.pluginManager.experimental", { defaultValue: "Experimental" })}
     </Badge>
   );
 }

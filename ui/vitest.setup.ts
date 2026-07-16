@@ -1,4 +1,5 @@
 const storageEntries = new Map<string, string>();
+storageEntries.set("paperclip.locale", "en");
 
 function installStorageMock(target: Record<string, unknown>) {
   Object.defineProperty(target, "localStorage", {
@@ -30,6 +31,10 @@ if (
 if (typeof window !== "undefined" && window.localStorage !== globalThis.localStorage) {
   installStorageMock(window as unknown as Record<string, unknown>);
 }
+
+// Keep existing UI assertions deterministic now that first-load production UI
+// defaults to Chinese. Locale-specific tests can still change this value.
+globalThis.localStorage?.setItem("paperclip.locale", "en");
 
 // jsdom does not implement Element.prototype.scrollIntoView. Several surfaces
 // (e.g. IssueChatThread's auto-scroll-to-latest) call it during normal render,

@@ -11,6 +11,7 @@ import type {
   IssueAttachment,
   IssueDocument,
 } from "@paperclipai/shared";
+import type { TFunction } from "i18next";
 import {
   getIssueOutputs,
   getPromotedOutputAttachmentIds,
@@ -92,9 +93,12 @@ export function showRunErrorCard(status: CompanySkillTestRunStatus): boolean {
 export function testTaskLinkState(run: {
   taskExpired: boolean;
   harnessIssue?: { id: string } | null;
-}): { enabled: boolean; reason: string | null } {
+}, t?: TFunction): { enabled: boolean; reason: string | null } {
   if (run.taskExpired || !run.harnessIssue) {
-    return { enabled: false, reason: "Test task expired" };
+    return {
+      enabled: false,
+      reason: t?.("pages.skillStudio.runsPane.harnessUnavailable.expired", { defaultValue: "Test task expired" }) ?? "Test task expired",
+    };
   }
   return { enabled: true, reason: null };
 }
@@ -127,21 +131,21 @@ export interface RunGateResult {
  * order and the first blocking condition wins, so the tooltip always names a
  * single actionable reason (recognition over recall).
  */
-export function evaluateRunGate(input: RunGateInput): RunGateResult {
+export function evaluateRunGate(input: RunGateInput, t?: TFunction): RunGateResult {
   if (input.skillFileCount <= 0) {
-    return { disabled: true, reason: "This skill has no files to test" };
+    return { disabled: true, reason: t?.("pages.skillStudio.runsPane.runGate.noFiles", { defaultValue: "This skill has no files to test" }) ?? "This skill has no files to test" };
   }
   if (!input.hasAgent) {
-    return { disabled: true, reason: "Pick an agent to run" };
+    return { disabled: true, reason: t?.("pages.skillStudio.runsPane.runGate.pickAgent", { defaultValue: "Pick an agent to run" }) ?? "Pick an agent to run" };
   }
   if (!input.hasInput) {
-    return { disabled: true, reason: "Add or paste input text to run" };
+    return { disabled: true, reason: t?.("pages.skillStudio.runsPane.runGate.addInput", { defaultValue: "Add or paste input text to run" }) ?? "Add or paste input text to run" };
   }
   if (input.hasUnsavedSkillEdits) {
-    return { disabled: true, reason: "Save skill edits before running" };
+    return { disabled: true, reason: t?.("pages.skillStudio.runsPane.runGate.saveEdits", { defaultValue: "Save skill edits before running" }) ?? "Save skill edits before running" };
   }
   if (input.runInFlight) {
-    return { disabled: true, reason: "A run is already in progress" };
+    return { disabled: true, reason: t?.("pages.skillStudio.runsPane.runGate.inProgress", { defaultValue: "A run is already in progress" }) ?? "A run is already in progress" };
   }
   return { disabled: false, reason: null };
 }
@@ -356,19 +360,29 @@ export interface RunMediaGalleryItem {
   originalFilename: string | null;
 }
 
-function runHarnessUnavailableTitle(reason: CompanySkillTestRunHarnessContentUnavailableReason | null) {
-  if (reason === "expired") return "Test task expired";
-  if (reason === "deleted") return "Test task deleted";
-  return "Test task unavailable";
+function runHarnessUnavailableTitle(
+  reason: CompanySkillTestRunHarnessContentUnavailableReason | null,
+  t?: TFunction,
+) {
+  if (reason === "expired") {
+    return t?.("pages.skillStudio.runsPane.harnessUnavailable.expired", { defaultValue: "Test task expired" }) ?? "Test task expired";
+  }
+  if (reason === "deleted") {
+    return t?.("pages.skillStudio.runsPane.harnessUnavailable.deleted", { defaultValue: "Test task deleted" }) ?? "Test task deleted";
+  }
+  return t?.("pages.skillStudio.runsPane.harnessUnavailable.unavailable", { defaultValue: "Test task unavailable" }) ?? "Test task unavailable";
 }
 
 export function runHarnessUnavailableCopy(
   detail: Pick<CompanySkillTestRunDetail, "harnessContent">,
+  t?: TFunction,
 ): RunHarnessUnavailableCopy | null {
   if (detail.harnessContent.available) return null;
   return {
-    title: runHarnessUnavailableTitle(detail.harnessContent.unavailableReason),
-    body: "Stored run snapshots are still shown. Harness documents, attachments, and work products are no longer available.",
+    title: runHarnessUnavailableTitle(detail.harnessContent.unavailableReason, t),
+    body: t?.("pages.skillStudio.runsPane.harnessUnavailable.body", {
+      defaultValue: "Stored run snapshots are still shown. Harness documents, attachments, and work products are no longer available.",
+    }) ?? "Stored run snapshots are still shown. Harness documents, attachments, and work products are no longer available.",
   };
 }
 

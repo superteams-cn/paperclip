@@ -49,6 +49,7 @@ type JsonSchemaValidationMessages = {
   multipleOf: (value: number) => string;
   minItems: (count: number) => string;
   maxItems: (count: number) => string;
+  invalidSecretReference: () => string;
 };
 
 function getJsonSchemaValidationMessages(t?: Translate): JsonSchemaValidationMessages {
@@ -66,6 +67,7 @@ function getJsonSchemaValidationMessages(t?: Translate): JsonSchemaValidationMes
     multipleOf: (value) => t?.("components.jsonSchemaForm.validation.multipleOf", { defaultValue: "Must be a multiple of {{value}}", value }) ?? `Must be a multiple of ${value}`,
     minItems: (count) => t?.("components.jsonSchemaForm.validation.minItems", { defaultValue: "Must have at least {{count}} items", count }) ?? `Must have at least ${count} items`,
     maxItems: (count) => t?.("components.jsonSchemaForm.validation.maxItems", { defaultValue: "Must have at most {{count}} items", count }) ?? `Must have at most ${count} items`,
+    invalidSecretReference: () => t?.("components.jsonSchemaForm.validation.invalidSecretReference", { defaultValue: "Invalid secret reference" }) ?? "Invalid secret reference",
   };
 }
 
@@ -237,7 +239,7 @@ export function validateField(
     return null;
   }
   if (type === "secret-ref" && typeof value === "object") {
-    return "Invalid secret reference";
+    return messages.invalidSecretReference();
   }
 
   if (type === "string" || type === "secret-ref") {

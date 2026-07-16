@@ -135,13 +135,14 @@ function MarkdownCaseLink({
 }) {
   // Cases resolve via the get-by-identifier route; navigate there on click.
   // Kept boxless/underlined to match the issue mention treatment.
+  const { t } = useTranslation();
   const caseHref = useCaseHref();
   return (
     <Link
       to={caseHref(identifier)}
       data-mention-kind="case"
       className={cn("paperclip-markdown-case-ref", "font-normal underline")}
-      aria-label={`Case ${identifier}`}
+      aria-label={t("components.markdownBody.caseReference", { identifier, defaultValue: `Case ${identifier}` })}
     >
       {children}
     </Link>

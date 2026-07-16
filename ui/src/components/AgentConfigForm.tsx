@@ -647,10 +647,10 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
       const environmentId = currentDefaultEnvironmentId || null;
       const testResults: Array<{ label: string; model: string | null; result: AdapterEnvironmentTestResult }> = [
         {
-          label: "Primary model",
+          label: t("pages.agents.config.primaryModel", { defaultValue: "Primary model" }),
           model: primaryModel,
           result: await runEnvironmentTestCase(
-            "Primary model",
+            t("pages.agents.config.primaryModel", { defaultValue: "Primary model" }),
             primaryModel,
             buildAdapterConfigForTest(adapterConfigPatch),
             environmentId,
@@ -660,10 +660,10 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
 
       if (cheapTestCase) {
         testResults.push({
-          label: "Cheap model",
+          label: t("pages.agents.config.cheapModel", { defaultValue: "Cheap model" }),
           model: cheapTestCase.model,
           result: await runEnvironmentTestCase(
-            "Cheap model",
+            t("pages.agents.config.cheapModel", { defaultValue: "Cheap model" }),
             cheapTestCase.model,
             cheapTestCase.adapterConfig,
             environmentId,
@@ -682,7 +682,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
   const testEnvironmentDisabled = testActionPending || isSavePending || !selectedCompanyId;
   const runEnvironmentTest = useCallback(async () => {
     if (!selectedCompanyId) {
-      throw new Error("Select a company to test adapter environment");
+      throw new Error(t("pages.agents.config.selectCompanyToTestEnvironment"));
     }
     setTestActionPending(true);
     setTestActionError(null);
@@ -690,12 +690,14 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
     try {
       return await testEnvironment.mutateAsync();
     } catch (error) {
-      setTestActionError(error instanceof Error ? error.message : "Environment test failed");
+      setTestActionError(error instanceof Error ? error.message : t("pages.agents.config.environmentTestFailed", {
+        defaultValue: "Environment test failed",
+      }));
       throw error;
     } finally {
       setTestActionPending(false);
     }
-  }, [selectedCompanyId, testEnvironment]);
+  }, [selectedCompanyId, t, testEnvironment]);
   // `runEnvironmentTest` (and `testEnvironmentDisabled`) change identity on every
   // render because `useMutation` returns a fresh result object each time. Hold the
   // latest behavior in a ref so the trigger handed to the parent stays referentially

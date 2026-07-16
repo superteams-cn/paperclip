@@ -51,7 +51,7 @@ import { SearchSortMenu } from "../components/search/SearchSortMenu";
 import { ZeroResultsRecovery } from "../components/search/ZeroResultsRecovery";
 import { useSidebar } from "../context/SidebarContext";
 import {
-  SORT_LABELS,
+  sortLabel,
   countActiveFilters,
   parseSearchSort,
   type FilterChipLookups,
@@ -61,6 +61,15 @@ import type { Agent, IssueLabel, Project } from "@paperclipai/shared";
 
 const SEARCH_DEBOUNCE_MS = 250;
 const IDENTIFIER_PATTERN = /^[A-Z]+-\d+$/;
+const OPERATOR_SUGGESTION_KEYS: Record<string, string> = {
+  "status:todo": "statusTodo",
+  "status:blocked": "statusBlocked",
+  "assignee:me": "assigneeMe",
+  'project:"Paperclip App"': "projectName",
+  "label:bug": "label",
+  "priority:high": "priorityHigh",
+  "updated:>7d": "updatedRecent",
+};
 
 const SCOPE_LABELS: Record<CompanySearchScope, string> = {
   all: "All",
@@ -656,7 +665,10 @@ export function Search() {
                 <button
                   key={suggestion.token}
                   type="button"
-                  aria-label={`Insert operator ${suggestion.token}`}
+                  aria-label={t("pages.search.insertOperator", {
+                    operator: suggestion.token,
+                    defaultValue: `Insert operator ${suggestion.token}`,
+                  })}
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => {
                     setDraftQuery(applySearchOperatorSuggestion(draftQuery, suggestion.token));
@@ -665,15 +677,21 @@ export function Search() {
                   className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 hover:bg-accent/60"
                 >
                   <span className="font-mono text-(length:--text-micro)">{suggestion.token}</span>
-                  <span className="hidden text-(length:--text-micro) sm:inline">{suggestion.description}</span>
+                  <span className="hidden text-(length:--text-micro) sm:inline">
+                    {t(`pages.search.operatorSuggestions.${OPERATOR_SUGGESTION_KEYS[suggestion.token] ?? "generic"}`, {
+                      defaultValue: suggestion.description,
+                    })}
+                  </span>
                 </button>
               ))}
             </div>
           ) : (
             <span className="truncate">
-              Try <code className="rounded bg-muted px-1 py-0.5 text-(length:--text-micro)">status:todo</code>,{" "}
+              {t("pages.search.operatorExamplesPrefix", { defaultValue: "Try" })}{" "}
+              <code className="rounded bg-muted px-1 py-0.5 text-(length:--text-micro)">status:todo</code>,{" "}
               <code className="rounded bg-muted px-1 py-0.5 text-(length:--text-micro)">assignee:me</code>,{" "}
-              or <code className="rounded bg-muted px-1 py-0.5 text-(length:--text-micro)">updated:&gt;7d</code>.
+              {t("pages.search.operatorExamplesOr", { defaultValue: "or" })}{" "}
+              <code className="rounded bg-muted px-1 py-0.5 text-(length:--text-micro)">updated:&gt;7d</code>.
             </span>
           )}
         </div>
@@ -737,7 +755,7 @@ export function Search() {
                 totalResults={totalResults}
                 allMatchTotal={allMatchTotal}
                 activeFilterCount={activeFilterCount}
-                sortLabel={SORT_LABELS[sort]}
+                sortLabel={sortLabel(sort)}
                 zeroResultsSlot={zeroResultsSlot}
                 isFetching={isFetching && !!data}
                 agentsById={agentsById}

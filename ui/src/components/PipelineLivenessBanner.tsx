@@ -97,7 +97,7 @@ export function PipelineLivenessBanner({
   retryError?: string | null;
 }) {
   const { t } = useTranslation();
-  const view = derivePipelineLivenessBanner(liveness);
+  const view = derivePipelineLivenessBanner(liveness, t);
   if (!view) return null;
 
   const palette = TONE_PALETTES[view.tone];

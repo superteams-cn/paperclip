@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EnforcementBanner } from "@/components/EnforcementBanner";
 import { CapabilityBadges, DecisionBadge, RiskBadge } from "@/pages/tools/shared";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 /**
  * Action approval card (PAP-10787 / PAP-10778, surfaces 11/12/99).
@@ -130,13 +132,19 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-function bindingRows(binding: ActionCardBinding, isStale: boolean): BindingRow[] {
+function bindingRows(binding: ActionCardBinding, isStale: boolean, t: TFunction): BindingRow[] {
   const catalogValue = isStale && binding.previousCatalogSha256 ? (
     <span className="inline-flex flex-wrap items-center gap-1.5">
-      <span className="text-muted-foreground line-through decoration-amber-500" title="Previous catalog hash">
+      <span
+        className="text-muted-foreground line-through decoration-amber-500"
+        title={t("components.actionCard.previousCatalogHash", { defaultValue: "Previous catalog hash" })}
+      >
         {shortSha(binding.previousCatalogSha256)}
       </span>
-      <span className="text-amber-600 dark:text-amber-400" title="Current catalog hash">
+      <span
+        className="text-amber-600 dark:text-amber-400"
+        title={t("components.actionCard.currentCatalogHash", { defaultValue: "Current catalog hash" })}
+      >
         {shortSha(binding.catalogSha256)}
       </span>
     </span>
@@ -146,23 +154,30 @@ function bindingRows(binding: ActionCardBinding, isStale: boolean): BindingRow[]
 
   return [
     {
-      label: "Application",
+      label: t("components.actionCard.application", { defaultValue: "Application" }),
       value: (
         <span>
           {binding.application}
-          <span className="ml-1.5 text-xs text-muted-foreground">manifest v{binding.manifestVersion}</span>
+          <span className="ml-1.5 text-xs text-muted-foreground">
+            {t("components.actionCard.manifestVersion", {
+              defaultValue: "manifest v{{version}}",
+              version: binding.manifestVersion,
+            })}
+          </span>
         </span>
       ),
     },
-    { label: "Connection", value: binding.connection, mono: true },
-    { label: "Catalog", value: catalogValue, mono: !isStale },
+    { label: t("components.actionCard.connection", { defaultValue: "Connection" }), value: binding.connection, mono: true },
+    { label: t("components.actionCard.catalog", { defaultValue: "Catalog" }), value: catalogValue, mono: !isStale },
     {
-      label: "Payload",
+      label: t("components.actionCard.payload", { defaultValue: "Payload" }),
       value: (
         <span className="inline-flex items-center gap-1.5">
           <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span>{shortSha(binding.payloadSha256)}</span>
-          <span className="font-sans text-(length:--text-micro) uppercase tracking-normal text-muted-foreground">signed</span>
+          <span className="font-sans text-(length:--text-micro) uppercase tracking-normal text-muted-foreground">
+            {t("components.actionCard.signed", { defaultValue: "signed" })}
+          </span>
         </span>
       ),
       mono: true,
@@ -171,7 +186,7 @@ function bindingRows(binding: ActionCardBinding, isStale: boolean): BindingRow[]
 }
 
 export function ActionCard({
-  agentName = "Coder",
+  agentName,
   agentAvatarUrl,
   toolName,
   risk,
@@ -190,7 +205,9 @@ export function ActionCard({
   onEditResign,
   className,
 }: ActionCardProps) {
+  const { t } = useTranslation();
   const isStale = variant === "stale";
+  const resolvedAgentName = agentName ?? t("components.actionCard.defaultAgent", { defaultValue: "Coder" });
   const json = typeof input === "string" ? input : JSON.stringify(input, null, 2);
 
   // Surface 99: buttons stack full-width in the order Approve / Deny /
@@ -201,20 +218,24 @@ export function ActionCard({
       onClick={onApprove}
       disabled={isStale}
       className={mobile ? "w-full" : undefined}
-      title={isStale ? "Re-issue the request before approving — the catalog hash changed." : undefined}
+      title={isStale
+        ? t("components.actionCard.reissueBeforeApproving", {
+          defaultValue: "Re-issue the request before approving — the catalog hash changed.",
+        })
+        : undefined}
     >
-      Approve
+      {t("components.actionCard.approve", { defaultValue: "Approve" })}
     </Button>
   );
   const denyButton = (
     <Button size="sm" variant="outline" onClick={onDeny} className={mobile ? "w-full" : undefined}>
-      Deny
+      {t("components.actionCard.deny", { defaultValue: "Deny" })}
     </Button>
   );
   const editButton = (
     <Button size="sm" variant="outline" onClick={onEditResign} className={mobile ? "w-full" : undefined}>
       <Pencil className="mr-1 h-3.5 w-3.5" />
-      Edit &amp; re-sign
+      {t("components.actionCard.editAndResign", { defaultValue: "Edit & re-sign" })}
     </Button>
   );
 
@@ -231,12 +252,13 @@ export function ActionCard({
         {/* Header: avatar + request line + outcome pill */}
         <div className="flex items-start gap-3">
           <Avatar size="sm" className="shrink-0">
-            {agentAvatarUrl ? <AvatarImage src={agentAvatarUrl} alt={agentName} /> : null}
-            <AvatarFallback>{initials(agentName)}</AvatarFallback>
+            {agentAvatarUrl ? <AvatarImage src={agentAvatarUrl} alt={resolvedAgentName} /> : null}
+            <AvatarFallback>{initials(resolvedAgentName)}</AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
             <p className="text-sm text-foreground">
-              <span className="font-medium">{agentName}</span> requested approval to call
+              <span className="font-medium">{resolvedAgentName}</span>{" "}
+              {t("components.actionCard.requestedApproval", { defaultValue: "requested approval to call" })}
             </p>
             <p className="mt-0.5 font-mono text-xs text-muted-foreground break-all">{toolName}</p>
           </div>
@@ -256,17 +278,23 @@ export function ActionCard({
         {isStale ? (
           <EnforcementBanner
             tone="warning"
-            title="Catalog changed since this request was signed."
-            body="The application's tool catalog hash no longer matches the one this approval was issued against. Approval is disabled — the agent must edit & re-sign to request again."
+            title={t("components.actionCard.catalogChanged", {
+              defaultValue: "Catalog changed since this request was signed.",
+            })}
+            body={t("components.actionCard.catalogChangedBody", {
+              defaultValue: "The application's tool catalog hash no longer matches the one this approval was issued against. Approval is disabled — the agent must edit & re-sign to request again.",
+            })}
           />
         ) : null}
 
         {/* Bindings table */}
-        <BindingsTable rows={bindingRows(binding, isStale)} labelWidth={mobile ? 70 : 132} />
+        <BindingsTable rows={bindingRows(binding, isStale, t)} labelWidth={mobile ? 70 : 132} />
 
         {/* JSON input */}
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">Input</p>
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+            {t("components.actionCard.input", { defaultValue: "Input" })}
+          </p>
           <pre className="overflow-x-auto rounded-md border border-border bg-muted/40 p-3 font-mono text-xs leading-relaxed text-foreground">
             {json}
           </pre>
@@ -274,13 +302,21 @@ export function ActionCard({
 
         {/* Why I'm asking */}
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">Why I&apos;m asking</p>
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+            {t("components.actionCard.whyAsking", { defaultValue: "Why I'm asking" })}
+          </p>
           <p className="text-sm text-muted-foreground">
             {reason}
             {policyNumber != null ? (
               <>
                 {" "}
-                <span className="font-medium text-foreground">Policy #{policyNumber}</span> requires approval here.
+                <span className="font-medium text-foreground">
+                  {t("components.actionCard.policyNumber", {
+                    defaultValue: "Policy #{{number}}",
+                    number: policyNumber,
+                  })}
+                </span>{" "}
+                {t("components.actionCard.requiresApproval", { defaultValue: "requires approval here." })}
               </>
             ) : null}
           </p>
@@ -296,7 +332,7 @@ export function ActionCard({
       >
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Clock className="h-3.5 w-3.5 shrink-0" />
-          {expiresInLabel ?? "no expiry set"}
+          {expiresInLabel ?? t("components.actionCard.noExpiry", { defaultValue: "no expiry set" })}
         </span>
         {mobile ? (
           <div className="flex flex-col gap-2">

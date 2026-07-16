@@ -355,13 +355,16 @@ function FrontmatterCard({
   data: FrontmatterData;
   onSkillClick?: (skill: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-md border border-border bg-accent/20 px-4 py-3 mb-4">
       <dl className="grid grid-cols-(--gtc-5) gap-x-4 gap-y-1.5 text-sm">
         {Object.entries(data).map(([key, value]) => (
           <div key={key} className="contents">
             <dt className="text-muted-foreground whitespace-nowrap py-0.5">
-              {FRONTMATTER_FIELD_LABELS[key] ?? key}
+              {t(`components.fileTree.frontmatterFields.${key}`, {
+                defaultValue: FRONTMATTER_FIELD_LABELS[key] ?? key,
+              })}
             </dt>
             <dd className="py-0.5">
               {Array.isArray(value) ? (

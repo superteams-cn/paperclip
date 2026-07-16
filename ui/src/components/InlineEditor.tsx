@@ -365,12 +365,12 @@ export function InlineEditor({
             )}
           >
             {autosaveState === "saving"
-              ? "Autosaving..."
+              ? t("components.inlineEditor.autosaving", { defaultValue: "Autosaving..." })
               : autosaveState === "saved"
-                ? "Saved"
+                ? t("components.inlineEditor.saved", { defaultValue: "Saved" })
                 : autosaveState === "error"
-                  ? "Could not save"
-                  : "Idle"}
+                  ? t("components.inlineEditor.saveFailed", { defaultValue: "Could not save" })
+                  : t("components.inlineEditor.idle", { defaultValue: "Idle" })}
           </span>
         </div>
       </div>

@@ -2,7 +2,11 @@ import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { deriveAgentUrlKey, deriveProjectUrlKey, normalizeProjectUrlKey, hasNonAsciiContent } from "@paperclipai/shared";
 import type { BillingType, FinanceDirection, FinanceEventKind } from "@paperclipai/shared";
-import { t } from "@/i18n";
+import { i18n, t } from "@/i18n";
+
+function displayLocale(): string | undefined {
+  return i18n.resolvedLanguage ?? i18n.language ?? undefined;
+}
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -35,11 +39,11 @@ export function asFiniteNumber(value: unknown, fallback: number) {
 }
 
 export function formatCents(cents: number): string {
-  return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `$${(cents / 100).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function formatNumber(n: number): string {
-  return n.toLocaleString("en-US");
+  return n.toLocaleString(displayLocale());
 }
 
 /**
@@ -48,11 +52,13 @@ export function formatNumber(n: number): string {
  */
 export function formatProjectBudget(budget: { amountCents: number; windowKind: string }): string {
   const amount = formatCents(budget.amountCents);
-  return budget.windowKind === "calendar_month_utc" ? `${amount}/mo` : amount;
+  return budget.windowKind === "calendar_month_utc"
+    ? t("common.perMonth", { defaultValue: "{{amount}}/mo", amount })
+    : amount;
 }
 
 export function formatDate(date: Date | string): string {
-  return new Date(date).toLocaleDateString("en-US", {
+  return new Date(date).toLocaleDateString(displayLocale(), {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -60,7 +66,7 @@ export function formatDate(date: Date | string): string {
 }
 
 export function formatDateTime(date: Date | string): string {
-  return new Date(date).toLocaleString("en-US", {
+  return new Date(date).toLocaleString(displayLocale(), {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -70,7 +76,7 @@ export function formatDateTime(date: Date | string): string {
 }
 
 export function formatShortDate(date: Date | string): string {
-  return new Date(date).toLocaleString("en-US", {
+  return new Date(date).toLocaleString(displayLocale(), {
     month: "short",
     day: "numeric",
   });
@@ -99,20 +105,30 @@ export function formatTokens(n: number): string {
 
 /** Humanize a millisecond duration into a compact `1h 2m`, `45m 12s`, `12s` string. */
 export function formatDurationMs(ms: number): string {
-  if (!Number.isFinite(ms) || ms <= 0) return "0s";
+  const compact = (unit: "seconds" | "minutes" | "hours" | "days", n: number) =>
+    t(`common.time.compact.${unit}`, { defaultValue: `{{n}}${unit[0]}`, n });
+  const join = (left: string, right: string) =>
+    `${left}${t("common.time.compact.separator", { defaultValue: " " })}${right}`;
+  if (!Number.isFinite(ms) || ms <= 0) return compact("seconds", 0);
   const totalSeconds = Math.round(ms / 1000);
-  if (totalSeconds < 60) return `${totalSeconds}s`;
+  if (totalSeconds < 60) return compact("seconds", totalSeconds);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  if (minutes < 60) return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+  if (minutes < 60) return seconds > 0
+    ? join(compact("minutes", minutes), compact("seconds", seconds))
+    : compact("minutes", minutes);
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   if (hours < 24) {
-    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+    return remainingMinutes > 0
+      ? join(compact("hours", hours), compact("minutes", remainingMinutes))
+      : compact("hours", hours);
   }
   const days = Math.floor(hours / 24);
   const remainingHours = hours % 24;
-  return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
+  return remainingHours > 0
+    ? join(compact("days", days), compact("hours", remainingHours))
+    : compact("days", days);
 }
 
 /** Map a raw provider slug to a display-friendly name. */

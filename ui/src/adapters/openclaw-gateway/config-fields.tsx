@@ -172,7 +172,7 @@ export function OpenClawGatewayConfigFields({
 
       {/* Auth and Identity - available in both create and edit modes */}
       <SecretField
-        label="Gateway auth token"
+        label={t("adapters.configFields.gatewayAuthToken", { defaultValue: "Gateway auth token" })}
         value={
           isCreate
             ? values!.authToken ?? ""
@@ -186,7 +186,7 @@ export function OpenClawGatewayConfigFields({
         placeholder={t("adapters.openclawGateway.gatewayTokenPlaceholder", { defaultValue: "OpenClaw gateway token" })}
       />
 
-      <Field label="Agent ID">
+      <Field label={t("adapters.configFields.agentId", { defaultValue: "Agent ID" })}>
         <DraftInput
           value={
             isCreate
@@ -204,7 +204,7 @@ export function OpenClawGatewayConfigFields({
         />
       </Field>
 
-      <Field label="Session strategy">
+      <Field label={t("adapters.configFields.sessionStrategy", { defaultValue: "Session strategy" })}>
         <select
           value={
             isCreate
@@ -218,14 +218,14 @@ export function OpenClawGatewayConfigFields({
           }
           className={inputClass}
         >
-          <option value="fixed">Fixed</option>
+          <option value="fixed">{t("adapters.configFields.sessionStrategyFixed", { defaultValue: "Fixed" })}</option>
           <option value="issue">{t("adapters.openclawGateway.sessionStrategy.perIssue", { defaultValue: "Per issue" })}</option>
           <option value="run">{t("adapters.openclawGateway.sessionStrategy.perRun", { defaultValue: "Per run" })}</option>
         </select>
       </Field>
 
       {(isCreate ? values!.sessionKeyStrategy ?? "fixed" : sessionStrategy) === "fixed" && (
-        <Field label="Session key">
+        <Field label={t("adapters.configFields.sessionKey", { defaultValue: "Session key" })}>
           <DraftInput
             value={
               isCreate
@@ -245,7 +245,7 @@ export function OpenClawGatewayConfigFields({
       )}
 
       <SecretField
-        label="Password (alternative auth)"
+        label={t("adapters.configFields.alternativeAuthPassword", { defaultValue: "Password (alternative auth)" })}
         value={
           isCreate
             ? values!.password ?? ""
@@ -259,7 +259,7 @@ export function OpenClawGatewayConfigFields({
         placeholder={t("adapters.openclawGateway.sharedPasswordPlaceholder", { defaultValue: "Gateway shared password" })}
       />
 
-      <Field label="Role">
+      <Field label={t("adapters.configFields.role", { defaultValue: "Role" })}>
         <DraftInput
           value={
             isCreate
@@ -277,7 +277,7 @@ export function OpenClawGatewayConfigFields({
         />
       </Field>
 
-      <Field label="Scopes (comma-separated)">
+      <Field label={t("adapters.configFields.scopesCommaSeparated", { defaultValue: "Scopes (comma-separated)" })}>
         <DraftInput
           value={
             isCreate
@@ -309,7 +309,7 @@ export function OpenClawGatewayConfigFields({
         mark={mark}
       />
 
-      <Field label="Paperclip API URL override">
+      <Field label={t("adapters.configFields.paperclipApiUrlOverride", { defaultValue: "Paperclip API URL override" })}>
         <DraftInput
           value={
             isCreate
@@ -327,7 +327,7 @@ export function OpenClawGatewayConfigFields({
         />
       </Field>
 
-      <Field label="Timeout (seconds)">
+      <Field label={t("adapters.configFields.timeoutSeconds", { defaultValue: "Timeout (seconds)" })}>
         <DraftInput
           value={
             isCreate
@@ -349,7 +349,7 @@ export function OpenClawGatewayConfigFields({
         />
       </Field>
 
-      <Field label="Headers JSON">
+      <Field label={t("adapters.configFields.headersJson", { defaultValue: "Headers JSON" })}>
         <HeadersJsonTextarea
           isCreate={isCreate}
           createDraft={isCreate ? values!.headersJson ?? "" : ""}

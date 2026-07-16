@@ -110,14 +110,18 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
 }: AttentionQueueRowProps) {
   const { t } = useTranslation();
   const meta = sourceMeta(item.sourceKind);
+  const sourceLabel = t(`pages.whatNeedsMe.sourceKind.${item.sourceKind}`, { defaultValue: meta.label });
   const tone = attentionToneStyle(item);
   const sevBadge = severityBadge(item.severity);
+  const severityLabel = t(`pages.whatNeedsMe.severity.${item.severity}`, {
+    defaultValue: sevBadge?.label ?? item.severity,
+  });
   const Icon = meta.icon;
   const isHidden = variant === "hidden";
   const inline = !isHidden && isInlineResolvable(item);
   const href = item.subject.href;
   const snoozedUntil = item.dismissal?.kind === "snooze" ? item.dismissal.snoozedUntil : null;
-  const detailLine = attentionDetailLine(item) ?? item.whyNow;
+  const detailLine = attentionDetailLine(item, t) ?? item.whyNow;
   const images = attentionDetailImages(item);
   const hasImages = images.length > 0;
   // The issue (or source) this row points at — used as the target for the
@@ -199,7 +203,7 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
             <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
               <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
                 <Icon className={cn("h-3.5 w-3.5", tone.icon)} />
-                {meta.label}
+                {sourceLabel}
               </span>
               {sevBadge && (
                 <span
@@ -208,7 +212,7 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
                     sevBadge.className,
                   )}
                 >
-                  {sevBadge.label}
+                  {severityLabel}
                 </span>
               )}
               {item.relatedIssue?.identifier && (
@@ -286,7 +290,7 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
               : {})}
           >
             <span className="line-clamp-2 text-sm font-medium text-foreground" title={item.subject.title ?? undefined}>
-              {item.subject.title ?? meta.label}
+              {item.subject.title ?? sourceLabel}
             </span>
             <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{detailLine}</p>
           </div>
@@ -539,6 +543,7 @@ function ThumbnailStack({ images }: { images: AttentionDetailImage[] }) {
  * links through to the issue where the full set lives.
  */
 function ExpandedImages({ images, issueHref }: { images: AttentionDetailImage[]; issueHref: string | null }) {
+  const { t } = useTranslation();
   const visible = images.slice(0, 3);
   const extra = images.length - visible.length;
   return (
@@ -575,15 +580,17 @@ function ExpandedImages({ images, issueHref }: { images: AttentionDetailImage[];
           onClick={(e) => e.stopPropagation()}
           className="flex h-32 w-24 flex-col items-center justify-center rounded-md border border-dashed border-border bg-muted/40 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-ring focus-visible:ring-(length:--rad-3) focus-visible:outline-none"
         >
-          <span className="text-base font-semibold">{extra} more</span>
+          <span className="text-base font-semibold">
+            {t("components.attentionQueueRow.moreImages", { defaultValue: "{{count}} more", count: extra })}
+          </span>
           <span className="mt-0.5 inline-flex items-center gap-1 text-(length:--text-nano)">
-            View issue
+            {t("components.attentionQueueRow.viewIssue", { defaultValue: "View task" })}
             <ExternalLink className="h-3 w-3" />
           </span>
         </Link>
       ) : (
         <span className="flex h-32 w-24 items-center justify-center rounded-md border border-dashed border-border bg-muted/40 text-sm font-semibold text-muted-foreground">
-          {extra} more
+          {t("components.attentionQueueRow.moreImages", { defaultValue: "{{count}} more", count: extra })}
         </span>
       ))}
     </div>

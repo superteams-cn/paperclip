@@ -16,7 +16,7 @@ export function SourceTrustBadge({
   className?: string;
 }) {
   const { t } = useTranslation();
-  const label = sourceTrustLabel(sourceTrust);
+  const label = sourceTrustLabel(sourceTrust, t);
   if (!label) return null;
 
   const promoted = sourceTrust?.disposition === "promoted";

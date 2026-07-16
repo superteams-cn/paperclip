@@ -234,7 +234,7 @@ export function RunsSection() {
                         : undefined
                     }
                     title={title}
-                    subtitle={runRowSubtitle(run, routine.variables)}
+                    subtitle={runRowSubtitle(run, routine.variables, t)}
                     reserveSubtitleSpace
                     trailing={
                       <span className="text-xs text-muted-foreground">{timeAgo(run.triggeredAt)}</span>

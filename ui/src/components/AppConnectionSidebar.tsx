@@ -7,6 +7,7 @@ import { toolsApi } from "@/api/tools";
 import { useCompany } from "@/context/CompanyContext";
 import { useSidebar } from "@/context/SidebarContext";
 import { queryKeys } from "@/lib/queryKeys";
+import { useTranslation } from "@/i18n";
 import {
   APP_TABS,
   CONNECTED_ONLY_APP_TABS,
@@ -22,6 +23,7 @@ type AppDetailSidebarProps =
   | { kind: "application"; applicationId: string };
 
 export function AppDetailSidebar(props: AppDetailSidebarProps) {
+  const { t } = useTranslation();
   const { selectedCompanyId } = useCompany();
   const { isMobile, setSidebarOpen } = useSidebar();
 
@@ -60,7 +62,7 @@ export function AppDetailSidebar(props: AppDetailSidebarProps) {
     ? (connectionsQuery.data?.connections ?? []).filter((candidate) => candidate.applicationId === props.applicationId)
     : [];
   const previousConnection = latestArchivedConnection(appConnections);
-  const appName = connection ? humanizeConnectionDisplayName(connection) : application?.name ?? "App";
+  const appName = connection ? humanizeConnectionDisplayName(connection) : application?.name ?? t("apps.appFallback");
   const logoEntry = galleryEntryFor(galleryQuery.data?.apps ?? [], connection, application ?? undefined);
   const reviewConnectionId = connection?.id ?? previousConnection?.id ?? null;
   const attentionItem = reviewConnectionId
@@ -80,7 +82,7 @@ export function AppDetailSidebar(props: AppDetailSidebarProps) {
           className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
         >
           <ChevronLeft className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate">All apps</span>
+          <span className="truncate">{t("apps.allApps")}</span>
         </Link>
         <div className="flex min-w-0 items-center gap-2 px-2 py-1">
           <AppLogo name={appName} logoUrl={logoEntry?.logoUrl} size={28} />
@@ -101,7 +103,7 @@ export function AppDetailSidebar(props: AppDetailSidebarProps) {
               end
               badge={tab.key === "review" && reviewCount > 0 ? reviewCount : undefined}
               badgeTone="danger"
-              badgeLabel="needing review"
+              badgeLabel={t("apps.needingReview")}
             />
           ))}
         </div>

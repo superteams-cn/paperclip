@@ -8,6 +8,7 @@ import {
   Shield,
   TerminalSquare,
 } from "lucide-react";
+import { t } from "@/i18n";
 
 /**
  * The Advanced door is mounted under `/apps/advanced` (PAP-10862, plan D8).
@@ -24,8 +25,8 @@ export function advancedTabHref(tab: ToolTabKey): string {
 // M8a/M8b — the prosumer-facing Advanced setup tabs (PAP-10839 wires). The only
 // screens where "MCP" vocabulary is permitted (PAP-10827).
 export const ADVANCED_TABS = [
-  { key: "run-your-own", label: "Run your own", icon: TerminalSquare },
-  { key: "paste-config", label: "Paste a config", icon: ClipboardPaste },
+  { key: "run-your-own", get label() { return t("tools.tabs.runYourOwn"); }, icon: TerminalSquare },
+  { key: "paste-config", get label() { return t("tools.tabs.pasteConfig"); }, icon: ClipboardPaste },
 ] as const;
 
 // The pre-Apps developer surface, kept reachable behind the Advanced door.
@@ -33,12 +34,12 @@ export const ADVANCED_TABS = [
 // `experimental.enableSmokeLab` is on (see `isExperimentalToolTab` +
 // `useSmokeLabEnabled`), and the route/tab itself gates on the same flag.
 export const DEVELOPER_TABS = [
-  { key: "gateways", label: "Gateways", icon: Network },
-  { key: "profiles", label: "Profiles", icon: Layers },
-  { key: "policies", label: "Rules", icon: Shield },
-  { key: "runtime", label: "Health", icon: Server },
-  { key: "audit", label: "Activity", icon: ScrollText },
-  { key: "smoke-lab", label: "Smoke Lab", icon: FlaskConical },
+  { key: "gateways", get label() { return t("tools.tabs.gateways"); }, icon: Network },
+  { key: "profiles", get label() { return t("tools.tabs.profiles"); }, icon: Layers },
+  { key: "policies", get label() { return t("tools.tabs.rules"); }, icon: Shield },
+  { key: "runtime", get label() { return t("tools.tabs.health"); }, icon: Server },
+  { key: "audit", get label() { return t("tools.tabs.activity"); }, icon: ScrollText },
+  { key: "smoke-lab", get label() { return t("tools.tabs.smokeLab"); }, icon: FlaskConical },
 ] as const;
 
 export const TOOL_TABS = [...ADVANCED_TABS, ...DEVELOPER_TABS] as const;

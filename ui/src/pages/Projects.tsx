@@ -29,13 +29,6 @@ import { Card } from "@/components/ui/card";
 type ProjectSortField = "name" | "updated" | "created" | "targetDate";
 type ProjectSortDir = "asc" | "desc";
 
-const PROJECT_SORT_OPTIONS: Array<{ field: ProjectSortField; label: string }> = [
-  { field: "name", label: "Name" },
-  { field: "updated", label: "Updated" },
-  { field: "created", label: "Created" },
-  { field: "targetDate", label: "Target date" },
-];
-
 function compareProjectNames(left: Project, right: Project) {
   const nameDiff = left.name.localeCompare(right.name, undefined, { sensitivity: "base" });
   return nameDiff !== 0 ? nameDiff : left.id.localeCompare(right.id);
@@ -85,6 +78,12 @@ export function Projects() {
   const { setBreadcrumbs } = useBreadcrumbs();
   const [sortField, setSortField] = useState<ProjectSortField>("name");
   const [sortDir, setSortDir] = useState<ProjectSortDir>("asc");
+  const projectSortOptions: Array<{ field: ProjectSortField; label: string }> = [
+    { field: "name", label: t("pages.projects.sort.name", { defaultValue: "Name" }) },
+    { field: "updated", label: t("pages.projects.sort.updated", { defaultValue: "Updated" }) },
+    { field: "created", label: t("pages.projects.sort.created", { defaultValue: "Created" }) },
+    { field: "targetDate", label: t("pages.projects.sort.targetDate", { defaultValue: "Target date" }) },
+  ];
 
   useEffect(() => {
     setBreadcrumbs([{ label: t("nav.projects", { defaultValue: "Projects" }) }]);
@@ -119,7 +118,8 @@ export function Projects() {
 
     return groups;
   }, [membershipsQuery.data, sortedProjects]);
-  const sortLabel = PROJECT_SORT_OPTIONS.find((option) => option.field === sortField)?.label ?? "Name";
+  const sortLabel = projectSortOptions.find((option) => option.field === sortField)?.label
+    ?? t("pages.projects.sort.name", { defaultValue: "Name" });
 
   if (!selectedCompanyId) {
     return (
@@ -139,14 +139,21 @@ export function Projects() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-fit text-xs" title="Sort">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-fit text-xs"
+              title={t("pages.projects.sort.title", { defaultValue: "Sort" })}
+            >
               <ArrowUpDown className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:mr-1" />
-              <span>Sort: {sortLabel}</span>
+              <span>
+                {t("pages.projects.sort.label", { defaultValue: "Sort: {{field}}", field: sortLabel })}
+              </span>
             </Button>
           </PopoverTrigger>
           <PopoverContent align="start" className="w-44 p-0">
             <div className="p-2 space-y-0.5">
-              {PROJECT_SORT_OPTIONS.map((option) => (
+              {projectSortOptions.map((option) => (
                 <button
                   key={option.field}
                   type="button"
@@ -168,7 +175,9 @@ export function Projects() {
                   {sortField === option.field ? (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Check className="h-3 w-3" />
-                      {sortDir === "asc" ? "Asc" : "Desc"}
+                      {sortDir === "asc"
+                        ? t("pages.projects.sort.ascending", { defaultValue: "Asc" })
+                        : t("pages.projects.sort.descending", { defaultValue: "Desc" })}
                     </span>
                   ) : null}
                 </button>
@@ -196,8 +205,8 @@ export function Projects() {
       {projects.length > 0 && (
         <div className="space-y-6">
           {([
-            ["My Projects", groupedProjects.mine],
-            ["Other Projects", groupedProjects.other],
+            [t("pages.projects.myProjects", { defaultValue: "My Projects" }), groupedProjects.mine],
+            [t("pages.projects.otherProjects", { defaultValue: "Other Projects" }), groupedProjects.other],
           ] as const).map(([label, sectionProjects]) => {
             if (sectionProjects.length === 0) return null;
 
@@ -206,7 +215,10 @@ export function Projects() {
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-medium">{label}</h2>
                   <span className="text-xs text-muted-foreground">
-                    {sectionProjects.length} project{sectionProjects.length === 1 ? "" : "s"}
+                    {t("pages.projects.projectCount", {
+                      defaultValue: "{{count}} project",
+                      count: sectionProjects.length,
+                    })}
                   </span>
                 </div>
                 <Card className="block py-0 overflow-hidden divide-y divide-border">
@@ -231,9 +243,17 @@ export function Projects() {
                           <div className="flex items-center gap-3">
                             <span
                               className="hidden text-xs text-muted-foreground tabular-nums sm:inline"
-                              title={`${formatNumber(project.taskCount ?? 0)} task${(project.taskCount ?? 0) === 1 ? "" : "s"}`}
+                              title={t("pages.projects.taskCount", {
+                                defaultValue: "{{count}} task",
+                                count: project.taskCount ?? 0,
+                                formattedCount: formatNumber(project.taskCount ?? 0),
+                              })}
                             >
-                              {formatNumber(project.taskCount ?? 0)} task{(project.taskCount ?? 0) === 1 ? "" : "s"}
+                              {t("pages.projects.taskCount", {
+                                defaultValue: "{{formattedCount}} task",
+                                count: project.taskCount ?? 0,
+                                formattedCount: formatNumber(project.taskCount ?? 0),
+                              })}
                             </span>
                             {project.budget && (
                               <span className="hidden text-xs text-muted-foreground tabular-nums sm:inline">

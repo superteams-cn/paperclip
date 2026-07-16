@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { nextCronFires, parseCronExpression } from "../lib/cron-fires";
+import { t as translate } from "@/i18n";
 
 export type SchedulePreset = "every_minute" | "every_hour" | "every_day" | "weekdays" | "weekly" | "monthly" | "custom";
 
@@ -17,10 +18,7 @@ const PRESETS: { value: SchedulePreset }[] = [
   { value: "custom" },
 ];
 
-const HOURS = Array.from({ length: 24 }, (_, i) => ({
-  value: String(i),
-  label: i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`,
-}));
+const HOURS = Array.from({ length: 24 }, (_, i) => ({ value: String(i) }));
 
 const MINUTES = Array.from({ length: 12 }, (_, i) => ({
   value: String(i * 5),
@@ -36,16 +34,6 @@ const DAYS_OF_WEEK = [
   { value: "6", key: "sat" },
   { value: "0", key: "sun" },
 ];
-
-const DAY_LABELS_EN: Record<string, string> = {
-  mon: "Mon",
-  tue: "Tue",
-  wed: "Wed",
-  thu: "Thu",
-  fri: "Fri",
-  sat: "Sat",
-  sun: "Sun",
-};
 
 const DAYS_OF_MONTH = Array.from({ length: 31 }, (_, i) => ({
   value: String(i + 1),
@@ -132,27 +120,45 @@ export function buildCron(preset: SchedulePreset, hour: string, minute: string, 
 
 function describeSchedule(cron: string): string {
   const { preset, hour, minute, dayOfWeek, dayOfMonth } = parseCronToPreset(cron);
-  const hourLabel = HOURS.find((h) => h.value === hour)?.label ?? `${hour}`;
-  const timeStr = `${hourLabel.replace(/ (AM|PM)$/, "")}:${minute.padStart(2, "0")} ${hourLabel.match(/(AM|PM)$/)?.[0] ?? ""}`;
+  const hourNumber = Number(hour);
+  const hour12 = Number.isFinite(hourNumber) ? (hourNumber % 12 || 12) : hour;
+  const period = Number.isFinite(hourNumber) && hourNumber >= 12 ? "pm" : "am";
+  const timeStr = translate(`components.scheduleEditor.time.${period}`, {
+    hour: hour12,
+    minute: minute.padStart(2, "0"),
+  });
 
   switch (preset) {
     case "every_minute":
-      return "Every minute";
+      return translate("components.scheduleEditor.descriptions.everyMinute", { defaultValue: "Every minute" });
     case "every_hour":
-      return `Every hour at :${minute.padStart(2, "0")}`;
+      return translate("components.scheduleEditor.descriptions.everyHour", {
+        minute: minute.padStart(2, "0"),
+        defaultValue: `Every hour at :${minute.padStart(2, "0")}`,
+      });
     case "every_day":
-      return `Every day at ${timeStr}`;
+      return translate("components.scheduleEditor.descriptions.everyDay", { time: timeStr, defaultValue: `Every day at ${timeStr}` });
     case "weekdays":
-      return `Weekdays at ${timeStr}`;
+      return translate("components.scheduleEditor.descriptions.weekdays", { time: timeStr, defaultValue: `Weekdays at ${timeStr}` });
     case "weekly": {
       const dayKey = DAYS_OF_WEEK.find((d) => d.value === dayOfWeek)?.key;
-      const day = dayKey ? DAY_LABELS_EN[dayKey] : dayOfWeek;
-      return `Every ${day} at ${timeStr}`;
+      const day = dayKey ? translate(`components.scheduleEditor.days.${dayKey}`) : dayOfWeek;
+      return translate("components.scheduleEditor.descriptions.weekly", { day, time: timeStr, defaultValue: `Every ${day} at ${timeStr}` });
     }
-    case "monthly":
-      return `Monthly on the ${dayOfMonth}${ordinalSuffix(Number(dayOfMonth))} at ${timeStr}`;
+    case "monthly": {
+      const suffix = ordinalSuffix(Number(dayOfMonth));
+      const dayLabel = translate(`components.scheduleEditor.descriptions.ordinal.${suffix}`, {
+        day: dayOfMonth,
+        defaultValue: `${dayOfMonth}${suffix}`,
+      });
+      return translate("components.scheduleEditor.descriptions.monthly", {
+        dayLabel,
+        time: timeStr,
+        defaultValue: `Monthly on the ${dayOfMonth}${ordinalSuffix(Number(dayOfMonth))} at ${timeStr}`,
+      });
+    }
     case "custom":
-      return cron || "No schedule set";
+      return cron || translate("components.scheduleEditor.descriptions.none", { defaultValue: "No schedule set" });
   }
 }
 
@@ -173,7 +179,7 @@ export function getScheduleCronValidation(cron: string): {
   if (!trimmed) {
     return {
       valid: false,
-      message: "Enter a 5-field cron expression.",
+      message: translate("components.scheduleEditor.validation.required", { defaultValue: "Enter a 5-field cron expression." }),
       nextFires: [],
     };
   }
@@ -182,7 +188,7 @@ export function getScheduleCronValidation(cron: string): {
   if (fields.length !== 5) {
     return {
       valid: false,
-      message: `Use exactly 5 fields; this has ${fields.length}.`,
+      message: translate("components.scheduleEditor.validation.fieldCount", { count: fields.length, defaultValue: `Use exactly 5 fields; this has ${fields.length}.` }),
       nextFires: [],
     };
   }
@@ -190,7 +196,7 @@ export function getScheduleCronValidation(cron: string): {
   if (!parseCronExpression(trimmed)) {
     return {
       valid: false,
-      message: "Cron fields must use valid numbers, ranges, lists, wildcards, or steps.",
+      message: translate("components.scheduleEditor.validation.invalidFields", { defaultValue: "Cron fields must use valid numbers, ranges, lists, wildcards, or steps." }),
       nextFires: [],
     };
   }
@@ -198,7 +204,9 @@ export function getScheduleCronValidation(cron: string): {
   const nextFires = nextCronFires(trimmed, 3, { timeZone: "UTC" });
   return {
     valid: true,
-    message: nextFires.length > 0 ? "Valid cron." : "Valid cron, but no upcoming fires were found.",
+    message: nextFires.length > 0
+      ? translate("components.scheduleEditor.validation.valid", { defaultValue: "Valid cron." })
+      : translate("components.scheduleEditor.validation.noUpcomingFires", { defaultValue: "Valid cron, but no upcoming fires were found." }),
     nextFires,
   };
 }
@@ -319,7 +327,12 @@ export function ScheduleEditor({
                 <SelectContent>
                   {HOURS.map((h) => (
                     <SelectItem key={h.value} value={h.value}>
-                      {h.label}
+                      {(() => {
+                        const hourNumber = Number(h.value);
+                        return t(`components.scheduleEditor.hour.${hourNumber >= 12 ? "pm" : "am"}`, {
+                          hour: hourNumber % 12 || 12,
+                        });
+                      })()}
                     </SelectItem>
                   ))}
                 </SelectContent>

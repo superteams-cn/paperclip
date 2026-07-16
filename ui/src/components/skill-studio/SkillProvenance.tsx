@@ -34,7 +34,7 @@ export function SkillLineageChip({
 
   const original = originalQuery.data;
   const label = original
-    ? formatLineageLabel(original)
+    ? formatLineageLabel(original, t)
     : t("components.skillStudio.skillProvenance.originalSkillFallback", {
         defaultValue: "the original skill",
       });

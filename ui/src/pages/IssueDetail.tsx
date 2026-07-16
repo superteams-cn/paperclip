@@ -5,6 +5,7 @@ import { useInfiniteQuery, useQuery, useMutation, useQueryClient, type InfiniteD
 import { useVisibilityRefetchInterval } from "@/lib/polling";
 import { usePublishSharedQueryData, useSharedPollingQuery } from "@/hooks/useSharedPolling";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { ApiError } from "../api/client";
 import { issuesApi } from "../api/issues";
 import { approvalsApi } from "../api/approvals";
@@ -214,10 +215,15 @@ type StopAndFinalizeRunError = Error & {
   runCancelledBeforeStatusUpdateFailed?: boolean;
 };
 
-function createRunCancelledStatusUpdateError(err: unknown): StopAndFinalizeRunError {
+function createRunCancelledStatusUpdateError(err: unknown, t: TFunction): StopAndFinalizeRunError {
   const message = err instanceof Error
-    ? `Run was stopped, but updating the task failed: ${err.message}`
-    : "Run was stopped, but updating the task failed. Retry the task status update.";
+    ? t("pages.issues.detail.stopAndFinalize.runStoppedUpdateFailedWithMessage", {
+        defaultValue: "Run was stopped, but updating the task failed: {{message}}",
+        message: err.message,
+      })
+    : t("pages.issues.detail.stopAndFinalize.runStoppedUpdateFailed", {
+        defaultValue: "Run was stopped, but updating the task failed. Retry the task status update.",
+      });
   const error = new Error(message) as StopAndFinalizeRunError;
   error.runCancelledBeforeStatusUpdateFailed = true;
   return error;
@@ -469,17 +475,18 @@ function mergeOptimisticFeedbackVote(
 }
 
 function ActorIdentity({ evt, agentMap, userProfileMap }: { evt: ActivityEvent; agentMap: Map<string, Agent>; userProfileMap?: Map<string, import("../lib/company-members").CompanyUserProfile> }) {
+  const { t } = useTranslation();
   const id = evt.actorId;
   if (evt.actorType === "agent") {
     const agent = agentMap.get(id);
     return <Identity name={agent?.name ?? id.slice(0, 8)} size="sm" />;
   }
-  if (evt.actorType === "system") return <Identity name="System" size="sm" />;
+  if (evt.actorType === "system") return <Identity name={t("common.system", { defaultValue: "System" })} size="sm" />;
   if (evt.actorType === "user") {
     const profile = userProfileMap?.get(id);
-    return <Identity name={profile?.label ?? "Board"} avatarUrl={profile?.image} size="sm" />;
+    return <Identity name={profile?.label ?? t("common.board")} avatarUrl={profile?.image} size="sm" />;
   }
-  return <Identity name={id || "Unknown"} size="sm" />;
+  return <Identity name={id || t("common.unknown")} size="sm" />;
 }
 
 export type AttributionActor = {
@@ -500,11 +507,22 @@ function AttributionAvatar({
   actor,
   via,
 }: {
-  label: "Assignee" | "Originating";
+  label: string;
   actor: AttributionActor;
   via?: string | null;
 }) {
-  const accessibleLabel = via ? `${label}: ${actor.name} · via ${via}` : `${label}: ${actor.name}`;
+  const { t } = useTranslation();
+  const localizedLabel = label === "Assignee"
+    ? t("pages.issues.attribution.assignee", { defaultValue: "Assignee" })
+    : t("pages.issues.attribution.originating", { defaultValue: "Originating" });
+  const accessibleLabel = via
+    ? t("pages.issues.attribution.via", {
+        label: localizedLabel,
+        actor: actor.name,
+        agent: via,
+        defaultValue: `${localizedLabel}: ${actor.name} · via ${via}`,
+      })
+    : `${localizedLabel}: ${actor.name}`;
   const testIdLabel = label.toLowerCase();
 
   return (
@@ -534,10 +552,15 @@ function AttributionAvatar({
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <div className="text-(length:--text-nano) font-medium uppercase leading-none text-background/70">{label}</div>
+            <div className="text-(length:--text-nano) font-medium uppercase leading-none text-background/70">{localizedLabel}</div>
             <div className="max-w-48 truncate text-xs font-medium leading-4 text-background">{actor.name}</div>
             {via ? (
-              <div className="max-w-48 truncate text-(length:--text-nano) leading-3 text-background/60">via {via}</div>
+              <div className="max-w-48 truncate text-(length:--text-nano) leading-3 text-background/60">
+                {t("pages.issues.attribution.viaAgent", {
+                  agent: via,
+                  defaultValue: `via ${via}`,
+                })}
+              </div>
             ) : null}
           </div>
         </div>
@@ -557,6 +580,7 @@ function IssueAttributionByline({
   userProfileMap: ReadonlyMap<string, import("../lib/company-members").CompanyUserProfile>;
   userLabelMap: ReadonlyMap<string, string>;
 }) {
+  const { t } = useTranslation();
   const assignee: AttributionActor | null = issue.assigneeAgentId
     ? {
         kind: "agent",
@@ -569,7 +593,7 @@ function IssueAttributionByline({
           id: issue.assigneeUserId,
           name: formatUserLabel(issue.assigneeUserId, userLabelMap)
             ?? userProfileMap.get(issue.assigneeUserId)?.label
-            ?? "User",
+            ?? t("common.user", { defaultValue: "User" }),
           avatarUrl: userProfileMap.get(issue.assigneeUserId)?.image ?? null,
         }
       : null;
@@ -586,7 +610,7 @@ function IssueAttributionByline({
           id: originatingActor.id,
           name: formatUserLabel(originatingActor.id, userLabelMap)
             ?? userProfileMap.get(originatingActor.id)?.label
-            ?? "User",
+            ?? t("common.user", { defaultValue: "User" }),
           avatarUrl: userProfileMap.get(originatingActor.id)?.image ?? null,
         }
     : null;
@@ -594,14 +618,13 @@ function IssueAttributionByline({
     originatingActor?.kind === "user" && originatingActor.viaAgentId
       ? agentMap.get(originatingActor.viaAgentId)?.name ?? originatingActor.viaAgentId.slice(0, 8)
       : null;
-  const { t } = useTranslation();
   if (!assignee && !originator) return null;
 
   return (
     <TooltipProvider>
       <AvatarGroup className="-space-x-1.5" aria-label={t("pages.issues.detail.taskPeople", { defaultValue: "Task people" })} data-testid="issue-attribution-avatar-stack">
-        {assignee ? <AttributionAvatar label="Assignee" actor={assignee} /> : null}
-        {originator ? <AttributionAvatar label="Originating" actor={originator} via={originatorVia} /> : null}
+        {assignee ? <AttributionAvatar label={t("pages.issues.attribution.assignee", { defaultValue: "Assignee" })} actor={assignee} /> : null}
+        {originator ? <AttributionAvatar label={t("pages.issues.attribution.originating", { defaultValue: "Originating" })} actor={originator} via={originatorVia} /> : null}
       </AvatarGroup>
     </TooltipProvider>
   );
@@ -681,7 +704,7 @@ function IssueDetailLoadingState({
               {headerSeed.originKind === "routine_execution" && headerSeed.originId ? (
                 <Badge variant="outline"
                   className="border-violet-500/30 bg-violet-500/10 text-(length:--text-nano) text-violet-600 dark:text-violet-400"
-                  title={`Routine execution from routine ${headerSeed.originId}`}
+                  title={t("pages.issues.detail.routineExecutionFrom", { routine: headerSeed.originId, defaultValue: `Routine execution from routine ${headerSeed.originId}` })}
                 >
                   <Repeat className="h-3 w-3" />
                   {t("pages.issues.detail.routine", { defaultValue: "Routine" })}
@@ -1736,8 +1759,18 @@ export function IssueDetail() {
     }
   }, [hasLiveRuns, locallyQueuedCommentRunIds.size]);
   const sourceBreadcrumb = useMemo(
-    () => readIssueDetailBreadcrumb(issueId, location.state, location.search) ?? { label: "Tasks", href: "/issues" },
-    [issueId, location.state, location.search],
+    () => {
+      const breadcrumb = readIssueDetailBreadcrumb(issueId, location.state, location.search)
+        ?? { label: t("nav.issues", { defaultValue: "Tasks" }), href: "/issues" };
+      if (breadcrumb.href.startsWith("/inbox")) {
+        return { ...breadcrumb, label: t("nav.inbox", { defaultValue: "Inbox" }) };
+      }
+      if (breadcrumb.href.startsWith("/issues")) {
+        return { ...breadcrumb, label: t("nav.issues", { defaultValue: "Tasks" }) };
+      }
+      return breadcrumb;
+    },
+    [issueId, location.state, location.search, t],
   );
 
   const { data: rawChildIssues = [], isLoading: childIssuesLoading } = useQuery({
@@ -1990,10 +2023,10 @@ export function IssueDetail() {
       options.push({ id: `agent:${agent.id}`, label: agent.name });
     }
     if (currentUserId) {
-      options.push({ id: `user:${currentUserId}`, label: "Me" });
+      options.push({ id: `user:${currentUserId}`, label: t("common.me", { defaultValue: "Me" }) });
     }
     return options;
-  }, [agents, companyMembers?.users, currentUserId]);
+  }, [agents, companyMembers?.users, currentUserId, t]);
 
   const actualAssigneeValue = useMemo(
     () => assigneeValueFromSelection(issue ?? {}),
@@ -2391,7 +2424,7 @@ export function IssueDetail() {
       try {
         return await issuesApi.update(issueId!, { status });
       } catch (err) {
-        throw createRunCancelledStatusUpdateError(err);
+        throw createRunCancelledStatusUpdateError(err, t);
       }
     },
     onSuccess: ({ comment: _comment, ...nextIssue }, { status }) => {
@@ -2402,7 +2435,9 @@ export function IssueDetail() {
       invalidateIssueRunState();
       invalidateIssueCollections();
       pushToast({
-        title: status === "done" ? "Run stopped and task done" : "Run stopped and task cancelled",
+        title: status === "done"
+          ? t("pages.issues.detail.stopAndFinalize.doneSuccess", { defaultValue: "Run stopped and task done" })
+          : t("pages.issues.detail.stopAndFinalize.cancelSuccess", { defaultValue: "Run stopped and task cancelled" }),
         tone: "success",
       });
     },
@@ -2410,9 +2445,13 @@ export function IssueDetail() {
       const runWasStopped = didRunCancelBeforeStatusUpdateFail(err);
       pushToast({
         title: runWasStopped
-          ? "Run stopped; task update failed"
-          : status === "done" ? "Stop and done failed" : "Stop and cancel failed",
-        body: err instanceof Error ? err.message : "Unable to stop the run and update the task",
+          ? t("pages.issues.detail.stopAndFinalize.updateFailedTitle", { defaultValue: "Run stopped; task update failed" })
+          : status === "done"
+            ? t("pages.issues.detail.stopAndFinalize.doneFailedTitle", { defaultValue: "Stop and done failed" })
+            : t("pages.issues.detail.stopAndFinalize.cancelFailedTitle", { defaultValue: "Stop and cancel failed" }),
+        body: err instanceof Error
+          ? err.message
+          : t("pages.issues.detail.stopAndFinalize.failedBody", { defaultValue: "Unable to stop the run and update the task" }),
         tone: "error",
       });
     },
@@ -2721,15 +2760,15 @@ export function IssueDetail() {
         : false;
       pushToast({
         title: complete
-          ? "All verdicts applied"
-          : `Applied ${applied} decision${applied === 1 ? "" : "s"}`,
+          ? t("pages.issues.detail.toasts.allVerdictsApplied", { defaultValue: "All verdicts applied" })
+          : t("pages.issues.detail.toasts.decisionsApplied", { count: applied, defaultValue: `Applied ${applied} decision${applied === 1 ? "" : "s"}` }),
         tone: "success",
       });
     },
     onError: (err) => {
       pushToast({
-        title: "Apply failed",
-        body: err instanceof Error ? err.message : "Unable to apply the verdicts",
+        title: t("pages.issues.detail.toasts.applyFailed", { defaultValue: "Apply failed" }),
+        body: err instanceof Error ? err.message : t("pages.issues.detail.toasts.applyVerdictsFailed", { defaultValue: "Unable to apply the verdicts" }),
         tone: "error",
       });
     },
@@ -3006,15 +3045,15 @@ export function IssueDetail() {
       invalidateIssueCollections();
       invalidateIssueDocumentAnnotationState();
       pushToast({
-        title: "Comment deleted",
-        body: "The thread now shows a deleted-comment marker.",
+        title: t("pages.issues.detail.toasts.commentDeleted", { defaultValue: "Comment deleted" }),
+        body: t("pages.issues.detail.toasts.commentDeletedBody", { defaultValue: "The thread now shows a deleted-comment marker." }),
         tone: "success",
       });
     },
     onError: (err) => {
       pushToast({
-        title: "Delete failed",
-        body: err instanceof Error ? err.message : "Unable to delete the comment",
+        title: t("pages.issues.detail.toasts.deleteFailed", { defaultValue: "Delete failed" }),
+        body: err instanceof Error ? err.message : t("pages.issues.detail.toasts.deleteCommentFailed", { defaultValue: "Unable to delete the comment" }),
         tone: "error",
       });
     },
@@ -3692,8 +3731,8 @@ export function IssueDetail() {
   const runFinalizationActions = useMemo<readonly IssueChatRunFinalizationAction[]>(() => [
     {
       id: "cancel",
-      label: "Stop and cancel",
-      pendingLabel: "Stopping and cancelling...",
+      label: t("pages.issues.detail.stopAndCancel", { defaultValue: "Stop and cancel" }),
+      pendingLabel: t("pages.issues.detail.stoppingAndCancelling", { defaultValue: "Stopping and cancelling..." }),
       isPending:
         stopAndFinalizeRun.isPending &&
         stopAndFinalizeRun.variables?.status === "cancelled",
@@ -3703,8 +3742,8 @@ export function IssueDetail() {
     },
     {
       id: "done",
-      label: "Stop and done",
-      pendingLabel: "Stopping and marking done...",
+      label: t("pages.issues.detail.stopAndDone", { defaultValue: "Stop and done" }),
+      pendingLabel: t("pages.issues.detail.stoppingAndMarkingDone", { defaultValue: "Stopping and marking done..." }),
       isPending:
         stopAndFinalizeRun.isPending &&
         stopAndFinalizeRun.variables?.status === "done",
@@ -3716,6 +3755,7 @@ export function IssueDetail() {
     stopAndFinalizeRun.isPending,
     stopAndFinalizeRun.mutateAsync,
     stopAndFinalizeRun.variables?.status,
+    t,
   ]);
   const handleAcceptInteraction = useCallback(async (
     interaction: ActionableIssueThreadInteraction,
@@ -3779,13 +3819,13 @@ export function IssueDetail() {
     mutationFn: async (
       request: import("../components/IssueRecoveryActionCard").RecoveryReissueRequest,
     ) => {
-      if (!issue) throw new Error("Task is not loaded yet.");
-      const sourceLabel = issue.identifier ?? "the stalled task";
+      if (!issue) throw new Error(t("pages.issues.detail.taskNotLoaded", { defaultValue: "Task is not loaded yet." }));
+      const sourceLabel = issue.identifier ?? t("pages.issues.detail.stalledTask", { defaultValue: "the stalled task" });
       const descriptionLines = [
-        `Re-issued from ${sourceLabel} on an isolated git worktree after a workspace branch divergence.`,
+        t("pages.issues.detail.reissueDescription", { source: sourceLabel, defaultValue: `Re-issued from ${sourceLabel} on an isolated git worktree after a workspace branch divergence.` }),
         "",
-        `- Base ref (live branch): \`${request.baseRef}\``,
-        ...(request.expectedBranch ? [`- Recorded branch: \`${request.expectedBranch}\``] : []),
+        t("pages.issues.detail.reissueBaseRef", { ref: request.baseRef, defaultValue: `- Base ref (live branch): \`${request.baseRef}\`` }),
+        ...(request.expectedBranch ? [t("pages.issues.detail.reissueRecordedBranch", { branch: request.expectedBranch, defaultValue: `- Recorded branch: \`${request.expectedBranch}\`` })] : []),
         "",
         "---",
         "",
@@ -3812,10 +3852,10 @@ export function IssueDetail() {
     onSuccess: (created) => {
       invalidateIssueCollections();
       pushToast({
-        title: "Isolated re-issue created",
+        title: t("pages.issues.detail.toasts.isolatedReissueCreated", { defaultValue: "Isolated re-issue created" }),
         body: created.identifier
-          ? `${created.identifier} will run on a fresh isolated workspace.`
-          : "A fresh isolated re-issue was created.",
+          ? t("pages.issues.detail.toasts.isolatedReissueCreatedBody", { identifier: created.identifier, defaultValue: `${created.identifier} will run on a fresh isolated workspace.` })
+          : t("pages.issues.detail.toasts.isolatedReissueCreatedBodyFallback", { defaultValue: "A fresh isolated re-issue was created." }),
         tone: "success",
       });
       if (created.identifier) {
@@ -3824,8 +3864,8 @@ export function IssueDetail() {
     },
     onError: (err) => {
       pushToast({
-        title: "Re-issue failed",
-        body: err instanceof Error ? err.message : "Unable to create an isolated re-issue.",
+        title: t("pages.issues.detail.toasts.reissueFailed", { defaultValue: "Re-issue failed" }),
+        body: err instanceof Error ? err.message : t("pages.issues.detail.toasts.reissueFailedBody", { defaultValue: "Unable to create an isolated re-issue." }),
         tone: "error",
       });
     },
@@ -3863,21 +3903,21 @@ export function IssueDetail() {
       pushToast(
         variables.mode === "quarantine_restore"
           ? {
-              title: "Workspace repaired",
-              body: "Dirty changes were quarantined onto a rescue branch and the recorded branch restored; the task will resume.",
+              title: t("pages.issues.detail.toasts.workspaceRepaired", { defaultValue: "Workspace repaired" }),
+              body: t("pages.issues.detail.toasts.workspaceRepairedBody", { defaultValue: "Dirty changes were quarantined onto a rescue branch and the recorded branch restored; the task will resume." }),
               tone: "success",
             }
           : {
-              title: "Workspace branch reconciled",
-              body: "The recorded branch now matches the live branch; the task will resume.",
+              title: t("pages.issues.detail.toasts.workspaceBranchReconciled", { defaultValue: "Workspace branch reconciled" }),
+              body: t("pages.issues.detail.toasts.workspaceBranchReconciledBody", { defaultValue: "The recorded branch now matches the live branch; the task will resume." }),
               tone: "success",
             },
       );
     },
     onError: (err) => {
       pushToast({
-        title: "Reconcile failed",
-        body: err instanceof Error ? err.message : "Unable to reconcile the workspace branch.",
+        title: t("pages.issues.detail.toasts.reconcileFailed", { defaultValue: "Reconcile failed" }),
+        body: err instanceof Error ? err.message : t("pages.issues.detail.toasts.reconcileFailedBody", { defaultValue: "Unable to reconcile the workspace branch." }),
         tone: "error",
       });
     },
@@ -3893,8 +3933,8 @@ export function IssueDetail() {
   const handleReconcileForwardRecoveryAction = useCallback(() => {
     if (!reconcileExecutionWorkspaceId) {
       pushToast({
-        title: "Reconcile failed",
-        body: "This task has no execution workspace to reconcile.",
+        title: t("pages.issues.detail.toasts.reconcileFailed", { defaultValue: "Reconcile failed" }),
+        body: t("pages.issues.detail.toasts.noWorkspaceToReconcile", { defaultValue: "This task has no execution workspace to reconcile." }),
         tone: "error",
       });
       return;
@@ -3908,8 +3948,8 @@ export function IssueDetail() {
     (reason: string) => {
       if (!reconcileExecutionWorkspaceId) {
         pushToast({
-          title: "Reconcile failed",
-          body: "This task has no execution workspace to reconcile.",
+          title: t("pages.issues.detail.toasts.reconcileFailed", { defaultValue: "Reconcile failed" }),
+          body: t("pages.issues.detail.toasts.noWorkspaceToReconcile", { defaultValue: "This task has no execution workspace to reconcile." }),
           tone: "error",
         });
         return;
@@ -3927,8 +3967,8 @@ export function IssueDetail() {
   const handleQuarantineRestoreRecoveryAction = useCallback(() => {
     if (!reconcileExecutionWorkspaceId) {
       pushToast({
-        title: "Repair failed",
-        body: "This task has no execution workspace to repair.",
+        title: t("pages.issues.detail.toasts.repairFailed", { defaultValue: "Repair failed" }),
+        body: t("pages.issues.detail.toasts.noWorkspaceToRepair", { defaultValue: "This task has no execution workspace to repair." }),
         tone: "error",
       });
       return;
@@ -3945,8 +3985,8 @@ export function IssueDetail() {
   );
   // "What this affects" buckets for the pause/hold dialog (design surface 4).
   const pauseAffectsSummary = useMemo(
-    () => computePauseAffectsSummary(treeControlPreview?.issues ?? []),
-    [treeControlPreview],
+    () => computePauseAffectsSummary(treeControlPreview?.issues ?? [], t),
+    [t, treeControlPreview],
   );
   const treePreviewDisplayIssues = useMemo(
     () => {
@@ -4297,7 +4337,7 @@ export function IssueDetail() {
             <Link
               to={`/routines/${issue.originId}`}
               className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 border border-violet-500/30 px-2 py-0.5 text-(length:--text-nano) font-medium text-violet-600 dark:text-violet-400 shrink-0 hover:bg-violet-500/20 transition-colors"
-              title={`Routine execution from routine ${issue.originId}`}
+              title={t("pages.issues.detail.routineExecutionFrom", { routine: issue.originId, defaultValue: `Routine execution from routine ${issue.originId}` })}
             >
               <Repeat className="h-3 w-3" />
               {t("pages.issues.detail.routine", { defaultValue: "Routine" })}
@@ -4331,13 +4371,14 @@ export function IssueDetail() {
           {issue.workMode === "ask" || issue.workMode === "planning" ? (() => {
             const workModeMeta = workModeMetaFor(issue.workMode);
             const WorkModeIcon = workModeMeta.icon;
+            const localizedWorkMode = t(`pages.issues.newDialog.workModes.${issue.workMode}`, { defaultValue: workModeMeta.label });
             return (
               <Badge variant="outline"
                 className={cn("text-(length:--text-nano)", workModeMeta.classes.badge)}
-                title={`This task is in ${workModeMeta.label.toLowerCase()}.`}
+                title={t("pages.issues.detail.workModeTitle", { mode: localizedWorkMode, defaultValue: `This task is in ${localizedWorkMode.toLowerCase()}.` })}
               >
                 <WorkModeIcon className="h-3 w-3" aria-hidden />
-                {workModeMeta.label}
+                {localizedWorkMode}
               </Badge>
             );
           })() : null}
@@ -4796,7 +4837,9 @@ export function IssueDetail() {
         return (
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Artifacts</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">
+                {t("pages.issues.artifacts.title", { defaultValue: "Artifacts" })}
+              </h3>
             </div>
             <div className="flex flex-wrap gap-2">
               {workProductsWithFileRefs.map(({ product, fileRef }) => (

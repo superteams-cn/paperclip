@@ -12,6 +12,7 @@ import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useToastActions } from "../context/ToastContext";
 import { useInboxDismissals } from "../hooks/useInboxBadge";
 import { queryKeys } from "../lib/queryKeys";
+import { formatApiError } from "../lib/api-error";
 import {
   ATTENTION_GROUP_BY_OPTIONS,
   ATTENTION_SORT_OPTIONS,
@@ -527,7 +528,11 @@ export function WhatNeedsMe() {
         </div>
       </div>
 
-      {error && <p className="text-sm text-destructive">{(error as Error).message}</p>}
+      {error && (
+        <p className="text-sm text-destructive">
+          {formatApiError(error, t, t("common.requestFailedTryAgain"))}
+        </p>
+      )}
 
       {!hasAnything ? (
         <ZeroState />
@@ -537,7 +542,25 @@ export function WhatNeedsMe() {
             <CaughtUpNote filtered={activeItems.length > 0} />
           ) : (
             groups.map((group) => {
-              const groupLabel = group.label;
+              const groupLabel = (() => {
+                if (group.label === null) return null;
+                if (group.key.startsWith("date:")) {
+                  const bucket = group.key.slice("date:".length);
+                  return t(`pages.whatNeedsMe.dateBucket.${bucket}`, { defaultValue: group.label });
+                }
+                if (group.key.startsWith("severity:")) {
+                  const severity = group.key.slice("severity:".length);
+                  return t(`pages.whatNeedsMe.severity.${severity}`, { defaultValue: group.label });
+                }
+                if (group.key.startsWith("type:")) {
+                  const kind = group.key.slice("type:".length);
+                  return t(`pages.whatNeedsMe.sourceKind.${kind}`, { defaultValue: group.label });
+                }
+                if (group.key === `project:${NO_GROUP_SENTINEL}`) {
+                  return t("pages.whatNeedsMe.noProject", { defaultValue: "No project" });
+                }
+                return group.label;
+              })();
               const collapsed = groupLabel !== null && collapsedGroupKeys.has(group.key);
               return (
                 <section key={group.key} className="space-y-2">

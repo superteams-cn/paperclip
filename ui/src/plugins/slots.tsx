@@ -41,6 +41,7 @@ import { pluginsApi, type PluginUiContribution } from "@/api/plugins";
 import { authApi } from "@/api/auth";
 import { queryKeys } from "@/lib/queryKeys";
 import { cn } from "@/lib/utils";
+import { t as translate } from "@/i18n";
 import {
   PluginBridgeContext,
   type PluginHostContext,
@@ -154,7 +155,7 @@ function requiresEntityType(slotType: PluginUiSlotType): boolean {
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message) return error.message;
-  return "Unknown error";
+  return translate("common.unknownError", { defaultValue: "Unknown error" });
 }
 
 /**
@@ -723,7 +724,10 @@ class PluginSlotErrorBoundary extends Component<PluginSlotErrorBoundaryProps, Pl
     if (this.state.hasError) {
       return (
         <div className={cn("rounded-md border border-destructive/30 bg-destructive/5 px-2 py-1 text-xs text-destructive", this.props.className)}>
-          {this.props.slot.pluginDisplayName}: failed to render
+          {translate("components.pluginUi.failedToRender", {
+            plugin: this.props.slot.pluginDisplayName,
+            defaultValue: `${this.props.slot.pluginDisplayName}: failed to render`,
+          })}
         </div>
       );
     }
@@ -904,7 +908,10 @@ export function PluginSlotOutlet({
   if (errorMessage) {
     return (
       <div className={cn("rounded-md border border-destructive/30 bg-destructive/5 px-2 py-1 text-xs text-destructive", errorClassName)}>
-        Plugin extensions unavailable: {errorMessage}
+        {translate("components.pluginUi.extensionsUnavailable", {
+          message: errorMessage,
+          defaultValue: `Plugin extensions unavailable: ${errorMessage}`,
+        })}
       </div>
     );
   }

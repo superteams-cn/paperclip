@@ -6,7 +6,8 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 function Breadcrumb({ ...props }: React.ComponentProps<"nav">) {
-  return <nav aria-label="breadcrumb" data-slot="breadcrumb" {...props} />
+  const { t } = useTranslation()
+  return <nav aria-label={t("common.breadcrumb", { defaultValue: "Breadcrumb" })} data-slot="breadcrumb" {...props} />
 }
 
 function BreadcrumbList({ className, ...props }: React.ComponentProps<"ol">) {

@@ -472,11 +472,17 @@ function CommentCard({
                 to={`/agents/${comment.runAgentId}/runs/${comment.runId}`}
                 className="inline-flex items-center rounded-md border border-border bg-accent/30 px-2 py-1 text-(length:--text-nano) font-mono text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
               >
-                run {comment.runId.slice(0, 8)}
+                {t("components.commentThread.runWithId", {
+                  defaultValue: "run {{id}}",
+                  id: comment.runId.slice(0, 8),
+                })}
               </Link>
             ) : (
               <span className="inline-flex items-center rounded-md border border-border bg-accent/30 px-2 py-1 text-(length:--text-nano) font-mono text-muted-foreground">
-                run {comment.runId.slice(0, 8)}
+                {t("components.commentThread.runWithId", {
+                  defaultValue: "run {{id}}",
+                  id: comment.runId.slice(0, 8),
+                })}
               </span>
             )
           ) : undefined}
@@ -489,11 +495,17 @@ function CommentCard({
               to={`/agents/${comment.runAgentId}/runs/${comment.runId}`}
               className="inline-flex items-center rounded-md border border-border bg-accent/30 px-2 py-1 text-(length:--text-nano) font-mono text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
             >
-              run {comment.runId.slice(0, 8)}
+              {t("components.commentThread.runWithId", {
+                defaultValue: "run {{id}}",
+                id: comment.runId.slice(0, 8),
+              })}
             </Link>
           ) : (
             <span className="inline-flex items-center rounded-md border border-border bg-accent/30 px-2 py-1 text-(length:--text-nano) font-mono text-muted-foreground">
-              run {comment.runId.slice(0, 8)}
+              {t("components.commentThread.runWithId", {
+                defaultValue: "run {{id}}",
+                id: comment.runId.slice(0, 8),
+              })}
             </span>
           )}
         </div>
@@ -709,18 +721,25 @@ const TimelineList = memo(function TimelineList({
                 <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-(length:--text-micro) text-muted-foreground">
                   {run.environment ? (
                     <span>
-                      Environment <span className="text-foreground">{run.environment.name}</span>
-                      <span> · {run.environment.driver}</span>
+                      {t("components.commentThread.environment", { defaultValue: "Environment" })}{" "}
+                      <span className="text-foreground">{run.environment.name}</span>
+                      <span>
+                        {" · "}
+                        {t(`pages.companyEnvironments.drivers.${run.environment.driver}`, {
+                          defaultValue: run.environment.driver,
+                        })}
+                      </span>
                     </span>
                   ) : null}
                   {run.environmentLease?.provider ? (
                     <span>
-                      Provider <span className="text-foreground">{run.environmentLease.provider}</span>
+                      {t("components.commentThread.provider", { defaultValue: "Provider" })}{" "}
+                      <span className="text-foreground">{run.environmentLease.provider}</span>
                     </span>
                   ) : null}
                   {run.environmentLease ? (
                     <span>
-                      Lease{" "}
+                      {t("components.commentThread.lease", { defaultValue: "Lease" })}{" "}
                       <span className="font-mono text-foreground">
                         {run.environmentLease.id.slice(0, 8)}
                       </span>

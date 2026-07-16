@@ -2442,7 +2442,7 @@ function RunsPane({
     hasInput,
     skillFileCount: skill.fileInventory.length,
     hasUnsavedSkillEdits: skillDirty,
-  });
+  }, t);
   const templateGateReason = templatesQuery.isLoading
     ? t("pages.skillStudio.runsPane.loadingTemplatesGate", { defaultValue: "Loading run templates" })
     : templatesQuery.isError
@@ -3147,7 +3147,7 @@ function RunDetailView({
   const detail = detailQuery.data ?? null;
   const additionalDocuments = useMemo(() => detail ? getRunAdditionalDocuments(detail) : [], [detail]);
   const rawAttachments = useMemo(() => detail ? getRunRawAttachments(detail) : [], [detail]);
-  const unavailableCopy = useMemo(() => detail ? runHarnessUnavailableCopy(detail) : null, [detail]);
+  const unavailableCopy = useMemo(() => detail ? runHarnessUnavailableCopy(detail, t) : null, [detail, t]);
   const mediaGalleryItems = useMemo<GalleryMediaItem[]>(
     () => detail ? getRunMediaGalleryItems(detail) : [],
     [detail],
@@ -3176,7 +3176,7 @@ function RunDetailView({
   const removed = !agent;
   const outputMode = runOutputMode(detail);
   const nonTerminal = !isTerminalRunStatus(detail.status);
-  const taskLink = testTaskLinkState(detail);
+  const taskLink = testTaskLinkState(detail, t);
 
   return (
     <PaneScaffold title={t("pages.skillStudio.runDetail.title", { defaultValue: "Run" })} action={<BackButton onBack={onBack} />}>
@@ -3463,7 +3463,7 @@ function InteractionSection({
             <EntityRow
               key={summary.id}
               title={summary.title}
-              subtitle={`${summary.kind} · ${summary.status}`}
+              subtitle={`${t(`pages.skillStudio.interactionKinds.${summary.kind}`, { defaultValue: summary.kind })} · ${t(`pages.skillStudio.interactionStatuses.${summary.status}`, { defaultValue: summary.status })}`}
               trailing={
                 harnessIssueId ? (
                   <Button variant="link" size="xs" asChild>

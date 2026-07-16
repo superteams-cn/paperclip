@@ -256,10 +256,16 @@ function SubSection({ title, children }: { title: string; children: React.ReactN
 // Onboarding seam (design §6 + §12.5): the TeamCard tile in its "Pick a starter
 // team" 3-col grid, with the first defaultInstall tile selected.
 function TeamCardShowcase() {
+  useTranslation();
   const [selectedId, setSelectedId] = useState(onboardingTeams[0]?.id ?? null);
+  const localizedTeams = onboardingTeams.map((team) => ({
+    ...team,
+    name: t(`pages.uxLabs.designGuide.showcase.teams.${team.slug}.name`, { defaultValue: team.name }),
+    description: t(`pages.uxLabs.designGuide.showcase.teams.${team.slug}.description`, { defaultValue: team.description }),
+  }));
   return (
     <div className="grid max-w-2xl gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {onboardingTeams.map((team) => (
+      {localizedTeams.map((team) => (
         <TeamCard
           key={team.id}
           team={team}
@@ -391,6 +397,20 @@ export function DesignGuide() {
   const [allowExternal, setAllowExternal] = useState(false);
   const [allowUnpinned, setAllowUnpinned] = useState(false);
   const [allowLocalPath, setAllowLocalPath] = useState(false);
+  const localizeTeam = (team: typeof sampleTeam) => ({
+    ...team,
+    name: t(`pages.uxLabs.designGuide.showcase.teams.${team.slug}.name`, { defaultValue: team.name }),
+    description: t(`pages.uxLabs.designGuide.showcase.teams.${team.slug}.description`, { defaultValue: team.description }),
+  });
+  const localizedSampleTeam = localizeTeam(sampleTeam);
+  const localizedOptionalTeam = localizeTeam(optionalTeam);
+  const localizedWarnTeam = localizeTeam(warnTeam);
+  const localizedSkillPreparations = sampleSkillPreparations.map((preparation) => ({
+    ...preparation,
+    reason: preparation.reason
+      ? t("pages.uxLabs.designGuide.showcase.teams.skillResolutionReason", { defaultValue: preparation.reason })
+      : null,
+  }));
 
   return (
     <div className="space-y-10 max-w-4xl">
@@ -446,35 +466,35 @@ export function DesignGuide() {
       <Section title={t("pages.uxLabs.designGuide.sections.colors")}>
         <SubSection title={t("pages.uxLabs.designGuide.subsections.core")}>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Swatch name="Background" cssVar="--background" />
-            <Swatch name="Foreground" cssVar="--foreground" />
-            <Swatch name="Card" cssVar="--card" />
-            <Swatch name="Primary" cssVar="--primary" />
-            <Swatch name="Primary foreground" cssVar="--primary-foreground" />
-            <Swatch name="Secondary" cssVar="--secondary" />
-            <Swatch name="Muted" cssVar="--muted" />
-            <Swatch name="Muted foreground" cssVar="--muted-foreground" />
-            <Swatch name="Accent" cssVar="--accent" />
-            <Swatch name="Destructive" cssVar="--destructive" />
-            <Swatch name="Border" cssVar="--border" />
-            <Swatch name="Ring" cssVar="--ring" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.background")} cssVar="--background" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.foreground")} cssVar="--foreground" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.card")} cssVar="--card" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.primary")} cssVar="--primary" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.primaryForeground")} cssVar="--primary-foreground" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.secondary")} cssVar="--secondary" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.muted")} cssVar="--muted" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.mutedForeground")} cssVar="--muted-foreground" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.accent")} cssVar="--accent" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.destructive")} cssVar="--destructive" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.border")} cssVar="--border" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.ring")} cssVar="--ring" />
           </div>
         </SubSection>
 
         <SubSection title={t("pages.uxLabs.designGuide.subsections.sidebar")}>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Swatch name="Sidebar" cssVar="--sidebar" />
-            <Swatch name="Sidebar border" cssVar="--sidebar-border" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.sidebar")} cssVar="--sidebar" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.sidebarBorder")} cssVar="--sidebar-border" />
           </div>
         </SubSection>
 
         <SubSection title={t("pages.uxLabs.designGuide.subsections.chart")}>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Swatch name="Chart 1" cssVar="--chart-1" />
-            <Swatch name="Chart 2" cssVar="--chart-2" />
-            <Swatch name="Chart 3" cssVar="--chart-3" />
-            <Swatch name="Chart 4" cssVar="--chart-4" />
-            <Swatch name="Chart 5" cssVar="--chart-5" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.chart", { count: 1 })} cssVar="--chart-1" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.chart", { count: 2 })} cssVar="--chart-2" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.chart", { count: 3 })} cssVar="--chart-3" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.chart", { count: 4 })} cssVar="--chart-4" />
+            <Swatch name={t("pages.uxLabs.designGuide.showcase.colors.chart", { count: 5 })} cssVar="--chart-5" />
           </div>
         </SubSection>
       </Section>
@@ -636,7 +656,7 @@ export function DesignGuide() {
           <div className="flex items-center gap-2 mt-2">
             <StatusIcon status={status} onChange={setStatus} />
             <span className="text-sm">
-              {t("pages.uxLabs.designGuide.currentStatusHint", { status })}
+              {t("pages.uxLabs.designGuide.currentStatusHint", { status: t(`labels.status.${status}`) })}
             </span>
           </div>
         </SubSection>
@@ -646,14 +666,14 @@ export function DesignGuide() {
             {["critical", "high", "medium", "low"].map((p) => (
               <div key={p} className="flex items-center gap-1.5">
                 <PriorityIcon priority={p} />
-                <span className="text-xs text-muted-foreground">{p}</span>
+                <span className="text-xs text-muted-foreground">{t(`labels.priority.${p}`)}</span>
               </div>
             ))}
           </div>
           <div className="flex items-center gap-2 mt-2">
             <PriorityIcon priority={priority} onChange={setPriority} />
             <span className="text-sm">
-              {t("pages.uxLabs.designGuide.currentPriorityHint", { priority })}
+              {t("pages.uxLabs.designGuide.currentPriorityHint", { priority: t(`labels.priority.${priority}`) })}
             </span>
           </div>
         </SubSection>
@@ -665,7 +685,7 @@ export function DesignGuide() {
                 <span className="relative flex h-2.5 w-2.5">
                   <span className={`inline-flex h-full w-full rounded-full ${agentStatusDot[label] ?? agentStatusDotDefault}`} />
                 </span>
-                <span className="text-xs text-muted-foreground">{label}</span>
+                <span className="text-xs text-muted-foreground">{t(`labels.status.${label}`)}</span>
               </div>
             ))}
           </div>
@@ -680,7 +700,7 @@ export function DesignGuide() {
               ["automation", "bg-muted text-muted-foreground"],
             ].map(([label, cls]) => (
               <Badge variant="ghost" key={label} className={`px-1.5 text-(length:--text-nano) ${cls}`}>
-                {label}
+                {t(`pages.agentDetail.runSources.${label === "on_demand" ? "onDemand" : label}`)}
               </Badge>
             ))}
           </div>
@@ -695,11 +715,11 @@ export function DesignGuide() {
             {t("pages.uxLabs.designGuide.issueReferenceDescription.afterStrikethrough")}
           </p>
           <div className="flex items-center gap-2 flex-wrap">
-            <IssueReferencePill issue={{ id: "demo-1", identifier: "PAP-123", title: "Identifier only — no status yet" }} />
-            <IssueReferencePill issue={{ id: "demo-2", identifier: "PAP-456", title: "With in_progress status", status: "in_progress" }} />
-            <IssueReferencePill issue={{ id: "demo-3", identifier: "PAP-789", title: "Done status", status: "done" }} />
-            <IssueReferencePill issue={{ id: "demo-4", identifier: "PAP-101", title: "Blocked status", status: "blocked" }} />
-            <IssueReferencePill strikethrough issue={{ id: "demo-5", identifier: "PAP-202", title: "Removed (strikethrough)", status: "todo" }} />
+            <IssueReferencePill issue={{ id: "demo-1", identifier: "PAP-123", title: t("pages.uxLabs.designGuide.showcase.issueReferences.identifierOnly") }} />
+            <IssueReferencePill issue={{ id: "demo-2", identifier: "PAP-456", title: t("pages.uxLabs.designGuide.showcase.issueReferences.inProgress"), status: "in_progress" }} />
+            <IssueReferencePill issue={{ id: "demo-3", identifier: "PAP-789", title: t("pages.uxLabs.designGuide.showcase.issueReferences.done"), status: "done" }} />
+            <IssueReferencePill issue={{ id: "demo-4", identifier: "PAP-101", title: t("pages.uxLabs.designGuide.showcase.issueReferences.blocked"), status: "blocked" }} />
+            <IssueReferencePill strikethrough issue={{ id: "demo-5", identifier: "PAP-202", title: t("pages.uxLabs.designGuide.showcase.issueReferences.removed"), status: "todo" }} />
           </div>
         </SubSection>
       </Section>
@@ -709,33 +729,34 @@ export function DesignGuide() {
       {/* ============================================================ */}
       <Section title={t("pages.uxLabs.designGuide.sections.agentCapsule", { defaultValue: "Agent Capsule" })}>
         <p className="text-sm text-muted-foreground max-w-prose">
-          The brand &quot;capsule is the agent&quot; motif. A single agent reads as a tall
-          pill that moves through three states as it comes to life. The online fill uses
-          the live brand agent-gradient tokens (<code className="font-mono">--agent-Na</code> →{" "}
-          <code className="font-mono">--agent-Nb</code>); <code className="font-mono">prefers-reduced-motion</code>{" "}
-          skips the liquid rise and pulses and renders the final state.
+          {t("pages.uxLabs.designGuide.showcase.capsule.descriptionBeforeTokens")}{" "}
+          <code className="font-mono">--agent-Na</code> →{" "}
+          <code className="font-mono">--agent-Nb</code>
+          {t("pages.uxLabs.designGuide.showcase.capsule.descriptionBeforeMotion")}{" "}
+          <code className="font-mono">prefers-reduced-motion</code>{" "}
+          {t("pages.uxLabs.designGuide.showcase.capsule.descriptionAfterMotion")}
         </p>
-        <SubSection title="States">
+        <SubSection title={t("pages.uxLabs.designGuide.subsections.states")}>
           <div className="flex items-end gap-10">
             <div className="flex flex-col items-center gap-2">
               <AgentCapsule state="slot" />
-              <span className="text-xs text-muted-foreground">slot</span>
+              <span className="text-xs text-muted-foreground">{t("pages.uxLabs.designGuide.showcase.capsule.slot")}</span>
             </div>
             <div className="flex flex-col items-center gap-2">
               <AgentCapsule state="configured" />
-              <span className="text-xs text-muted-foreground">configured</span>
+              <span className="text-xs text-muted-foreground">{t("pages.uxLabs.designGuide.showcase.capsule.configured")}</span>
             </div>
             <div className="flex flex-col items-center gap-2">
               <AgentCapsule state="online" gradient={5} />
-              <span className="text-xs text-muted-foreground">online</span>
+              <span className="text-xs text-muted-foreground">{t("pages.uxLabs.designGuide.showcase.capsule.online")}</span>
             </div>
             <div className="flex flex-col items-center gap-2">
               <AgentCapsule state="online" gradient={5} glow="blue" />
-              <span className="text-xs text-muted-foreground">online · blue glow</span>
+              <span className="text-xs text-muted-foreground">{t("pages.uxLabs.designGuide.showcase.capsule.onlineBlueGlow")}</span>
             </div>
           </div>
         </SubSection>
-        <SubSection title="Sizes">
+        <SubSection title={t("pages.uxLabs.designGuide.subsections.sizes")}>
           <div className="flex items-end gap-8">
             <div className="flex flex-col items-center gap-2">
               <AgentCapsule state="online" size="sm" gradient={1} />
@@ -755,7 +776,7 @@ export function DesignGuide() {
             </div>
           </div>
         </SubSection>
-        <SubSection title="Gradients">
+        <SubSection title={t("pages.uxLabs.designGuide.showcase.capsule.gradients")}>
           <div className="flex items-end gap-3 flex-wrap">
             {Array.from({ length: AGENT_GRADIENT_COUNT }, (_, i) => (
               <div key={i} className="flex flex-col items-center gap-1.5">
@@ -1185,7 +1206,7 @@ export function DesignGuide() {
           <div className="border border-border rounded-md">
             <EntityRow
               title={t("pages.uxLabs.designGuide.membership.joinedResource", { defaultValue: "Joined resource" })}
-              subtitle="Hover or focus the row to reveal the reserved action slot."
+              subtitle={t("pages.uxLabs.designGuide.membership.joinedDescription")}
               className="group"
               trailing={
                 <MembershipAction
@@ -1198,7 +1219,7 @@ export function DesignGuide() {
             />
             <EntityRow
               title={t("pages.uxLabs.designGuide.membership.leftResource", { defaultValue: "Left resource" })}
-              subtitle="Persistent action with dimmed row content."
+              subtitle={t("pages.uxLabs.designGuide.membership.leftDescription")}
               className="group text-foreground/55"
               trailing={
                 <MembershipAction
@@ -1211,7 +1232,7 @@ export function DesignGuide() {
             />
             <EntityRow
               title={t("pages.uxLabs.designGuide.membership.leavingResource", { defaultValue: "Leaving resource" })}
-              subtitle="Disabled while the optimistic mutation is pending."
+              subtitle={t("pages.uxLabs.designGuide.membership.leavingDescription")}
               className="group text-foreground/55"
               trailing={
                 <MembershipAction
@@ -1226,7 +1247,7 @@ export function DesignGuide() {
             />
             <EntityRow
               title={t("pages.uxLabs.designGuide.membership.joiningResource", { defaultValue: "Joining resource" })}
-              subtitle="The target state is visible immediately while the server confirms."
+              subtitle={t("pages.uxLabs.designGuide.membership.joiningDescription")}
               className="group"
               trailing={
                 <MembershipAction
@@ -1296,22 +1317,22 @@ export function DesignGuide() {
       <Section title={t("pages.uxLabs.designGuide.sections.identity")}>
         <SubSection title={t("pages.uxLabs.designGuide.subsections.sizes")}>
           <div className="flex items-center gap-6">
-            <Identity name="Agent Alpha" size="sm" />
-            <Identity name="Agent Alpha" />
-            <Identity name="Agent Alpha" size="lg" />
+            <Identity name={t("pages.uxLabs.designGuide.showcase.identities.agentAlpha")} size="sm" />
+            <Identity name={t("pages.uxLabs.designGuide.showcase.identities.agentAlpha")} />
+            <Identity name={t("pages.uxLabs.designGuide.showcase.identities.agentAlpha")} size="lg" />
           </div>
         </SubSection>
 
         <SubSection title={t("pages.uxLabs.designGuide.subsections.initialsDerivation")}>
           <div className="flex flex-col gap-2">
-            <Identity name="CEO Agent" size="sm" />
+            <Identity name={t("pages.uxLabs.designGuide.showcase.identities.ceoAgent")} size="sm" />
             <Identity name="Alpha" size="sm" />
-            <Identity name="Quality Assurance Lead" size="sm" />
+            <Identity name={t("pages.uxLabs.designGuide.showcase.identities.qaLead")} size="sm" />
           </div>
         </SubSection>
 
         <SubSection title={t("pages.uxLabs.designGuide.subsections.customInitials")}>
-          <Identity name="Backend Service" initials="BS" size="sm" />
+          <Identity name={t("pages.uxLabs.designGuide.showcase.identities.backendService")} initials="BS" size="sm" />
         </SubSection>
       </Section>
 
@@ -1413,13 +1434,13 @@ export function DesignGuide() {
       {/* ============================================================ */}
       <Section title={t("pages.uxLabs.designGuide.sections.logViewer")}>
         <div className="bg-neutral-950 rounded-lg p-3 font-mono text-xs max-h-80 overflow-y-auto">
-          <div className="text-foreground">[12:00:01] INFO  Agent started successfully</div>
-          <div className="text-foreground">[12:00:02] INFO  Processing task PAP-001</div>
-          <div className="text-yellow-400">[12:00:05] WARN  Rate limit approaching (80%)</div>
-          <div className="text-foreground">[12:00:08] INFO  Task PAP-001 completed</div>
-          <div className="text-red-400">[12:00:12] ERROR Connection timeout to upstream service</div>
-          <div className="text-blue-300">[12:00:12] SYS   Retrying connection in 5s...</div>
-          <div className="text-foreground">[12:00:17] INFO  Reconnected successfully</div>
+          <div className="text-foreground">[12:00:01] INFO  {t("pages.uxLabs.designGuide.showcase.logs.agentStarted")}</div>
+          <div className="text-foreground">[12:00:02] INFO  {t("pages.uxLabs.designGuide.showcase.logs.processingTask", { task: "PAP-001" })}</div>
+          <div className="text-yellow-400">[12:00:05] WARN  {t("pages.uxLabs.designGuide.showcase.logs.rateLimit")}</div>
+          <div className="text-foreground">[12:00:08] INFO  {t("pages.uxLabs.designGuide.showcase.logs.taskCompleted", { task: "PAP-001" })}</div>
+          <div className="text-red-400">[12:00:12] ERROR {t("pages.uxLabs.designGuide.showcase.logs.connectionTimeout")}</div>
+          <div className="text-blue-300">[12:00:12] SYS   {t("pages.uxLabs.designGuide.showcase.logs.retrying")}</div>
+          <div className="text-foreground">[12:00:17] INFO  {t("pages.uxLabs.designGuide.showcase.logs.reconnected")}</div>
           <div className="flex items-center gap-1.5">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full rounded-full bg-blue-400 animate-pulse" />
@@ -1447,12 +1468,12 @@ export function DesignGuide() {
             <span className="text-xs text-muted-foreground">{t("pages.uxLabs.designGuide.assignee", { defaultValue: "Responsible" })}</span>
             <div className="flex items-center gap-1.5">
               <Avatar size="sm"><AvatarFallback>A</AvatarFallback></Avatar>
-              <span className="text-xs">Agent Alpha</span>
+              <span className="text-xs">{t("pages.uxLabs.designGuide.showcase.identities.agentAlpha")}</span>
             </div>
           </div>
           <div className="flex items-center justify-between py-1.5">
             <span className="text-xs text-muted-foreground">{t("pages.companyInvites.table.created")}</span>
-            <span className="text-xs">Jan 15, 2025</span>
+            <span className="text-xs">{t("pages.uxLabs.designGuide.showcase.dates.jan15")}</span>
           </div>
         </div>
       </Section>
@@ -1536,14 +1557,14 @@ export function DesignGuide() {
             <div className="rounded-md border border-border p-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-medium text-muted-foreground">{t("pages.uxLabs.designGuide.agent")}</span>
-                <span className="text-xs text-muted-foreground">Jan 15, 2025</span>
+                <span className="text-xs text-muted-foreground">{t("pages.uxLabs.designGuide.showcase.dates.jan15")}</span>
               </div>
               <p className="text-sm">{t("pages.uxLabs.designGuide.commentThread.agentComment")}</p>
             </div>
             <div className="rounded-md border border-border p-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-medium text-muted-foreground">{t("pages.uxLabs.designGuide.human")}</span>
-                <span className="text-xs text-muted-foreground">Jan 16, 2025</span>
+                <span className="text-xs text-muted-foreground">{t("pages.uxLabs.designGuide.showcase.dates.jan16")}</span>
               </div>
               <p className="text-sm">{t("pages.uxLabs.designGuide.commentThread.humanComment")}</p>
             </div>
@@ -1636,70 +1657,76 @@ export function DesignGuide() {
       {/* ============================================================ */}
       <Section title={t("pages.uxLabs.designGuide.sections.teamCatalog", { defaultValue: "Team Catalog" })}>
         <p className="text-sm text-muted-foreground">
-          Components from the Team Catalog browse/install surface (<code className="font-mono text-xs">/teams-catalog</code>).
-          Fixtures are shared with the Storybook stories.
+          {t("pages.uxLabs.designGuide.showcase.teamCatalog.descriptionBeforeRoute")}{" "}
+          (<code className="font-mono text-xs">/teams-catalog</code>)
+          {t("pages.uxLabs.designGuide.showcase.teamCatalog.descriptionAfterRoute")}
         </p>
 
         <SubSection title={t("pages.uxLabs.designGuide.subsections.teamRow", { defaultValue: "TeamRow (browse list)" })}>
           <div className="w-(--sz-28rem) rounded-md border border-border">
             <div className="px-3 py-2 text-(length:--text-micro) font-semibold uppercase tracking-wide text-muted-foreground">
-              Bundled · 1
+              {t("pages.uxLabs.designGuide.showcase.teamCatalog.bundled", { count: 1 })}
             </div>
-            <TeamRow team={sampleTeam} selected onSelect={() => {}} />
+            <TeamRow team={localizedSampleTeam} selected onSelect={() => {}} />
             <div className="px-3 py-2 text-(length:--text-micro) font-semibold uppercase tracking-wide text-muted-foreground">
-              Optional · 2
+              {t("pages.uxLabs.designGuide.showcase.teamCatalog.optional", { count: 2 })}
             </div>
-            <TeamRow team={optionalTeam} selected={false} onSelect={() => {}} />
+            <TeamRow team={localizedOptionalTeam} selected={false} onSelect={() => {}} />
             <div className="px-3 py-2 text-(length:--text-micro) font-semibold uppercase tracking-wide text-muted-foreground">
-              Installed · 2
+              {t("pages.uxLabs.designGuide.showcase.teamCatalog.installed", { count: 2 })}
             </div>
-            <TeamRow team={sampleTeam} selected={false} onSelect={() => {}} installed={outOfDateInstalledState} />
-            <TeamRow team={warnTeam} selected={false} onSelect={() => {}} installed={currentInstalledState} />
+            <TeamRow team={localizedSampleTeam} selected={false} onSelect={() => {}} installed={outOfDateInstalledState} />
+            <TeamRow team={localizedWarnTeam} selected={false} onSelect={() => {}} installed={currentInstalledState} />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            Installed teams collapse under <code className="font-mono">INSTALLED · N</code>; an out-of-date
-            install (server <code className="font-mono">originHash</code> ≠ catalog <code className="font-mono">contentHash</code>)
-            shows the amber <code className="font-mono">↑</code> badge (PAP-10256).
+            {t("pages.uxLabs.designGuide.showcase.teamCatalog.installedBeforeLabel")}{" "}
+            <code className="font-mono">INSTALLED · N</code>
+            {t("pages.uxLabs.designGuide.showcase.teamCatalog.installedBeforeHashes")}{" "}
+            <code className="font-mono">originHash</code> ≠ <code className="font-mono">contentHash</code>
+            {t("pages.uxLabs.designGuide.showcase.teamCatalog.installedAfterHashes")}{" "}
+            <code className="font-mono">↑</code> {t("pages.uxLabs.designGuide.showcase.teamCatalog.ticketSuffix")}
           </p>
         </SubSection>
 
         <SubSection title={t("pages.uxLabs.designGuide.subsections.teamCard", { defaultValue: "TeamCard (onboarding grid)" })}>
           <p className="text-xs text-muted-foreground">
-            Square tile for the onboarding &ldquo;Pick a starter team&rdquo; grid. Selected tile gets{" "}
-            <code className="font-mono">ring-2 ring-ring</code>. Drives the{" "}
-            <code className="font-mono">useInstallTeamCatalogEntry</code> simplified flow.
+            {t("pages.uxLabs.designGuide.showcase.teamCatalog.cardBeforeRing")}{" "}
+            <code className="font-mono">ring-2 ring-ring</code>
+            {t("pages.uxLabs.designGuide.showcase.teamCatalog.cardBeforeHook")}{" "}
+            <code className="font-mono">useInstallTeamCatalogEntry</code>
+            {t("pages.uxLabs.designGuide.showcase.teamCatalog.cardAfterHook")}
           </p>
           <TeamCardShowcase />
         </SubSection>
 
         <SubSection title={t("pages.uxLabs.designGuide.subsections.teamHierarchyPreview", { defaultValue: "TeamHierarchyPreview" })}>
           <div className="max-w-md">
-            <TeamHierarchyPreview team={sampleTeam} />
+            <TeamHierarchyPreview team={localizedSampleTeam} />
           </div>
         </SubSection>
 
         <SubSection title={t("pages.uxLabs.designGuide.subsections.requiredSkillsList", { defaultValue: "RequiredSkillsList" })}>
           <div className="max-w-xl">
-            <RequiredSkillsList skills={sampleTeam.requiredSkills} />
+            <RequiredSkillsList skills={localizedSampleTeam.requiredSkills} />
           </div>
         </SubSection>
 
         <SubSection title={t("pages.uxLabs.designGuide.subsections.envInputsList", { defaultValue: "EnvInputsList" })}>
           <div className="max-w-xl">
-            <EnvInputsList inputs={sampleTeam.envInputs} />
+            <EnvInputsList inputs={localizedSampleTeam.envInputs} />
           </div>
         </SubSection>
 
         <SubSection title={t("pages.uxLabs.designGuide.subsections.externalSourcesList", { defaultValue: "ExternalSourcesList" })}>
           <div className="max-w-xl">
-            <ExternalSourcesList sources={sampleTeam.sourceRefs} />
+            <ExternalSourcesList sources={localizedSampleTeam.sourceRefs} />
           </div>
         </SubSection>
 
         <SubSection title={t("pages.uxLabs.designGuide.subsections.sourcePolicyStep", { defaultValue: "Source policy step (StepSourcePolicy)" })}>
           <div className="max-w-xl rounded-md border border-border p-4">
             <StepSourcePolicy
-              team={warnTeam}
+              team={localizedWarnTeam}
               allowExternalSources={allowExternal}
               allowUnpinnedOptionalSources={allowUnpinned}
               allowLocalPathSources={allowLocalPath}
@@ -1714,7 +1741,7 @@ export function DesignGuide() {
 
         <SubSection title={t("pages.uxLabs.designGuide.subsections.skillPlanStep", { defaultValue: "Skill plan step (StepSkillPlan)" })}>
           <div className="max-w-xl rounded-md border border-border p-4">
-            <StepSkillPlan team={sampleTeam} preparations={sampleSkillPreparations} />
+            <StepSkillPlan team={localizedSampleTeam} preparations={localizedSkillPreparations} />
           </div>
         </SubSection>
       </Section>
@@ -1776,7 +1803,7 @@ export function DesignGuide() {
       </Section>
 
       <Section title={t("pages.uxLabs.designGuide.sections.issueOutputSurface", { defaultValue: "Issue Output Surface" })}>
-        <SubSection title="Multiple outputs (primary video + 'Also produced')">
+        <SubSection title={t("pages.uxLabs.designGuide.showcase.outputs.multipleTitle")}>
           <IssueOutputSection workProducts={DESIGN_GUIDE_OUTPUTS} />
         </SubSection>
         <SubSection title={t("pages.uxLabs.designGuide.subsections.degradedOutput", { defaultValue: "Degraded output (invalid / failed attachment metadata)" })}>
@@ -1784,8 +1811,7 @@ export function DesignGuide() {
         </SubSection>
         <SubSection title={t("pages.uxLabs.designGuide.subsections.emptyStateOutput", { defaultValue: "Empty state" })}>
           <p className="text-xs text-muted-foreground">
-            When an issue has produced no artifact work products, the Output section renders nothing
-            at all (no placeholder card).
+            {t("pages.uxLabs.designGuide.showcase.outputs.emptyDescription")}
           </p>
         </SubSection>
       </Section>
@@ -1793,45 +1819,46 @@ export function DesignGuide() {
       {/* ============================================================ */}
       {/*  TOOLS & ACCESS (PAP-10389)                                   */}
       {/* ============================================================ */}
-      <Section title="Tools & Access">
-        <SubSection title="EnforcementBanner — default / denied-detected">
+      <Section title={t("pages.uxLabs.designGuide.showcase.tools.sectionTitle")}>
+        <SubSection title={t("pages.uxLabs.designGuide.showcase.tools.enforcementDefaultTitle")}>
           <div className="space-y-3">
             <EnforcementBanner companyId="" forceVariant="default" recentDenialCount={0} />
             <EnforcementBanner companyId="" forceVariant="denied-detected" recentDenialCount={3} />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            Persistent at the top of the Tools &amp; Access surface. Tints to <code>denied-detected</code> when
-            governed tool calls were denied or failed in the last hour. Observability only — enforcement lives
-            in the tool gateway.
+            {t("pages.uxLabs.designGuide.showcase.tools.enforcementDescriptionBeforeTone")}{" "}
+            <code>denied-detected</code>{" "}
+            {t("pages.uxLabs.designGuide.showcase.tools.enforcementDescriptionAfterTone")}
           </p>
         </SubSection>
 
-        <SubSection title="EnforcementBanner — presentational tones (info / warning / error)">
+        <SubSection title={t("pages.uxLabs.designGuide.showcase.tools.enforcementTonesTitle")}>
           <div className="space-y-3">
             <EnforcementBanner
               tone="info"
-              title="Effective access — server resolved."
-              body="This is exactly what the tool gateway will accept. Profile and policy edits reflect within ~5s; the prompt cannot expand it."
+              title={t("pages.uxLabs.designGuide.showcase.tools.effectiveAccessTitle")}
+              body={t("pages.uxLabs.designGuide.showcase.tools.effectiveAccessBody")}
             />
             <EnforcementBanner
               tone="warning"
-              title="Local stdio is local code execution, not a security sandbox."
-              body="A local-stdio slot runs with the orchestrator's privileges. Only bind trusted commands; quarantine anything you would not run yourself."
+              title={t("pages.uxLabs.designGuide.showcase.tools.localStdioTitle")}
+              body={t("pages.uxLabs.designGuide.showcase.tools.localStdioBody")}
             />
             <EnforcementBanner
               tone="error"
-              title="Runtime failed closed."
-              body="The supervisor is restarting (attempt 2/3). The gateway returns runtime-error and the agent does not see partial output."
+              title={t("pages.uxLabs.designGuide.showcase.tools.runtimeFailedTitle")}
+              body={t("pages.uxLabs.designGuide.showcase.tools.runtimeFailedBody")}
             />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            Static governance copy with a tone. Used for the PAP-10400 trust-tier banner on Runtime and the
-            effective-access banner on Agent → Tools. Pass <code>title</code>/<code>body</code> and an optional{" "}
-            <code>icon</code>.
+            {t("pages.uxLabs.designGuide.showcase.tools.staticCopyBeforeProps")}{" "}
+            <code>title</code>/<code>body</code>{" "}
+            {t("pages.uxLabs.designGuide.showcase.tools.staticCopyBeforeIcon")}{" "}
+            <code>icon</code>
           </p>
         </SubSection>
 
-        <SubSection title="Action approval card — pending / stale (surfaces 11/12)">
+        <SubSection title={t("pages.uxLabs.designGuide.showcase.tools.actionCardTitle")}>
           <div className="grid gap-4 lg:grid-cols-2">
             <ActionCard
               toolName="slack.post_message"
@@ -1844,10 +1871,10 @@ export function DesignGuide() {
                 catalogSha256: "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
                 payloadSha256: "sha256:2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae",
               }}
-              input={{ channel: "#launch", text: "Deploy v2 is live 🎉", unfurl_links: false }}
-              reason="This tool can write to your workspace, so a human signs off before the agent posts."
+              input={{ channel: "#launch", text: t("pages.uxLabs.designGuide.showcase.tools.deployMessage"), unfurl_links: false }}
+              reason={t("pages.uxLabs.designGuide.showcase.tools.approvalReason")}
               policyNumber={7}
-              expiresInLabel="expires in 23h 51m"
+              expiresInLabel={t("pages.uxLabs.designGuide.showcase.tools.expiresIn", { hours: 23, minutes: 51 })}
             />
             <ActionCard
               variant="stale"
@@ -1862,21 +1889,22 @@ export function DesignGuide() {
                 previousCatalogSha256: "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
                 payloadSha256: "sha256:2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae",
               }}
-              input={{ channel: "#launch", text: "Deploy v2 is live 🎉", unfurl_links: false }}
-              reason="This tool can write to your workspace, so a human signs off before the agent posts."
+              input={{ channel: "#launch", text: t("pages.uxLabs.designGuide.showcase.tools.deployMessage"), unfurl_links: false }}
+              reason={t("pages.uxLabs.designGuide.showcase.tools.approvalReason")}
               policyNumber={7}
-              expiresInLabel="expires in 18h 02m"
+              expiresInLabel={t("pages.uxLabs.designGuide.showcase.tools.expiresIn", { hours: 18, minutes: 2 })}
             />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            Signed payload sha256 + expiry surface on every variant (PAP-10400). The{" "}
-            <code>stale</code> variant tints the border amber, banners the catalog-hash mismatch, strikes through
-            the previous hash next to the current one, and renders <code>Approve</code> disabled until the request
-            is re-issued.
+            {t("pages.uxLabs.designGuide.showcase.tools.actionCardDescriptionBeforeStale")}{" "}
+            <code>stale</code>{" "}
+            {t("pages.uxLabs.designGuide.showcase.tools.actionCardDescriptionBeforeApprove")}{" "}
+            <code>Approve</code>{" "}
+            {t("pages.uxLabs.designGuide.showcase.tools.actionCardDescriptionAfterApprove")}
           </p>
         </SubSection>
 
-        <SubSection title="Action approval card — mobile (390×844, surface 99)">
+        <SubSection title={t("pages.uxLabs.designGuide.showcase.tools.actionCardMobileTitle")}>
           <div className="w-(--sz-390px) max-w-full rounded-xl border border-border bg-background p-3">
             <ActionCardMobile
               toolName="slack.post_message"
@@ -1889,34 +1917,34 @@ export function DesignGuide() {
                 catalogSha256: "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
                 payloadSha256: "sha256:2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae",
               }}
-              input={{ channel: "#launch", text: "Deploy v2 is live 🎉" }}
-              reason="This tool can write to your workspace, so a human signs off before the agent posts."
+              input={{ channel: "#launch", text: t("pages.uxLabs.designGuide.showcase.tools.deployMessage") }}
+              reason={t("pages.uxLabs.designGuide.showcase.tools.approvalReason")}
               policyNumber={7}
-              expiresInLabel="expires in 23h 51m"
+              expiresInLabel={t("pages.uxLabs.designGuide.showcase.tools.expiresIn", { hours: 23, minutes: 51 })}
             />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            Identical content; the three buttons stack full-width in the order Approve / Deny / Edit &amp; re-sign,
-            and the bindings table uses a 70px label column.
+            {t("pages.uxLabs.designGuide.showcase.tools.mobileDescription")}
           </p>
         </SubSection>
 
-        <SubSection title="BindingsTable (reused in the audit row drilldown)">
+        <SubSection title={t("pages.uxLabs.designGuide.showcase.tools.bindingsTitle")}>
           <BindingsTable
             rows={[
-              { label: "Application", value: "Slack · manifest v2.4.1" },
-              { label: "Connection", value: "https://slack.com/api · acme-workspace", mono: true },
-              { label: "Catalog", value: "sha256:9f86d081…f00a08", mono: true },
-              { label: "Payload", value: "sha256:2c26b46b…66e7ae", mono: true },
+              { label: t("pages.uxLabs.designGuide.showcase.tools.application"), value: "Slack · manifest v2.4.1" },
+              { label: t("pages.uxLabs.designGuide.showcase.tools.connection"), value: "https://slack.com/api · acme-workspace", mono: true },
+              { label: t("pages.uxLabs.designGuide.showcase.tools.catalog"), value: "sha256:9f86d081…f00a08", mono: true },
+              { label: t("pages.uxLabs.designGuide.showcase.tools.payload"), value: "sha256:2c26b46b…66e7ae", mono: true },
             ]}
           />
           <p className="mt-2 text-xs text-muted-foreground">
-            Two-column key/value block with mono values. Lives inside <code>ActionCard</code> and is reused
-            standalone in the audit row drilldown.
+            {t("pages.uxLabs.designGuide.showcase.tools.bindingsDescriptionBeforeCard")}{" "}
+            <code>ActionCard</code>{" "}
+            {t("pages.uxLabs.designGuide.showcase.tools.bindingsDescriptionAfterCard")}
           </p>
         </SubSection>
 
-        <SubSection title="Tool-access status keys (StatusBadge)">
+        <SubSection title={t("pages.uxLabs.designGuide.showcase.tools.statusKeysTitle")}>
           <div className="flex flex-wrap items-center gap-2">
             {[
               "allowed", "denied", "block", "require-approval", "redacted", "rate-limit",
@@ -1926,17 +1954,19 @@ export function DesignGuide() {
             ))}
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            Policy decisions, connection/runtime health, and catalog quarantine all route through the canonical{" "}
-            <code>StatusBadge</code> keys defined in <code>lib/status-colors</code>.
+            {t("pages.uxLabs.designGuide.showcase.tools.statusKeysBeforeBadge")}{" "}
+            <code>StatusBadge</code>{" "}
+            {t("pages.uxLabs.designGuide.showcase.tools.statusKeysBeforePath")}{" "}
+            <code>lib/status-colors</code>
           </p>
         </SubSection>
 
-        <SubSection title="EmptyState (canonical, with description + action)">
+        <SubSection title={t("pages.uxLabs.designGuide.showcase.tools.emptyStateTitle")}>
           <EmptyState
             icon={Inbox}
-            message="No connections yet"
-            description="Add a connection to an application to configure credentials and discover its tools."
-            action="New connection"
+            message={t("pages.uxLabs.designGuide.showcase.tools.noConnections")}
+            description={t("pages.uxLabs.designGuide.showcase.tools.noConnectionsDescription")}
+            action={t("pages.uxLabs.designGuide.showcase.tools.newConnection")}
             onAction={() => {}}
           />
         </SubSection>
@@ -1944,21 +1974,20 @@ export function DesignGuide() {
 
       <Section title={t("pages.uxLabs.designGuide.sections.environmentVariablesEditor", { defaultValue: "Environment Variables Editor" })}>
         <p className="text-sm text-muted-foreground">
-          Reusable env-var editor (agents, projects, environments, routines). One shared grid, an
-          in-field Text/Secret source switch, a fuzzy secret picker with a pinned “Create secret”
-          item, automatic sensitive-value detection, and inline secret-health warnings. See the
-          Storybook <span className="font-mono">Product/Environment Variables Editor</span> stories
-          for all 10 states.
+          {t("pages.uxLabs.designGuide.showcase.environmentVariables.descriptionBeforeStory")}{" "}
+          <span className="font-mono">Product/Environment Variables Editor</span>{" "}
+          {t("pages.uxLabs.designGuide.showcase.environmentVariables.descriptionAfterStory")}
         </p>
         <EnvironmentVariablesEditorShowcase />
       </Section>
 
       <Section title={t("pages.uxLabs.designGuide.sections.resizablePanels", { defaultValue: "Resizable Panels" })}>
         <p className="text-sm text-muted-foreground">
-          Design-system wrapper over <span className="font-mono">react-resizable-panels</span>{" "}
-          (Skill Studio D2). Drag a handle to resize; panels accept percentage or pixel
-          (<span className="font-mono">minSize="240px"</span>) constraints and the middle panel is
-          collapsible. Use anywhere a split view is needed.
+          {t("pages.uxLabs.designGuide.showcase.resizable.descriptionBeforeLibrary")}{" "}
+          <span className="font-mono">react-resizable-panels</span>{" "}
+          {t("pages.uxLabs.designGuide.showcase.resizable.descriptionBeforeMinSize")}{" "}
+          (<span className="font-mono">minSize="240px"</span>){" "}
+          {t("pages.uxLabs.designGuide.showcase.resizable.descriptionAfterMinSize")}
         </p>
         <div className="h-48 max-w-2xl overflow-hidden rounded-md border border-border">
           <ResizablePanelGroup>
@@ -1988,12 +2017,15 @@ export function DesignGuide() {
       {/* ============================================================ */}
       <Section title={t("pages.uxLabs.designGuide.sections.inlineBanner", { defaultValue: "Inline Banner" })}>
         <p className="text-sm text-muted-foreground">
-          Token-backed full-width notice (<span className="font-mono">brandBanner</span> tones). Use{" "}
-          <span className="font-mono">info</span> for provenance/context and{" "}
-          <span className="font-mono">warning</span> for paused/attention. Supports an optional bold
-          title and a trailing actions slot. Replaces hand-rolled{" "}
+          {t("pages.uxLabs.designGuide.showcase.inlineBanner.descriptionBeforeBrand")}{" "}
+          <span className="font-mono">brandBanner</span>{" "}
+          {t("pages.uxLabs.designGuide.showcase.inlineBanner.descriptionBeforeInfo")}{" "}
+          <span className="font-mono">info</span>{" "}
+          {t("pages.uxLabs.designGuide.showcase.inlineBanner.descriptionBeforeWarning")}{" "}
+          <span className="font-mono">warning</span>{" "}
+          {t("pages.uxLabs.designGuide.showcase.inlineBanner.descriptionBeforeClasses")}{" "}
           <span className="font-mono">bg-yellow-*</span>/<span className="font-mono">bg-blue-*</span>{" "}
-          banners.
+          {t("pages.uxLabs.designGuide.showcase.inlineBanner.descriptionAfterClasses")}
         </p>
         <div className="space-y-3">
           <InlineBanner
@@ -2025,9 +2057,9 @@ export function DesignGuide() {
 
       <Section title={t("pages.uxLabs.designGuide.sections.builtInAgentBadges", { defaultValue: "Built-in Agent Badges" })}>
         <p className="text-sm text-muted-foreground">
-          Provenance badge (constant, blue) plus a derived lifecycle chip (amber) for attention
-          states. The lifecycle chip is separate from the agent status vocabulary and only shows for{" "}
-          <span className="font-mono">needs_setup</span> / <span className="font-mono">pending_approval</span>.
+          {t("pages.uxLabs.designGuide.showcase.builtInBadges.descriptionBeforeStates")}{" "}
+          <span className="font-mono">needs_setup</span> / <span className="font-mono">pending_approval</span>
+          {t("pages.uxLabs.designGuide.showcase.builtInBadges.descriptionAfterStates")}
         </p>
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-1.5">
@@ -2044,10 +2076,11 @@ export function DesignGuide() {
           </div>
         </div>
         <p className="mt-3 text-sm text-muted-foreground">
-          <span className="font-mono">&lt;BuiltInAgentGate agentKey&gt;</span> composes{" "}
+          <span className="font-mono">&lt;BuiltInAgentGate agentKey&gt;</span>{" "}
+          {t("pages.uxLabs.designGuide.showcase.builtInBadges.gateBeforeComponents")}{" "}
           <span className="font-mono">PageSkeleton</span> + <span className="font-mono">EmptyState</span>{" "}
-          + <span className="font-mono">InlineBanner</span> to render the loading / setup /
-          pending-approval / paused / ready states of a feature that depends on a built-in agent.
+          + <span className="font-mono">InlineBanner</span>{" "}
+          {t("pages.uxLabs.designGuide.showcase.builtInBadges.gateAfterComponents")}
         </p>
       </Section>
     </div>

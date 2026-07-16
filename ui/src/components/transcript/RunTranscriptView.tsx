@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { TranscriptEntry } from "../../adapters";
 import type { ToolRunDecision } from "@paperclipai/shared";
 import { MarkdownBody, type MarkdownExternalReferenceMap } from "../MarkdownBody";
@@ -333,8 +334,10 @@ function isCommandTool(name: string, input: unknown): boolean {
   return Boolean(record && (typeof record.command === "string" || typeof record.cmd === "string"));
 }
 
-function displayToolName(name: string, input: unknown): string {
-  if (isCommandTool(name, input)) return "Executing command";
+function displayToolName(name: string, input: unknown, t?: TFunction): string {
+  if (isCommandTool(name, input)) {
+    return t?.("components.runTranscript.executingCommand", { defaultValue: "Executing command" }) ?? "Executing command";
+  }
   return humanizeLabel(name);
 }
 
@@ -406,40 +409,42 @@ function findToolDecision(maps: ToolDecisionMaps, refs: ToolDecisionRefs): ToolR
   return null;
 }
 
-function summarizeToolDecision(decision: ToolRunDecision | null): { label: string; className: string; detail?: string } | null {
+function summarizeToolDecision(decision: ToolRunDecision | null, t: TFunction): { label: string; className: string; detail?: string } | null {
   if (!decision) return null;
   if (decision.pendingAction) {
     return {
-      label: "Needs approval",
+      label: t("components.runTranscript.decisionStatuses.needsApproval", { defaultValue: "Needs approval" }),
       className: "text-amber-700 dark:text-amber-300",
-      detail: `Action request ${decision.pendingAction.actionRequestId.slice(0, 8)}`,
+      detail: t("components.runTranscript.actionRequest", { id: decision.pendingAction.actionRequestId.slice(0, 8), defaultValue: `Action request ${decision.pendingAction.actionRequestId.slice(0, 8)}` }),
     };
   }
   if (decision.denialReason || decision.invocation.status === "denied" || decision.outcome === "denied") {
     return {
-      label: "Denied",
+      label: t("components.runTranscript.decisionStatuses.denied", { defaultValue: "Denied" }),
       className: "text-red-700 dark:text-red-300",
       detail: decision.denialReason ?? decision.reasonCode ?? undefined,
     };
   }
   if (decision.invocation.status === "failed" || decision.invocation.status === "timed_out" || decision.outcome === "failure" || decision.outcome === "timeout") {
     return {
-      label: decision.invocation.status === "timed_out" || decision.outcome === "timeout" ? "Timed out" : "Failed",
+      label: decision.invocation.status === "timed_out" || decision.outcome === "timeout"
+        ? t("components.runTranscript.decisionStatuses.timedOut", { defaultValue: "Timed out" })
+        : t("components.runTranscript.decisionStatuses.failed", { defaultValue: "Failed" }),
       className: "text-red-700 dark:text-red-300",
       detail: decision.denialReason ?? decision.reasonCode ?? undefined,
     };
   }
   if (decision.actionRequest?.status === "approved") {
-    return { label: "Approved", className: "text-emerald-700 dark:text-emerald-300" };
+    return { label: t("components.runTranscript.decisionStatuses.approved", { defaultValue: "Approved" }), className: "text-emerald-700 dark:text-emerald-300" };
   }
   if (decision.actionRequest?.status === "executed") {
-    return { label: "Executed", className: "text-emerald-700 dark:text-emerald-300" };
+    return { label: t("components.runTranscript.decisionStatuses.executed", { defaultValue: "Executed" }), className: "text-emerald-700 dark:text-emerald-300" };
   }
   if (decision.decision === "allow" || decision.invocation.status === "authorized" || decision.invocation.status === "executing" || decision.invocation.status === "succeeded") {
-    return { label: "Allowed", className: "text-emerald-700 dark:text-emerald-300" };
+    return { label: t("components.runTranscript.decisionStatuses.allowed", { defaultValue: "Allowed" }), className: "text-emerald-700 dark:text-emerald-300" };
   }
   if (decision.decision === "require_approval" || decision.invocation.approvalState === "pending") {
-    return { label: "Needs approval", className: "text-amber-700 dark:text-amber-300" };
+    return { label: t("components.runTranscript.decisionStatuses.needsApproval", { defaultValue: "Needs approval" }), className: "text-amber-700 dark:text-amber-300" };
   }
   return {
     label: humanizeLabel(decision.invocation.status),
@@ -555,7 +560,7 @@ function groupToolBlocks(blocks: TranscriptBlock[]): TranscriptBlock[] {
   return grouped;
 }
 
-export function normalizeTranscript(entries: TranscriptEntry[], streaming: boolean): TranscriptBlock[] {
+export function normalizeTranscript(entries: TranscriptEntry[], streaming: boolean, t?: TFunction): TranscriptBlock[] {
   const blocks: TranscriptBlock[] = [];
   const pendingToolBlocks = new Map<string, Extract<TranscriptBlock, { type: "tool" }>>();
   const pendingActivityBlocks = new Map<string, Extract<TranscriptBlock, { type: "activity" }>>();
@@ -611,7 +616,7 @@ export function normalizeTranscript(entries: TranscriptEntry[], streaming: boole
       const toolBlock: Extract<TranscriptBlock, { type: "tool" }> = {
         type: "tool",
         ts: entry.ts,
-        name: displayToolName(entry.name, entry.input),
+        name: displayToolName(entry.name, entry.input, t),
         toolUseId,
         invocationId: entry.invocationId,
         actionRequestId: entry.actionRequestId,
@@ -658,7 +663,14 @@ export function normalizeTranscript(entries: TranscriptEntry[], streaming: boole
         ts: entry.ts,
         label: "init",
         tone: "info",
-        text: `model ${entry.model}${entry.sessionId ? ` • session ${entry.sessionId}` : ""}`,
+        text: t
+          ? t("components.runTranscript.modelSession", {
+              model: entry.model,
+              session: entry.sessionId ?? "",
+              sessionSuffix: entry.sessionId ? t("components.runTranscript.sessionSuffix", { session: entry.sessionId, defaultValue: ` • session ${entry.sessionId}` }) : "",
+              defaultValue: `model ${entry.model}${entry.sessionId ? ` • session ${entry.sessionId}` : ""}`,
+            })
+          : `model ${entry.model}${entry.sessionId ? ` • session ${entry.sessionId}` : ""}`,
       });
       continue;
     }
@@ -669,7 +681,9 @@ export function normalizeTranscript(entries: TranscriptEntry[], streaming: boole
         ts: entry.ts,
         label: "result",
         tone: entry.isError ? "error" : "info",
-        text: entry.text.trim() || entry.errors[0] || (entry.isError ? "Run failed" : "Completed"),
+        text: entry.text.trim() || entry.errors[0] || (entry.isError
+          ? t?.("components.runTranscript.summaries.runFailed", { defaultValue: "Run failed" }) ?? "Run failed"
+          : t?.("components.runTranscript.summaries.completed", { defaultValue: "Completed" }) ?? "Completed"),
         detail:
           !entry.isError && entry.text.trim().length > 0
             ? `${formatTokens(entry.inputTokens)} / ${formatTokens(entry.outputTokens)} / $${entry.costUsd.toFixed(6)}`
@@ -859,7 +873,8 @@ function TranscriptThinkingBlock({
 }
 
 function ToolDecisionBadge({ decision }: { decision: ToolRunDecision | null }) {
-  const summary = summarizeToolDecision(decision);
+  const { t } = useTranslation();
+  const summary = summarizeToolDecision(decision, t);
   if (!summary) return null;
   return (
     <span className={cn("text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-eyebrow)", summary.className)}>
@@ -869,7 +884,8 @@ function ToolDecisionBadge({ decision }: { decision: ToolRunDecision | null }) {
 }
 
 function ToolDecisionInlineDetail({ decision }: { decision: ToolRunDecision | null }) {
-  const summary = summarizeToolDecision(decision);
+  const { t } = useTranslation();
+  const summary = summarizeToolDecision(decision, t);
   if (!summary?.detail) return null;
   return (
     <div className="mt-1 break-words text-(length:--text-micro) text-muted-foreground">
@@ -879,6 +895,7 @@ function ToolDecisionInlineDetail({ decision }: { decision: ToolRunDecision | nu
 }
 
 function ToolDecisionDetails({ decision, compact }: { decision: ToolRunDecision | null; compact: boolean }) {
+  const { t } = useTranslation();
   if (!decision) return null;
   const actionRequest = decision.actionRequest;
   return (
@@ -887,7 +904,9 @@ function ToolDecisionDetails({ decision, compact }: { decision: ToolRunDecision 
       compact ? "text-(length:--text-micro)" : "text-xs",
     )}>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="font-semibold uppercase tracking-(--tracking-eyebrow) text-muted-foreground">Decision</span>
+        <span className="font-semibold uppercase tracking-(--tracking-eyebrow) text-muted-foreground">
+          {t("components.runTranscript.decision", { defaultValue: "Decision" })}
+        </span>
         <ToolDecisionBadge decision={decision} />
         {decision.reasonCode && <span className="font-mono text-muted-foreground">{decision.reasonCode}</span>}
       </div>
@@ -897,10 +916,10 @@ function ToolDecisionDetails({ decision, compact }: { decision: ToolRunDecision 
         </div>
       )}
       <div className="mt-2 grid gap-1 font-mono text-muted-foreground sm:grid-cols-2">
-        <span>invocation {decision.invocation.id.slice(0, 8)}</span>
-        <span>audit {decision.auditEvents.length}</span>
-        {actionRequest && <span>action {actionRequest.status} {actionRequest.id.slice(0, 8)}</span>}
-        {actionRequest?.interactionId && <span>card {actionRequest.interactionId.slice(0, 8)}</span>}
+        <span>{t("components.runTranscript.invocation", { defaultValue: "Invocation" })} {decision.invocation.id.slice(0, 8)}</span>
+        <span>{t("components.runTranscript.audit", { defaultValue: "Audit" })} {decision.auditEvents.length}</span>
+        {actionRequest && <span>{t("components.runTranscript.action", { defaultValue: "Action" })} {actionRequest.status} {actionRequest.id.slice(0, 8)}</span>}
+        {actionRequest?.interactionId && <span>{t("components.runTranscript.card", { defaultValue: "Card" })} {actionRequest.interactionId.slice(0, 8)}</span>}
       </div>
       {decision.pendingAction?.previewMarkdown && (
         <MarkdownBody className="mt-2 text-(length:--text-micro) leading-5 text-foreground/75 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
@@ -1427,7 +1446,11 @@ function TranscriptEventRow({
           ) : (
             <div className={cn("whitespace-pre-wrap break-words", compact ? "text-(length:--text-micro)" : "text-xs")}>
               <span className="text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-label) text-muted-foreground/70">
-                {block.label}
+                {block.label === "init"
+                  ? t("components.runTranscript.init", { defaultValue: "init" })
+                  : block.label === "result"
+                    ? t("components.runTranscript.result", { defaultValue: "result" })
+                    : block.label}
               </span>
               {text ? <span className="ml-2">{text}</span> : null}
             </div>
@@ -1632,7 +1655,7 @@ function TranscriptStdoutRow({
     <div>
       <div className="flex items-center gap-2">
         <span className="text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-caps) text-muted-foreground">
-          stdout
+          {t("components.runTranscript.stdout", { defaultValue: "stdout" })}
         </span>
         <button
           type="button"
@@ -1783,8 +1806,8 @@ export function RunTranscriptView({
   const { t } = useTranslation();
   const resolvedEmptyMessage = emptyMessage ?? t("components.runTranscript.empty");
   const blocks = useMemo(
-    () => (mode === "raw" ? [] : normalizeTranscript(entries, streaming)),
-    [entries, mode, streaming],
+    () => (mode === "raw" ? [] : normalizeTranscript(entries, streaming, t)),
+    [entries, mode, streaming, t],
   );
   const visibleBlocks = limit ? blocks.slice(-limit) : blocks;
   const visibleEntries = limit ? entries.slice(-limit) : entries;

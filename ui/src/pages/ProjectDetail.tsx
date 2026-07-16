@@ -218,7 +218,7 @@ function ProjectTilePicker({
                     : "hover:ring-2 hover:ring-foreground/30"
                 }`}
                 style={{ backgroundColor: swatch }}
-                aria-label={`Select color ${swatch}`}
+                aria-label={t("components.projectProperties.selectColor", { color: swatch, defaultValue: `Select color ${swatch}` })}
               />
             ))}
           </div>

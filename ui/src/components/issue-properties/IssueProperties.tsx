@@ -644,8 +644,8 @@ export function IssueProperties({
     [agents, userLabelMap, currentUserId],
   );
   const reassignInterruptCopy = useMemo(
-    () => describeReassignInterrupt({ runningAgentName: assignee?.name ?? null }),
-    [assignee?.name],
+    () => describeReassignInterrupt({ runningAgentName: assignee?.name ?? null }, t),
+    [assignee?.name, t],
   );
   const closeAssigneePicker = () => {
     setAssigneeOpen(false);

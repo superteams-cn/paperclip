@@ -221,7 +221,7 @@ export function TrustPresetSection({
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">
                     {t("components.trustPresetSection.managedByEeApiDescription", {
                       defaultValue: "This policy has {{summary}} and cannot be edited by the CE single-boundary editor.",
-                      summary: summarizeLowTrustBoundaryTarget(boundary).toLowerCase(),
+                      summary: summarizeLowTrustBoundaryTarget(boundary, t),
                     })}
                   </p>
                 </div>

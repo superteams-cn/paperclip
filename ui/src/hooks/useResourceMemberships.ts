@@ -6,6 +6,7 @@ import type {
 } from "@paperclipai/shared";
 import { resourceMembershipsApi } from "../api/resourceMemberships";
 import { useToastActions } from "../context/ToastContext";
+import { t as translate } from "@/i18n";
 import { queryKeys } from "../lib/queryKeys";
 
 type MutationVariables = {
@@ -143,7 +144,7 @@ export function useResourceMembershipMutation(companyId: string | null | undefin
 
   return useMutation({
     mutationFn: (variables: MutationVariables) => {
-      if (!companyId) throw new Error("Select a company first.");
+      if (!companyId) throw new Error(translate("common.selectCompanyFirst", { defaultValue: "Select a company first." }));
       const body = { state: variables.state, starred: variables.starred };
       return variables.resourceType === "project"
         ? resourceMembershipsApi.updateProject(companyId, variables.resourceId, body)
@@ -165,12 +166,15 @@ export function useResourceMembershipMutation(companyId: string | null | undefin
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
       }
-      const verb = variables.starred !== undefined
+      const action = variables.starred !== undefined
         ? variables.starred ? "star" : "unstar"
         : variables.state === "left" ? "leave" : "join";
       pushToast({
-        title: `Couldn't ${verb} ${variables.resourceName}.`,
-        body: error instanceof Error ? error.message : "Try again.",
+        title: translate(`common.resourceMembershipErrors.${action}`, {
+          defaultValue: `Couldn't ${action} {{name}}.`,
+          name: variables.resourceName,
+        }),
+        body: error instanceof Error ? error.message : translate("common.tryAgain", { defaultValue: "Try again." }),
         tone: "error",
       });
     },

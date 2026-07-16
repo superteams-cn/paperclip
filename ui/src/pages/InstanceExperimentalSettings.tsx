@@ -369,8 +369,7 @@ export function InstanceExperimentalSettings() {
           <div className="space-y-1 text-sm">
             <p className="font-medium text-foreground">{t("pages.instanceExperimental.warningTitle", { defaultValue: "Experimental features may break at any time." })}</p>
             <p className="text-muted-foreground">
-              These features are opt-in and come with no compatibility guarantees. They may change, break, or be
-              removed without notice. Avoid relying on them for critical or production workflows.
+              {t("pages.instanceExperimental.warningDescription")}
             </p>
           </div>
         </div>
@@ -389,9 +388,7 @@ export function InstanceExperimentalSettings() {
               <div className="space-y-1.5">
                 <h2 className="text-sm font-semibold">{t("pages.instanceExperimental.worktreeRun.title", { defaultValue: "Run tasks in this worktree" })}</h2>
                 <p className="max-w-2xl text-sm text-muted-foreground">
-                  This is an isolated git-worktree preview instance. Turn this on to let the scheduler execute runs
-                  here. Only tasks created after enabling will run automatically — copied/pre-existing tasks stay
-                  parked. Toggling off and on resets the cutoff.
+                  {t("pages.instanceExperimental.worktreeRun.description")}
                 </p>
               </div>
               <ToggleSwitch
@@ -408,11 +405,7 @@ export function InstanceExperimentalSettings() {
               <div className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-sm text-foreground">
                 <Play className="h-4 w-4 shrink-0 text-emerald-600" />
                 <span>
-                  Running tasks created after{" "}
-                  <span className="font-medium">
-                    {formatActivationTimestamp(worktreeRunExecutionState.activatedAt)}
-                  </span>
-                  .
+                  {t("pages.instanceExperimental.worktreeRun.runningAfter", { time: formatActivationTimestamp(worktreeRunExecutionState.activatedAt) })}
                 </span>
               </div>
             ) : null}
@@ -421,12 +414,12 @@ export function InstanceExperimentalSettings() {
               <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
                 <div className="space-y-0.5">
-                  <p className="font-medium text-foreground">Execution is suppressed — effectively off.</p>
+                  <p className="font-medium text-foreground">{t("pages.instanceExperimental.worktreeRun.suppressed")}</p>
                   <p className="text-muted-foreground">
                     {worktreeRunExecutionState.reason === "instance_mismatch"
-                      ? "This setting was armed in a different instance and copied here, so no tasks run automatically."
-                      : "This setting is missing its activation cutoff, so no tasks run automatically."}{" "}
-                    Toggle it off and back on to arm execution for tasks created here.
+                      ? t("pages.instanceExperimental.worktreeRun.instanceMismatch")
+                      : t("pages.instanceExperimental.worktreeRun.missingCutoff")}{" "}
+                    {t("pages.instanceExperimental.worktreeRun.rearmHint")}
                   </p>
                 </div>
               </div>
@@ -439,18 +432,18 @@ export function InstanceExperimentalSettings() {
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold">Apps</h2>
-              <Badge variant="secondary">Experimental</Badge>
+              <h2 className="text-sm font-semibold">{t("pages.instanceExperimental.apps.title")}</h2>
+              <Badge variant="secondary">{t("nav.experimental")}</Badge>
             </div>
             <p className="max-w-2xl text-sm text-muted-foreground">
-              Show the Apps navigation and allow access to app connections, gateways, and advanced app tooling.
+              {t("pages.instanceExperimental.apps.description")}
             </p>
           </div>
           <ToggleSwitch
             checked={enableApps}
             onCheckedChange={() => toggleMutation.mutate({ enableApps: !enableApps })}
             disabled={toggleMutation.isPending}
-            aria-label="Toggle apps experimental setting"
+            aria-label={t("pages.instanceExperimental.apps.toggle")}
           />
         </div>
       </Card>
@@ -459,15 +452,14 @@ export function InstanceExperimentalSettings() {
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold">Cases</h2>
-              <Badge variant="secondary">Experimental</Badge>
+              <h2 className="text-sm font-semibold">{t("pages.instanceExperimental.cases.title")}</h2>
+              <Badge variant="secondary">{t("nav.experimental")}</Badge>
             </div>
             <p className="max-w-2xl text-sm text-muted-foreground">
-              Durable work products (blog posts, tweet storms…) that tasks create and iterate on. Adds the
-              Cases tab and the agent case API.
+              {t("pages.instanceExperimental.cases.description")}
             </p>
             <p className="max-w-2xl text-xs text-muted-foreground">
-              Turning Cases off hides the tab and blocks the case API; existing case data is kept.
+              {t("pages.instanceExperimental.cases.disableHint")}
             </p>
           </div>
           <ToggleSwitch
@@ -501,8 +493,7 @@ export function InstanceExperimentalSettings() {
           <div className="space-y-1.5">
             <h2 className="text-sm font-semibold">{t("pages.instanceExperimental.builtInAgents.title", { defaultValue: "Built-in Agents" })}</h2>
             <p className="max-w-2xl text-sm text-muted-foreground">
-              Show Paperclip-managed built-in agent surfaces, including built-in roster badges, the Built-in agents
-              tab, and built-in agent setup controls.
+              {t("pages.instanceExperimental.builtInAgents.description")}
             </p>
           </div>
           <ToggleSwitch
@@ -540,8 +531,7 @@ export function InstanceExperimentalSettings() {
           <div className="space-y-1.5">
             <h2 className="text-sm font-semibold">{t("pages.instanceExperimental.externalObjects.title", { defaultValue: "Enable External Objects" })}</h2>
             <p className="max-w-2xl text-sm text-muted-foreground">
-              Detect external URLs in issues and show resolved status for pull requests, tickets, and other referenced
-              work objects.
+              {t("pages.instanceExperimental.externalObjects.description")}
             </p>
           </div>
           <ToggleSwitch
@@ -556,10 +546,9 @@ export function InstanceExperimentalSettings() {
       <Card className="block p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1.5">
-            <h2 className="text-sm font-semibold">Decisions</h2>
+            <h2 className="text-sm font-semibold">{t("pages.instanceExperimental.decisions.title")}</h2>
             <p className="max-w-2xl text-sm text-muted-foreground">
-              Show the Decisions item in the main sidebar — the attention home that surfaces the tasks awaiting your
-              input — while the surface is still being evaluated.
+              {t("pages.instanceExperimental.decisions.description")}
             </p>
           </div>
           <ToggleSwitch
@@ -611,9 +600,7 @@ export function InstanceExperimentalSettings() {
             <div className="space-y-1.5">
               <h2 className="text-sm font-semibold">{t("pages.instanceExperimental.conferenceRoom.title", { defaultValue: "Conference Room Chat" })}</h2>
               <p className="max-w-2xl text-sm text-muted-foreground">
-                Adds a Conference Room — one chat where you and your whole team work together — plus the live activity
-                feed and the redesigned onboarding. Also restyles task threads as chat bubbles. Turn off anytime to
-                restore the classic UI.
+                {t("pages.instanceExperimental.conferenceRoom.description")}
               </p>
             </div>
             <ToggleSwitch
@@ -635,8 +622,7 @@ export function InstanceExperimentalSettings() {
           <div className="space-y-1.5">
             <h2 className="text-sm font-semibold">{t("pages.instanceExperimental.planDecomposition.title", { defaultValue: "Task Plan Decomposition Panel" })}</h2>
             <p className="max-w-2xl text-sm text-muted-foreground">
-              Show accepted-plan decomposition history on task detail pages. Intended for debugging and validating
-              subtask creation behavior while the presentation is still being refined.
+              {t("pages.instanceExperimental.planDecomposition.description")}
             </p>
           </div>
           <ToggleSwitch
@@ -657,8 +643,7 @@ export function InstanceExperimentalSettings() {
           <div className="space-y-1.5">
             <h2 className="text-sm font-semibold">{t("pages.instanceExperimental.taskWatchdogs.title", { defaultValue: "Task Watchdogs" })}</h2>
             <p className="max-w-2xl text-sm text-muted-foreground">
-              Show task detail controls for configuring watchdog agents that verify stopped task subtrees and restore
-              live paths when work should continue.
+              {t("pages.instanceExperimental.taskWatchdogs.description")}
             </p>
           </div>
           <ToggleSwitch
@@ -696,7 +681,7 @@ export function InstanceExperimentalSettings() {
           <div className="space-y-1.5">
             <h2 className="text-sm font-semibold">{t("pages.instanceExperimental.serverInfoDebug.title", { defaultValue: "Server Info Debug View" })}</h2>
             <p className="max-w-2xl text-sm text-muted-foreground">
-              Show a "Server" section in the account drawer with the current server restart time and running commit.
+              {t("pages.instanceExperimental.serverInfoDebug.description")}
             </p>
           </div>
           <ToggleSwitch
@@ -715,18 +700,16 @@ export function InstanceExperimentalSettings() {
       <Card className="block p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1.5">
-            <h2 className="text-sm font-semibold">Smoke Lab</h2>
+            <h2 className="text-sm font-semibold">{t("pages.instanceExperimental.smokeLab.title")}</h2>
             <p className="max-w-2xl text-sm text-muted-foreground">
-              Add a "Smoke Lab" tab under Apps → Developer and an "Integration smoke" card on the
-              dashboard for exercising every integration path against deterministic local fixtures
-              (fake OAuth provider + loopback MCP servers). Private (non-public) deployments only.
+              {t("pages.instanceExperimental.smokeLab.description")}
             </p>
           </div>
           <ToggleSwitch
             checked={enableSmokeLab}
             onCheckedChange={() => toggleMutation.mutate({ enableSmokeLab: !enableSmokeLab })}
             disabled={toggleMutation.isPending}
-            aria-label="Toggle smoke lab experimental setting"
+            aria-label={t("pages.instanceExperimental.smokeLab.toggle")}
           />
         </div>
       </Card>

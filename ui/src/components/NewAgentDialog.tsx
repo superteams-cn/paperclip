@@ -105,11 +105,13 @@ export function NewAgentDialog() {
         return {
           value: a.type,
           label: display.label,
-          desc: display.description,
+          desc: t(`adapters.display.${a.type}.description`, { defaultValue: display.description }),
           icon: display.icon,
           recommended: display.recommended,
           comingSoon: display.comingSoon,
-          disabledLabel: display.disabledLabel,
+          disabledLabel: display.disabledLabel
+            ? t(`adapters.display.${a.type}.disabledLabel`, { defaultValue: display.disabledLabel })
+            : undefined,
         };
       })
       .sort((a, b) => {
@@ -117,7 +119,7 @@ export function NewAgentDialog() {
         if (!a.recommended && b.recommended) return 1;
         return a.label.localeCompare(b.label);
       });
-  }, [disabledTypes, serverAdapters]);
+  }, [disabledTypes, serverAdapters, t]);
 
   function handleAskCeo() {
     closeNewAgent();

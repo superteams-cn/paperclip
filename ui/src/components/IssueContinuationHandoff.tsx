@@ -6,6 +6,7 @@ import { cn, relativeTime } from "../lib/utils";
 import { MarkdownBody, type MarkdownExternalReferenceMap } from "./MarkdownBody";
 import { Check, ChevronDown, ChevronRight, Copy, History } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "react-i18next";
 
 type IssueContinuationHandoffProps = {
   document: IssueDocument | null | undefined;
@@ -18,6 +19,7 @@ export function IssueContinuationHandoff({
   focusSignal = 0,
   externalReferences,
 }: IssueContinuationHandoffProps) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [highlighted, setHighlighted] = useState(false);
@@ -53,7 +55,8 @@ export function IssueContinuationHandoff({
 
   if (!document) return null;
 
-  const title = document.title?.trim() || "Continuation handoff";
+  const title = document.title?.trim()
+    || t("components.issueContinuationHandoff.title", { defaultValue: "Continuation handoff" });
 
   return (
     <div
@@ -69,7 +72,9 @@ export function IssueContinuationHandoff({
           type="button"
           className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
           onClick={() => setExpanded((current) => !current)}
-          aria-label={expanded ? "Collapse continuation handoff" : "Expand continuation handoff"}
+          aria-label={expanded
+            ? t("components.issueContinuationHandoff.collapse", { defaultValue: "Collapse continuation handoff" })
+            : t("components.issueContinuationHandoff.expand", { defaultValue: "Expand continuation handoff" })}
           aria-expanded={expanded}
         >
           {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
@@ -79,17 +84,27 @@ export function IssueContinuationHandoff({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-foreground">{title}</span>
             <Badge variant="outline" className="border-border font-mono text-(length:--text-nano) uppercase text-muted-foreground">
-              handoff
+              {t("components.issueContinuationHandoff.badge", { defaultValue: "handoff" })}
             </Badge>
           </div>
           <div className="text-(length:--text-micro) text-muted-foreground">
-            Updated {relativeTime(document.updatedAt)}
-            {document.latestRevisionNumber > 0 ? ` - revision ${document.latestRevisionNumber}` : ""}
+            {t("components.issueContinuationHandoff.updated", {
+              defaultValue: "Updated {{time}}",
+              time: relativeTime(document.updatedAt),
+            })}
+            {document.latestRevisionNumber > 0
+              ? t("components.issueContinuationHandoff.revision", {
+                defaultValue: " - revision {{number}}",
+                number: document.latestRevisionNumber,
+              })
+              : ""}
           </div>
         </div>
         <Button variant="ghost" size="sm" onClick={copyBody} className="shrink-0">
           {copied ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
-          {copied ? "Copied" : "Copy"}
+          {copied
+            ? t("common.copied", { defaultValue: "Copied" })
+            : t("common.copy", { defaultValue: "Copy" })}
         </Button>
       </div>
       {expanded ? (

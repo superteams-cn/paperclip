@@ -89,7 +89,7 @@ export function ClaudeLocalAdvancedFields({
 
   return (
     <>
-      <Field label="Execution engine" hint="Auto uses ACP when prerequisites pass and falls back to Claude CLI with diagnostics.">
+      <Field label={t("adapters.configFields.executionEngine", { defaultValue: "Execution engine" })} hint={t("adapters.claudeLocal.executionEngineHint", { defaultValue: "Auto uses ACP when prerequisites pass and falls back to Claude CLI with diagnostics." })}>
         <select
           className={inputClass}
           value={engine}
@@ -108,8 +108,8 @@ export function ClaudeLocalAdvancedFields({
       {acpSelected && (
         <>
           <Field
-            label="ACP server command"
-            hint="Optional override for the Claude ACP server command. Defaults to the package-local claude-agent-acp binary."
+            label={t("adapters.configFields.acpServerCommand", { defaultValue: "ACP server command" })}
+            hint={t("adapters.claudeLocal.acpServerCommandHint", { defaultValue: "Optional override for the Claude ACP server command. Defaults to the package-local claude-agent-acp binary." })}
           >
             <DraftInput
               value={
@@ -127,7 +127,7 @@ export function ClaudeLocalAdvancedFields({
               placeholder="claude-agent-acp"
             />
           </Field>
-          <Field label="ACP session mode" hint="Persistent keeps ACP session state between runs. One-shot starts fresh each run.">
+          <Field label={t("adapters.configFields.acpSessionMode", { defaultValue: "ACP session mode" })} hint={t("adapters.configFields.acpSessionModeHint", { defaultValue: "Persistent keeps ACP session state between runs. One-shot starts fresh each run." })}>
             <select
               className={inputClass}
               value={
@@ -142,13 +142,13 @@ export function ClaudeLocalAdvancedFields({
                   : mark("adapterConfig", "mode", value);
               }}
             >
-              <option value="persistent">Persistent</option>
+              <option value="persistent">{t("adapters.configFields.acpModePersistent", { defaultValue: "Persistent" })}</option>
               <option value="oneshot">{t("adapters.claudeLocal.modeOneShot", { defaultValue: "One-shot" })}</option>
             </select>
           </Field>
           <Field
-            label="ACP non-interactive permissions"
-            hint="Fallback if the ACP agent asks for input outside an interactive session."
+            label={t("adapters.configFields.acpNonInteractivePermissions", { defaultValue: "ACP non-interactive permissions" })}
+            hint={t("adapters.configFields.acpNonInteractivePermissionsHint", { defaultValue: "Fallback if the ACP agent asks for input outside an interactive session." })}
           >
             <select
               className={inputClass}
@@ -164,13 +164,13 @@ export function ClaudeLocalAdvancedFields({
                   : mark("adapterConfig", "nonInteractivePermissions", value);
               }}
             >
-              <option value="deny">Deny</option>
-              <option value="fail">Fail</option>
+              <option value="deny">{t("adapters.configFields.permissionsDeny", { defaultValue: "Deny" })}</option>
+              <option value="fail">{t("adapters.configFields.permissionsFail", { defaultValue: "Fail" })}</option>
             </select>
           </Field>
           <Field
-            label="ACP state directory"
-            hint="Optional ACP session state directory. Defaults to Paperclip-managed company/agent scoped storage."
+            label={t("adapters.configFields.acpStateDirectory", { defaultValue: "ACP state directory" })}
+            hint={t("adapters.configFields.acpStateDirectoryHint", { defaultValue: "Optional ACP session state directory. Defaults to Paperclip-managed company/agent scoped storage." })}
           >
             <div className="flex items-center gap-2">
               <DraftInput
@@ -192,8 +192,8 @@ export function ClaudeLocalAdvancedFields({
             </div>
           </Field>
           <Field
-            label="ACP warm process idle ms"
-            hint="Defaults to 0, which closes the ACP process after each run while retaining persistent session state."
+            label={t("adapters.configFields.acpWarmProcessIdleMs", { defaultValue: "ACP warm process idle ms" })}
+            hint={t("adapters.configFields.acpWarmProcessIdleMsHint", { defaultValue: "Defaults to 0, which closes the ACP process after each run while retaining persistent session state." })}
           >
             {isCreate ? (
               <input

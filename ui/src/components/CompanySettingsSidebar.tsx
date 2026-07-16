@@ -142,42 +142,42 @@ export function CompanySettingsSidebar() {
         <div className="flex flex-col gap-0.5">
           <SidebarNavItem
             to={`${INSTANCE_SETTINGS_PATH_PREFIX}/profile`}
-            label="Profile"
+            label={t("nav.profile", { defaultValue: "Profile" })}
             icon={UserRoundPen}
             end
           />
           <SidebarNavItem
             to={`${INSTANCE_SETTINGS_PATH_PREFIX}/general`}
-            label="General"
+            label={t("nav.general", { defaultValue: "General" })}
             icon={SlidersHorizontal}
             end
           />
           <SidebarNavItem
             to={`${INSTANCE_SETTINGS_PATH_PREFIX}/environments`}
-            label="Environments"
+            label={t("nav.environments", { defaultValue: "Environments" })}
             icon={MonitorCog}
             end
           />
           <SidebarNavItem
             to={`${INSTANCE_SETTINGS_PATH_PREFIX}/access`}
-            label="Access"
+            label={t("nav.access", { defaultValue: "Access" })}
             icon={Shield}
             end
           />
           <SidebarNavItem
             to={`${INSTANCE_SETTINGS_PATH_PREFIX}/heartbeats`}
-            label="Heartbeats"
+            label={t("nav.heartbeats", { defaultValue: "Heartbeats" })}
             icon={Clock3}
             end
           />
           <SidebarNavItem
             to={`${INSTANCE_SETTINGS_PATH_PREFIX}/experimental`}
-            label="Experimental"
+            label={t("nav.experimental", { defaultValue: "Experimental" })}
             icon={FlaskConical}
           />
           <SidebarNavItem
             to={`${INSTANCE_SETTINGS_PATH_PREFIX}/plugins`}
-            label="Plugins"
+            label={t("nav.plugins", { defaultValue: "Plugins" })}
             icon={Puzzle}
           />
           {sidebarPlugins.length > 0 ? (
@@ -203,7 +203,7 @@ export function CompanySettingsSidebar() {
           ) : null}
           <SidebarNavItem
             to={`${INSTANCE_SETTINGS_PATH_PREFIX}/adapters`}
-            label="Adapters"
+            label={t("nav.adapters", { defaultValue: "Adapters" })}
             icon={Cpu}
           />
         </div>

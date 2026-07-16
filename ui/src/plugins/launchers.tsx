@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "@/lib/router";
 import { queryKeys } from "@/lib/queryKeys";
 import { cn } from "@/lib/utils";
+import { t as translate } from "@/i18n";
 import {
   PluginBridgeContext,
   type PluginHostContext,
@@ -129,7 +130,7 @@ const PluginLauncherRuntimeContext = createContext<PluginLauncherRuntimeContextV
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message) return error.message;
-  return "Unknown error";
+  return translate("common.unknownError", { defaultValue: "Unknown error" });
 }
 
 function buildLauncherHostContext(
@@ -417,7 +418,10 @@ class LauncherErrorBoundary extends Component<LauncherErrorBoundaryProps, Launch
     if (this.state.hasError) {
       return (
         <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-          {this.props.launcher.pluginDisplayName}: failed to render
+          {translate("components.pluginUi.failedToRender", {
+            plugin: this.props.launcher.pluginDisplayName,
+            defaultValue: `${this.props.launcher.pluginDisplayName}: failed to render`,
+          })}
         </div>
       );
     }
@@ -456,7 +460,11 @@ function LauncherRenderContent({
 
     return (
       <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-        {instance.launcher.pluginDisplayName}: could not resolve launcher target "{instance.launcher.action.target}".
+        {translate("components.pluginUi.couldNotResolveLauncherTarget", {
+          plugin: instance.launcher.pluginDisplayName,
+          target: instance.launcher.action.target,
+          defaultValue: `${instance.launcher.pluginDisplayName}: could not resolve launcher target “${instance.launcher.action.target}”.`,
+        })}
       </div>
     );
   }
@@ -596,7 +604,7 @@ function LauncherModalShell({
             className="ml-auto"
             onClick={() => void closeLauncher(instance.key, { reason: "programmatic" })}
           >
-            Close
+            {translate("common.close", { defaultValue: "Close" })}
           </Button>
         </div>
         <div
@@ -802,7 +810,10 @@ export function PluginLauncherOutlet({
   if (errorMessage) {
     return (
       <div className={cn("rounded-md border border-destructive/30 bg-destructive/5 px-2 py-1 text-xs text-destructive", errorClassName)}>
-        Plugin launchers unavailable: {errorMessage}
+        {translate("components.pluginUi.launchersUnavailable", {
+          message: errorMessage,
+          defaultValue: `Plugin launchers unavailable: ${errorMessage}`,
+        })}
       </div>
     );
   }

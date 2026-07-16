@@ -8,6 +8,7 @@ import type {
   PipelineStage,
 } from "../api/pipelines";
 import { assigneeValueFromSelection } from "./assignees";
+import { t as translate } from "@/i18n";
 
 export const INTERNAL_FIELD_KEYS = new Set([
   "nextSuggestedStageId",
@@ -74,17 +75,17 @@ function humanizeKey(key: string) {
 }
 
 export function humanizePipelineItemStatus(status: string | null | undefined) {
-  if (!status) return "Open";
+  if (!status) return translate("pages.pipelines.itemStatuses.open", { defaultValue: "Open" });
   const normalized = status.trim().toLowerCase();
-  if (!normalized) return "Open";
+  if (!normalized) return translate("pages.pipelines.itemStatuses.open", { defaultValue: "Open" });
   const labels: Record<string, string> = {
-    open: "Open",
-    working: "In progress",
-    done: "Done",
-    cancelled: "Removed",
-    in_review: "In review",
-    review: "In review",
-    in_progress: "In progress",
+    open: translate("pages.pipelines.itemStatuses.open", { defaultValue: "Open" }),
+    working: translate("pages.pipelines.itemStatuses.inProgress", { defaultValue: "In progress" }),
+    done: translate("pages.pipelines.itemStatuses.done", { defaultValue: "Done" }),
+    cancelled: translate("pages.pipelines.itemStatuses.removed", { defaultValue: "Removed" }),
+    in_review: translate("pages.pipelines.itemStatuses.inReview", { defaultValue: "In review" }),
+    review: translate("pages.pipelines.itemStatuses.inReview", { defaultValue: "In review" }),
+    in_progress: translate("pages.pipelines.itemStatuses.inProgress", { defaultValue: "In progress" }),
   };
   return labels[normalized] ?? humanizeKey(normalized);
 }
@@ -92,15 +93,19 @@ export function humanizePipelineItemStatus(status: string | null | undefined) {
 export function formatFieldValue(value: unknown): string {
   if (Array.isArray(value)) {
     const formatted = value.map(formatFieldValue).filter(Boolean);
-    return formatted.length ? formatted.join(", ") : "None";
+    return formatted.length ? formatted.join(", ") : translate("common.none", { defaultValue: "None" });
   }
-  if (value == null || value === "") return "None";
-  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (value == null || value === "") return translate("common.none", { defaultValue: "None" });
+  if (typeof value === "boolean") {
+    return value
+      ? translate("common.yes", { defaultValue: "Yes" })
+      : translate("common.no", { defaultValue: "No" });
+  }
   if (typeof value === "number") return String(value);
   if (typeof value === "string") return value;
   const record = readRecord(value);
   if (record) {
-    return readString(record.label) ?? readString(record.name) ?? readString(record.title) ?? "Added details";
+    return readString(record.label) ?? readString(record.name) ?? readString(record.title) ?? translate("pages.pipelines.addedDetails", { defaultValue: "Added details" });
   }
   return String(value);
 }
@@ -235,7 +240,7 @@ export function getPendingTransitionBannerState(item: Pick<PipelineCase, "pendin
     visible: true as const,
     suggestionId: suggestion?.id ?? null,
     toStageKey,
-    stageName: stageNameFromLookup(stages, toStageKey) ?? "the next stage",
+    stageName: stageNameFromLookup(stages, toStageKey) ?? translate("pages.pipelines.activity.nextStage", { defaultValue: "the next stage" }),
     rationale: suggestion?.rationale ?? null,
   };
 }
@@ -248,8 +253,10 @@ export function itemHasChangedNotice(item: Pick<PipelineCase, "fields"> & {
   if (item.changeAcknowledgedAt || fields.changeAcknowledgedAt) return null;
   if (item.thisChanged || fields.thisChanged || fields.upstreamChanged || fields.upstreamDrift) {
     return {
-      title: "This changed",
-      body: "Upstream work changed after this item was created. Review the latest details before continuing.",
+      title: translate("pages.pipelines.badge.thisChanged", { defaultValue: "This changed" }),
+      body: translate("pages.pipelines.changeNoticeBody", {
+        defaultValue: "Upstream work changed after this item was created. Review the latest details before continuing.",
+      }),
     };
   }
   return null;
@@ -272,8 +279,10 @@ export function eventsHaveUnacknowledgedDrift(events: PipelineCaseEvent[]) {
 export function changedNoticeFromEvents(events: PipelineCaseEvent[]) {
   if (!eventsHaveUnacknowledgedDrift(events)) return null;
   return {
-    title: "This changed",
-    body: "Upstream work changed after this item was created. Review the latest details before continuing.",
+    title: translate("pages.pipelines.badge.thisChanged", { defaultValue: "This changed" }),
+    body: translate("pages.pipelines.changeNoticeBody", {
+      defaultValue: "Upstream work changed after this item was created. Review the latest details before continuing.",
+    }),
   };
 }
 
@@ -290,7 +299,7 @@ function readDecision(payload: Record<string, unknown>) {
 
 function actorName(event: PipelineCaseEvent) {
   if (event.actorAgent?.name) return event.actorAgent.name;
-  if (event.actorType === "user") return "Board";
+  if (event.actorType === "user") return translate("common.board", { defaultValue: "Board" });
   if (event.actorType === "system") return "Paperclip";
   return null;
 }
@@ -298,7 +307,9 @@ function actorName(event: PipelineCaseEvent) {
 function movementReason(payload: Record<string, unknown>) {
   const reason = readString(payload.reason);
   if (!reason) return null;
-  if (reason === "children_terminal") return "all child items done";
+  if (reason === "children_terminal") {
+    return translate("pages.pipelines.activity.allChildItemsDone", { defaultValue: "all child items done" });
+  }
   return reason;
 }
 
@@ -323,67 +334,79 @@ function humanizeReason(reason: string) {
 export function formatPipelineItemEvent(event: PipelineCaseEvent, stages?: StageLookup) {
   const kind = event.type.startsWith("case.") ? event.type.slice("case.".length) : event.type;
   const payload = event.payload ?? {};
-  if (kind === "ingested") return "Item added.";
+  if (kind === "ingested") return translate("pages.pipelines.activity.itemAdded", { defaultValue: "Item added." });
   if (kind === "updated") {
-    if (payload.action === "stage_automation_rerun_requested") return "Stage automation re-run requested.";
-    return "Item details updated.";
+    if (payload.action === "stage_automation_rerun_requested") {
+      return translate("pages.pipelines.activity.automationRerunRequested", { defaultValue: "Stage automation re-run requested." });
+    }
+    return translate("pages.pipelines.activity.itemDetailsUpdated", { defaultValue: "Item details updated." });
   }
   if (kind === "transitioned") {
     const from = stageName(event, stages, "from");
     const to = stageName(event, stages, "to");
-    const movement = from && to ? `Moved from ${from} to ${to}` : to ? `Moved to ${to}` : "Moved to another stage";
+    const movement = from && to
+      ? translate("pages.pipelines.activity.movedFromTo", { defaultValue: "Moved from {{from}} to {{to}}", from, to })
+      : to
+        ? translate("pages.pipelines.activity.movedTo", { defaultValue: "Moved to {{to}}", to })
+        : translate("pages.pipelines.activity.movedToAnotherStage", { defaultValue: "Moved to another stage" });
     const reason = movementReason(payload);
     const transitionClass = movementClass(event, payload);
     if (transitionClass === "automatic") {
-      return `${movement} — automatic${reason ? ` (${reason})` : ""}.`;
+      return reason
+        ? translate("pages.pipelines.activity.automaticWithReason", { defaultValue: "{{movement}} — automatic ({{reason}}).", movement, reason })
+        : translate("pages.pipelines.activity.automatic", { defaultValue: "{{movement}} — automatic.", movement });
     }
     const actor = actorName(event);
-    if (reason && actor) return `${movement} — ${actor}: '${reason}'.`;
-    if (reason) return `${movement} — '${reason}'.`;
-    if (actor && event.actorType !== "system") return `${movement} — ${actor}.`;
-    return `${movement}.`;
+    if (reason && actor) return translate("pages.pipelines.activity.movementByActorWithReason", { defaultValue: "{{movement}} — {{actor}}: '{{reason}}'.", movement, actor, reason });
+    if (reason) return translate("pages.pipelines.activity.movementWithReason", { defaultValue: "{{movement}} — '{{reason}}'.", movement, reason });
+    if (actor && event.actorType !== "system") return translate("pages.pipelines.activity.movementByActor", { defaultValue: "{{movement}} — {{actor}}.", movement, actor });
+    return translate("pages.pipelines.activity.movement", { defaultValue: "{{movement}}.", movement });
   }
   if (kind === "suggested" || kind === "transition_suggested") {
     const suggestion = readRecord(payload.suggestion);
     const toStageKey = readString(suggestion?.toStageKey) ?? readString(payload.toStageKey);
-    const to = stageNameFromLookup(stages, toStageKey) ?? "the next stage";
-    return `Suggested moving to ${to}.`;
+    const to = stageNameFromLookup(stages, toStageKey) ?? translate("pages.pipelines.activity.nextStage", { defaultValue: "the next stage" });
+    return translate("pages.pipelines.activity.suggestedMoving", { defaultValue: "Suggested moving to {{to}}.", to });
   }
   if (kind === "suggestion_resolved") {
     const decision = readDecision(payload);
-    if (decision === "accept") return "Suggestion approved.";
-    if (decision === "dismiss") return "Suggestion dismissed.";
-    return "Suggestion resolved.";
+    if (decision === "accept") return translate("pages.pipelines.activity.suggestionApproved", { defaultValue: "Suggestion approved." });
+    if (decision === "dismiss") return translate("pages.pipelines.activity.suggestionDismissed", { defaultValue: "Suggestion dismissed." });
+    return translate("pages.pipelines.activity.suggestionResolved", { defaultValue: "Suggestion resolved." });
   }
   if (kind === "reviewed" || kind === "review_decided") {
     const decision = readDecision(payload);
-    if (decision === "request_changes") return "Review requested changes.";
-    if (decision === "drop" || decision === "reject") return "Review removed this item.";
-    if (decision === "approve") return "Review approved this item.";
-    return "Review completed.";
+    if (decision === "request_changes") return translate("pages.pipelines.activity.reviewRequestedChanges", { defaultValue: "Review requested changes." });
+    if (decision === "drop" || decision === "reject") return translate("pages.pipelines.activity.reviewRemovedItem", { defaultValue: "Review removed this item." });
+    if (decision === "approve") return translate("pages.pipelines.activity.reviewApprovedItem", { defaultValue: "Review approved this item." });
+    return translate("pages.pipelines.activity.reviewCompleted", { defaultValue: "Review completed." });
   }
-  if (kind === "conversation_opened") return "Conversation started.";
-  if (kind === "issue_linked") return "Linked to work.";
-  if (kind === "issue_unlinked") return "Work link removed.";
-  if (kind === "blockers_set") return "Waiting items updated.";
-  if (kind === "blockers_resolved") return "Waiting items cleared.";
-  if (kind === "children_terminal") return "Built-from items completed.";
+  if (kind === "conversation_opened") return translate("pages.pipelines.activity.conversationStarted", { defaultValue: "Conversation started." });
+  if (kind === "issue_linked") return translate("pages.pipelines.activity.linkedToWork", { defaultValue: "Linked to work." });
+  if (kind === "issue_unlinked") return translate("pages.pipelines.activity.workLinkRemoved", { defaultValue: "Work link removed." });
+  if (kind === "blockers_set") return translate("pages.pipelines.activity.waitingItemsUpdated", { defaultValue: "Waiting items updated." });
+  if (kind === "blockers_resolved") return translate("pages.pipelines.activity.waitingItemsCleared", { defaultValue: "Waiting items cleared." });
+  if (kind === "children_terminal") return translate("pages.pipelines.activity.builtFromCompleted", { defaultValue: "Built-from items completed." });
   if (kind === "upstream_drift") {
     const upstreamCaseKey = readString(payload.upstreamCaseKey);
-    if (upstreamCaseKey) return `Upstream change detected from ${upstreamCaseKey}.`;
-    return "Upstream change detected.";
+    if (upstreamCaseKey) return translate("pages.pipelines.activity.upstreamChangeFrom", { defaultValue: "Upstream change detected from {{key}}.", key: upstreamCaseKey });
+    return translate("pages.pipelines.activity.upstreamChangeDetected", { defaultValue: "Upstream change detected." });
   }
-  if (kind === "drift_acknowledged") return "Upstream change acknowledged.";
+  if (kind === "drift_acknowledged") return translate("pages.pipelines.activity.upstreamChangeAcknowledged", { defaultValue: "Upstream change acknowledged." });
   if (kind === "automation_executed") {
-    const routineName = event.automation?.routine?.title ?? "the automation";
+    const routineName = event.automation?.routine?.title ?? translate("pages.pipelines.activity.theAutomation", { defaultValue: "the automation" });
     const issueLabel = automationIssueLabel(event);
-    return `Automation completed — ran ${routineName}${issueLabel ? ` -> ${issueLabel}` : ""}.`;
+    return issueLabel
+      ? translate("pages.pipelines.activity.automationCompletedWithIssue", { defaultValue: "Automation completed — ran {{routine}} -> {{issue}}.", routine: routineName, issue: issueLabel })
+      : translate("pages.pipelines.activity.automationCompleted", { defaultValue: "Automation completed — ran {{routine}}.", routine: routineName });
   }
   if (kind === "automation_failed") {
     const reason = readString(payload.error);
-    return `Automation needs attention${reason ? ` — ${humanizeReason(reason)}` : ""}.`;
+    return reason
+      ? translate("pages.pipelines.activity.automationNeedsAttentionWithReason", { defaultValue: "Automation needs attention — {{reason}}.", reason: humanizeReason(reason) })
+      : translate("pages.pipelines.activity.automationNeedsAttention", { defaultValue: "Automation needs attention." });
   }
-  if (kind === "claimed") return "Work started.";
-  if (kind === "lease_released" || kind === "lease_expired") return "Work handoff cleared.";
-  return "Activity recorded.";
+  if (kind === "claimed") return translate("pages.pipelines.activity.workStarted", { defaultValue: "Work started." });
+  if (kind === "lease_released" || kind === "lease_expired") return translate("pages.pipelines.activity.workHandoffCleared", { defaultValue: "Work handoff cleared." });
+  return translate("pages.pipelines.activity.activityRecorded", { defaultValue: "Activity recorded." });
 }

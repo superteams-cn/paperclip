@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useTranslation } from "@/i18n";
 
 export type ProfileActionDialogKind = "archive" | "delete" | "restore";
 
@@ -29,28 +30,29 @@ export function ProfileActionDialog({
   onRestore: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   if (!kind || !profile) return null;
 
   const defaultDeleteBlocked = kind === "delete" && profile.summary.isCompanyDefault;
   const copy = {
     archive: {
-      title: "Archive profile",
-      body: `This profile stops applying to ${profile.summary.appliesToAgentCount} ${profile.summary.appliesToAgentCount === 1 ? "agent" : "agents"}. You can restore it later.`,
-      confirm: "Archive",
+      title: t("tools.profiles.actions.archiveTitle"),
+      body: t("tools.profiles.actions.archiveDescription", { count: profile.summary.appliesToAgentCount }),
+      confirm: t("tools.profiles.actions.archive"),
       action: onArchive,
     },
     restore: {
-      title: "Restore profile",
-      body: "This profile will be active again and can be assigned to agents.",
-      confirm: "Restore",
+      title: t("tools.profiles.actions.restoreTitle"),
+      body: t("tools.profiles.actions.restoreDescription"),
+      confirm: t("tools.profiles.actions.restore"),
       action: onRestore,
     },
     delete: {
-      title: "Delete profile",
+      title: t("tools.profiles.actions.deleteTitle"),
       body: defaultDeleteBlocked
-        ? "This profile is the company default. Reassign the company default to another profile before deleting it."
-        : `This permanently deletes the profile and removes ${profile.summary.assignmentCount} ${profile.summary.assignmentCount === 1 ? "assignment" : "assignments"}.`,
-      confirm: "Delete",
+        ? t("tools.profiles.actions.deleteDefaultDescription")
+        : t("tools.profiles.actions.deleteDescription", { count: profile.summary.assignmentCount }),
+      confirm: t("common.delete"),
       action: onDelete,
     },
   }[kind];
@@ -65,11 +67,11 @@ export function ProfileActionDialog({
         {defaultDeleteBlocked ? (
           <div className="flex gap-3 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>Choose another access profile and make it the company default first.</span>
+            <span>{t("tools.profiles.actions.chooseDefaultFirst")}</span>
           </div>
         ) : null}
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={onClose}>{t("common.cancel")}</Button>
           <Button
             variant={kind === "delete" ? "destructive" : "default"}
             disabled={pending || defaultDeleteBlocked}

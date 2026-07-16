@@ -129,6 +129,7 @@ export function PathInstructionsModal({
  * Drop-in replacement for the old showDirectoryPicker buttons.
  */
 export function ChoosePathButton({ className }: { className?: string }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -140,7 +141,7 @@ export function ChoosePathButton({ className }: { className?: string }) {
         )}
         onClick={() => setOpen(true)}
       >
-        Choose
+        {t("components.pathInstructions.choose", { defaultValue: "Choose" })}
       </button>
       <PathInstructionsModal open={open} onOpenChange={setOpen} />
     </>

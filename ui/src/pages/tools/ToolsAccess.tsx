@@ -19,6 +19,7 @@ import {
   isAdvancedSetupTab,
   type ToolTabKey,
 } from "./tool-tabs";
+import { useTranslation } from "@/i18n";
 
 function renderTab(tab: ToolTabKey, companyId: string) {
   switch (tab) {
@@ -43,6 +44,7 @@ function renderTab(tab: ToolTabKey, companyId: string) {
 }
 
 export function ToolsAccess() {
+  const { t } = useTranslation();
   const { selectedCompany, selectedCompanyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
   const params = useParams<{ tab?: string }>();
@@ -52,20 +54,20 @@ export function ToolsAccess() {
 
   useEffect(() => {
     setBreadcrumbs([
-      { label: selectedCompany?.name ?? "Company", href: "/dashboard" },
-      { label: "Apps", href: "/apps" },
+      { label: selectedCompany?.name ?? t("apps.companyFallback"), href: "/dashboard" },
+      { label: t("apps.title"), href: "/apps" },
       ...(advanced
-        ? [{ label: "Advanced setup" }]
+        ? [{ label: t("tools.access.advancedSetup") }]
         : [
-            { label: "Advanced setup", href: advancedTabHref("run-your-own") },
-            { label: tabLabel ?? "Developer tools" },
+            { label: t("tools.access.advancedSetup"), href: advancedTabHref("run-your-own") },
+            { label: tabLabel ?? t("tools.access.developerTools") },
           ]),
     ]);
     return () => setBreadcrumbs([]);
-  }, [setBreadcrumbs, selectedCompany?.name, advanced, tabLabel]);
+  }, [setBreadcrumbs, selectedCompany?.name, advanced, tabLabel, t]);
 
   if (!selectedCompanyId) {
-    return <div className="p-6 text-sm text-muted-foreground">Select a company to open advanced setup.</div>;
+    return <div className="p-6 text-sm text-muted-foreground">{t("tools.access.selectCompany")}</div>;
   }
 
   // Retired developer tabs (PAP-10915/PAP-10928) — keep old links working.
@@ -85,16 +87,15 @@ export function ToolsAccess() {
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 p-4 sm:p-6">
         <header>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-bold text-foreground">Advanced setup</h1>
+            <h1 className="text-xl font-bold text-foreground">{t("tools.access.advancedSetup")}</h1>
             <span className="inline-flex items-center rounded-full bg-foreground px-2.5 py-0.5 text-(length:--text-micro) font-bold text-background">
-              Advanced
+              {t("tools.access.advanced")}
             </span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            For tools that aren't in the gallery. You'll need details from the tool's documentation.
-            Most people never need this — if the app you want is in the gallery,{" "}
+            {t("tools.access.advancedDescription")}{" "}
             <Link to="/apps" className="font-medium text-primary hover:underline">
-              connect it there instead
+              {t("tools.access.connectThere")}
             </Link>
             .
           </p>
@@ -121,9 +122,9 @@ export function ToolsAccess() {
 
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Wrench className="h-3.5 w-3.5" />
-          Looking for the developer surface?{" "}
+          {t("tools.access.lookingForDeveloper")}{" "}
           <Link to={advancedTabHref("profiles")} className="font-medium text-primary hover:underline">
-            Open developer tools
+            {t("tools.access.openDeveloperTools")}
           </Link>
         </p>
       </div>
@@ -135,11 +136,10 @@ export function ToolsAccess() {
       <div>
         <div className="flex items-center gap-2">
           <Settings2 className="h-5 w-5 text-muted-foreground" />
-          <h1 className="text-xl font-bold text-foreground">Developer tools</h1>
+          <h1 className="text-xl font-bold text-foreground">{t("tools.access.developerTools")}</h1>
         </div>
         <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
-          Apps is the simple way to connect tools. This Developer area is for wiring your own
-          servers, tokens, and rules by hand — most teams never need it.
+          {t("tools.access.developerDescription")}
         </p>
       </div>
 

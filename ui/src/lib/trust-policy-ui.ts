@@ -9,6 +9,7 @@ import {
   type TrustAuthorizationPolicy,
   type TrustPreset,
 } from "@paperclipai/shared";
+import type { TFunction } from "i18next";
 
 export type LowTrustBoundaryTarget =
   | { type: "project"; id: string }
@@ -157,21 +158,23 @@ export function clearSingleLowTrustBoundaryTarget(
 
 export function summarizeLowTrustBoundaryTarget(
   boundary: LowTrustBoundary | null | undefined,
+  t?: TFunction,
 ) {
   const target = getSingleLowTrustBoundaryTarget(boundary);
-  if (target?.type === "project") return `Project ${target.id.slice(0, 8)}`;
-  if (target?.type === "root_issue") return `Root issue ${target.id.slice(0, 8)}`;
-  if (target?.type === "issue") return `Issue ${target.id.slice(0, 8)}`;
-  if (!boundary || countBoundaryTargets(boundary) === 0) return "No boundary selected";
-  return `${countBoundaryTargets(boundary)} boundaries`;
+  if (target?.type === "project") return t?.("components.trustPresetSection.boundarySummary.project", { defaultValue: "Project {{id}}", id: target.id.slice(0, 8) }) ?? `Project ${target.id.slice(0, 8)}`;
+  if (target?.type === "root_issue") return t?.("components.trustPresetSection.boundarySummary.rootIssue", { defaultValue: "Root issue {{id}}", id: target.id.slice(0, 8) }) ?? `Root issue ${target.id.slice(0, 8)}`;
+  if (target?.type === "issue") return t?.("components.trustPresetSection.boundarySummary.issue", { defaultValue: "Issue {{id}}", id: target.id.slice(0, 8) }) ?? `Issue ${target.id.slice(0, 8)}`;
+  if (!boundary || countBoundaryTargets(boundary) === 0) return t?.("components.trustPresetSection.boundarySummary.none", { defaultValue: "No boundary selected" }) ?? "No boundary selected";
+  const count = countBoundaryTargets(boundary);
+  return t?.("components.trustPresetSection.boundarySummary.count", { defaultValue: "{{count}} boundaries", count }) ?? `${count} boundaries`;
 }
 
 export function lowTrustBoundaryHasScope(boundary: LowTrustBoundary | null | undefined) {
   return countBoundaryTargets(boundary) > 0;
 }
 
-export function sourceTrustLabel(sourceTrust: SourceTrustMetadata | null | undefined) {
+export function sourceTrustLabel(sourceTrust: SourceTrustMetadata | null | undefined, t?: TFunction) {
   if (!sourceTrust || sourceTrust.preset !== LOW_TRUST_REVIEW_PRESET) return null;
-  if (sourceTrust.disposition === "promoted") return "Promoted from low-trust";
-  return "Low-trust source";
+  if (sourceTrust.disposition === "promoted") return t?.("components.sourceTrustBadge.promotedLabel", { defaultValue: "Promoted from low-trust" }) ?? "Promoted from low-trust";
+  return t?.("components.sourceTrustBadge.lowTrustLabel", { defaultValue: "Low-trust source" }) ?? "Low-trust source";
 }

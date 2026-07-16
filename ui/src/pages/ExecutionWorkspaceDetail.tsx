@@ -336,7 +336,14 @@ function validateForm(form: WorkspaceFormState, t?: TFunction) {
       return runtimeJson.error;
     }
     const invalidPort = readConfiguredRuntimeServicePorts(runtimeJson.value).find((service) => service.invalidPort);
-    if (invalidPort) return `${invalidPort.name} has an invalid fixed port.`;
+    if (invalidPort) {
+      return t
+        ? t("pages.executionWorkspace.errors.invalidFixedPort", {
+          name: invalidPort.name,
+          defaultValue: "{{name}} has an invalid fixed port.",
+        })
+        : `${invalidPort.name} has an invalid fixed port.`;
+    }
   }
 
   return null;
@@ -362,20 +369,20 @@ function Field({
   );
 }
 
-function workspaceOperationPhaseLabel(phase: string) {
+function workspaceOperationPhaseLabel(phase: string, t: TFunction) {
   switch (phase) {
     case "worktree_prepare":
-      return "Worktree setup";
+      return t("pages.executionWorkspace.operationPhases.worktreePrepare", { defaultValue: "Worktree setup" });
     case "workspace_config_freshness":
-      return "Config freshness";
+      return t("pages.executionWorkspace.operationPhases.configFreshness", { defaultValue: "Config freshness" });
     case "workspace_provision":
-      return "Provision";
+      return t("pages.executionWorkspace.operationPhases.provision", { defaultValue: "Provision" });
     case "workspace_teardown":
-      return "Teardown";
+      return t("pages.executionWorkspace.operationPhases.teardown", { defaultValue: "Teardown" });
     case "worktree_cleanup":
-      return "Worktree cleanup";
+      return t("pages.executionWorkspace.operationPhases.worktreeCleanup", { defaultValue: "Worktree cleanup" });
     case "workspace_finalize":
-      return "Finalize";
+      return t("pages.executionWorkspace.operationPhases.finalize", { defaultValue: "Finalize" });
     default:
       return phase;
   }
@@ -1206,7 +1213,7 @@ export function ExecutionWorkspaceDetail() {
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         {configuredRuntimeServicePorts.map((service) => (
-                          <Field key={`${service.collection}-${service.index}`} label={service.name} hint="Fixed port">
+                          <Field key={`${service.collection}-${service.index}`} label={service.name} hint={t("pages.executionWorkspace.settings.fixedPort", { defaultValue: "Fixed port" })}>
                             <Input
                               type="number"
                               min="1"
@@ -1382,7 +1389,7 @@ export function ExecutionWorkspaceDetail() {
                   <div key={operation.id} className="rounded-none border border-border/80 bg-background px-4 py-3">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="space-y-1">
-                        <div className="text-sm font-medium">{operation.command ?? workspaceOperationPhaseLabel(operation.phase)}</div>
+                        <div className="text-sm font-medium">{operation.command ?? workspaceOperationPhaseLabel(operation.phase, t)}</div>
                         <div className="text-xs text-muted-foreground">
                           {formatDateTime(operation.startedAt)}
                           {operation.finishedAt ? ` → ${formatDateTime(operation.finishedAt)}` : ""}

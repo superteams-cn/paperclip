@@ -51,6 +51,16 @@ import type {
   SuggestTasksInteraction,
   SuggestTasksResultCreatedTask,
 } from "@paperclipai/shared";
+import type { TFunction } from "i18next";
+
+function interactionText(
+  t: TFunction | undefined,
+  key: string,
+  defaultValue: string,
+  values: Record<string, unknown> = {},
+) {
+  return t?.(key, { defaultValue, ...values }) ?? defaultValue;
+}
 
 export interface SuggestedTaskTreeNode {
   task: SuggestedTaskDraft;
@@ -115,25 +125,29 @@ export function getItemVerdictProgress(args: {
 
 export function buildItemVerdictsSummary(
   interaction: RequestItemVerdictsInteraction,
+  t?: TFunction,
 ): string {
   const progress = getItemVerdictProgress({
     payload: interaction.payload,
     result: interaction.result,
   });
   if (interaction.status === "answered") {
-    const parts = [`${progress.decided} decided`];
-    if (progress.approved > 0) parts.push(`${progress.approved} approved`);
-    if (progress.rejected > 0) parts.push(`${progress.rejected} rejected`);
-    if (progress.deferred > 0) parts.push(`${progress.deferred} deferred`);
+    const parts = [interactionText(t, "pages.issues.interactions.summary.verdictsDecided", `${progress.decided} decided`, { count: progress.decided })];
+    if (progress.approved > 0) parts.push(interactionText(t, "pages.issues.interactions.summary.verdictsApproved", `${progress.approved} approved`, { count: progress.approved }));
+    if (progress.rejected > 0) parts.push(interactionText(t, "pages.issues.interactions.summary.verdictsRejected", `${progress.rejected} rejected`, { count: progress.rejected }));
+    if (progress.deferred > 0) parts.push(interactionText(t, "pages.issues.interactions.summary.verdictsDeferred", `${progress.deferred} deferred`, { count: progress.deferred }));
     return parts.join(" · ");
   }
   if (interaction.status === "expired") {
     const outcome = interaction.result?.outcome;
-    if (outcome === "superseded_by_comment") return "Verdicts expired after comment";
-    if (outcome === "stale_target") return "Verdicts expired after target changed";
-    return "Verdicts expired";
+    if (outcome === "superseded_by_comment") return interactionText(t, "pages.issues.interactions.summary.verdictsExpiredAfterComment", "Verdicts expired after comment");
+    if (outcome === "stale_target") return interactionText(t, "pages.issues.interactions.summary.verdictsExpiredAfterTargetChange", "Verdicts expired after target changed");
+    return interactionText(t, "pages.issues.interactions.summary.verdictsExpired", "Verdicts expired");
   }
-  return `${progress.decided} of ${progress.total} decided`;
+  return interactionText(t, "pages.issues.interactions.summary.verdictsProgress", `${progress.decided} of ${progress.total} decided`, {
+    decided: progress.decided,
+    total: progress.total,
+  });
 }
 
 export function getCheckboxConfirmationSelectedLabels(args: {
@@ -177,6 +191,7 @@ export function getRequestConfirmationTargetHref({
 
 export function buildIssueThreadInteractionSummary(
   interaction: IssueThreadInteraction,
+  t?: TFunction,
 ) {
   if (interaction.kind === "suggest_tasks") {
     const count = interaction.payload.tasks.length;
@@ -184,67 +199,67 @@ export function buildIssueThreadInteractionSummary(
       const createdCount = interaction.result?.createdTasks?.length ?? 0;
       const skippedCount = interaction.result?.skippedClientKeys?.length ?? 0;
       if (skippedCount > 0) {
-        return `Accepted ${createdCount} of ${count} tasks`;
+        return interactionText(t, "pages.issues.interactions.summary.acceptedSomeTasks", `Accepted ${createdCount} of ${count} tasks`, { created: createdCount, total: count });
       }
-      return createdCount === 1 ? "Accepted 1 task" : `Accepted ${createdCount} tasks`;
+      return interactionText(t, "pages.issues.interactions.summary.acceptedTasks", createdCount === 1 ? "Accepted 1 task" : `Accepted ${createdCount} tasks`, { count: createdCount });
     }
     if (interaction.status === "rejected") {
-      return count === 1 ? "Rejected 1 task" : `Rejected ${count} tasks`;
+      return interactionText(t, "pages.issues.interactions.summary.rejectedTasks", count === 1 ? "Rejected 1 task" : `Rejected ${count} tasks`, { count });
     }
-    return count === 1 ? "Suggested 1 task" : `Suggested ${count} tasks`;
+    return interactionText(t, "pages.issues.interactions.summary.suggestedTasks", count === 1 ? "Suggested 1 task" : `Suggested ${count} tasks`, { count });
   }
 
   if (interaction.kind === "request_confirmation") {
-    if (interaction.status === "accepted") return "Confirmed request";
-    if (interaction.status === "rejected") return "Declined request";
+    if (interaction.status === "accepted") return interactionText(t, "pages.issues.interactions.summary.confirmedRequest", "Confirmed request");
+    if (interaction.status === "rejected") return interactionText(t, "pages.issues.interactions.summary.declinedRequest", "Declined request");
     if (interaction.status === "expired") {
       const outcome = interaction.result?.outcome;
-      if (outcome === "superseded_by_comment") return "Confirmation expired after comment";
-      if (outcome === "stale_target") return "Confirmation expired after target changed";
-      return "Confirmation expired";
+      if (outcome === "superseded_by_comment") return interactionText(t, "pages.issues.interactions.summary.confirmationExpiredAfterComment", "Confirmation expired after comment");
+      if (outcome === "stale_target") return interactionText(t, "pages.issues.interactions.summary.confirmationExpiredAfterTargetChange", "Confirmation expired after target changed");
+      return interactionText(t, "pages.issues.interactions.summary.confirmationExpired", "Confirmation expired");
     }
-    return "Requested confirmation";
+    return interactionText(t, "pages.issues.interactions.summary.requestedConfirmation", "Requested confirmation");
   }
 
   if (interaction.kind === "request_checkbox_confirmation") {
     const optionCount = interaction.payload.options.length;
     if (interaction.status === "accepted") {
       const selectedCount = interaction.result?.selectedOptionIds?.length ?? 0;
-      if (selectedCount === 0) return "Confirmed with no options selected";
-      return selectedCount === 1
+      if (selectedCount === 0) return interactionText(t, "pages.issues.interactions.summary.confirmedNoOptions", "Confirmed with no options selected");
+      return interactionText(t, "pages.issues.interactions.summary.confirmedOptions", selectedCount === 1
         ? `Confirmed 1 of ${optionCount} options`
-        : `Confirmed ${selectedCount} of ${optionCount} options`;
+        : `Confirmed ${selectedCount} of ${optionCount} options`, { selected: selectedCount, total: optionCount });
     }
-    if (interaction.status === "rejected") return "Declined selection";
+    if (interaction.status === "rejected") return interactionText(t, "pages.issues.interactions.summary.declinedSelection", "Declined selection");
     if (interaction.status === "expired") {
       const outcome = interaction.result?.outcome;
-      if (outcome === "superseded_by_comment") return "Selection expired after comment";
-      if (outcome === "stale_target") return "Selection expired after target changed";
-      return "Selection expired";
+      if (outcome === "superseded_by_comment") return interactionText(t, "pages.issues.interactions.summary.selectionExpiredAfterComment", "Selection expired after comment");
+      if (outcome === "stale_target") return interactionText(t, "pages.issues.interactions.summary.selectionExpiredAfterTargetChange", "Selection expired after target changed");
+      return interactionText(t, "pages.issues.interactions.summary.selectionExpired", "Selection expired");
     }
-    return optionCount === 1
+    return interactionText(t, "pages.issues.interactions.summary.requestedSelection", optionCount === 1
       ? "Requested a selection from 1 option"
-      : `Requested a selection from ${optionCount} options`;
+      : `Requested a selection from ${optionCount} options`, { count: optionCount });
   }
 
   if (interaction.kind === "request_item_verdicts") {
-    return buildItemVerdictsSummary(interaction);
+    return buildItemVerdictsSummary(interaction, t);
   }
 
   const count = interaction.payload.questions.length;
   if (interaction.status === "answered") {
-    return count === 1 ? "Answered 1 question" : `Answered ${count} questions`;
+    return interactionText(t, "pages.issues.interactions.summary.answeredQuestions", count === 1 ? "Answered 1 question" : `Answered ${count} questions`, { count });
   }
   if (interaction.status === "cancelled") {
-    return count === 1 ? "Cancelled 1 question" : `Cancelled ${count} questions`;
+    return interactionText(t, "pages.issues.interactions.summary.cancelledQuestions", count === 1 ? "Cancelled 1 question" : `Cancelled ${count} questions`, { count });
   }
   if (interaction.status === "expired") {
     if (interaction.result?.expirationReason === "superseded_by_comment") {
-      return count === 1 ? "Question expired after comment" : "Questions expired after comment";
+      return interactionText(t, "pages.issues.interactions.summary.questionsExpiredAfterComment", count === 1 ? "Question expired after comment" : "Questions expired after comment", { count });
     }
-    return count === 1 ? "Question expired" : "Questions expired";
+    return interactionText(t, "pages.issues.interactions.summary.questionsExpired", count === 1 ? "Question expired" : "Questions expired", { count });
   }
-  return count === 1 ? "Asked 1 question" : `Asked ${count} questions`;
+  return interactionText(t, "pages.issues.interactions.summary.askedQuestions", count === 1 ? "Asked 1 question" : `Asked ${count} questions`, { count });
 }
 
 export function buildSuggestedTaskTree(

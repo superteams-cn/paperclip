@@ -736,8 +736,7 @@ function CasesEmptyHero() {
       <div className="w-full space-y-2 rounded-lg border border-border bg-muted/50 p-4 text-left">
         <p className="text-sm font-medium">{t("pages.cases.emptyHeroSkillPrompt", { defaultValue: "To start creating cases, add this to a skill:" })}</p>
         <pre className="overflow-x-auto rounded bg-background/60 p-3 font-mono text-xs text-muted-foreground">
-{`"Create a case of type blog_post with fields
-{slug, target_audience, publish_url} and key <release>/<slug>."`}
+          {t("pages.cases.emptyHeroSkillExample")}
         </pre>
         <p className="text-xs text-muted-foreground">
           {t("pages.cases.emptyHeroApiRefPrefix", { defaultValue: "See the paperclip skill → " })}<code className="font-mono">references/cases.md</code>{t("pages.cases.emptyHeroApiRefSuffix", { defaultValue: " for the API." })}

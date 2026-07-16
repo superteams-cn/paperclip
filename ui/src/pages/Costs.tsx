@@ -785,7 +785,7 @@ export function Costs() {
                               <div className="text-right text-sm tabular-nums">
                                 <div className="font-medium">{formatCents(row.costCents)}</div>
                                 <div className="text-xs text-muted-foreground">
-                                  in {formatTokens(row.inputTokens + row.cachedInputTokens)} · out {formatTokens(row.outputTokens)}
+                                  {t("pages.costs.inputShort", { defaultValue: "in" })} {formatTokens(row.inputTokens + row.cachedInputTokens)} · {t("pages.costs.outputShort", { defaultValue: "out" })} {formatTokens(row.outputTokens)}
                                 </div>
                                 {(row.apiRunCount > 0 || row.subscriptionRunCount > 0) ? (
                                   <div className="text-xs text-muted-foreground">
@@ -824,7 +824,10 @@ export function Costs() {
                                           <span className="ml-1 font-normal text-muted-foreground">({sharePct}%)</span>
                                         </div>
                                         <div className="text-muted-foreground">
-                                          {formatTokens(modelRow.inputTokens + modelRow.cachedInputTokens + modelRow.outputTokens)} tok
+                                          {t("pages.costs.tokensShort", {
+                                            count: formatTokens(modelRow.inputTokens + modelRow.cachedInputTokens + modelRow.outputTokens),
+                                            defaultValue: `${formatTokens(modelRow.inputTokens + modelRow.cachedInputTokens + modelRow.outputTokens)} tok`,
+                                          })}
                                         </div>
                                       </div>
                                     </div>

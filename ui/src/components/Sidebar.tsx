@@ -204,21 +204,21 @@ export function Sidebar() {
             label={t("nav.inbox", { defaultValue: "Inbox" })}
             icon={Inbox}
             badge={inboxBadge.inbox}
-            badgeLabel="unread"
+            badgeLabel={t("nav.unread", { defaultValue: "unread" })}
             badgeTone={inboxBadge.failedRuns > 0 ? "danger" : "default"}
             alert={inboxBadge.failedRuns > 0}
           />
           {showDecisions ? (
             <SidebarNavItem
               to="/decisions"
-              label="Decisions"
+              label={t("nav.decisions", { defaultValue: "Decisions" })}
               icon={ListChecks}
               badge={attentionCount}
-              badgeLabel="decisions"
+              badgeLabel={t("nav.decisions", { defaultValue: "decisions" })}
             />
           ) : null}
           {conferenceRoomChatEnabled ? (
-            <SidebarNavItem to="/board-chat" label="Conference Room" icon={MessagesSquare} />
+            <SidebarNavItem to="/board-chat" label={t("nav.conferenceRoom", { defaultValue: "Conference Room" })} icon={MessagesSquare} />
           ) : null}
         </div>
 

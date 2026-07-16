@@ -252,7 +252,10 @@ export function ProjectWorkspaceSummaryCard({
                   to={workspaceHref}
                   className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
                 >
-                  +{hiddenIssueCount} more
+                  {t("components.projectWorkspaceSummary.moreTasks", {
+                    count: hiddenIssueCount,
+                    defaultValue: `+${hiddenIssueCount} more`,
+                  })}
                 </Link>
               ) : null}
             </div>

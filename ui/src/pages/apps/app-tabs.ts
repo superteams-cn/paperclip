@@ -1,12 +1,13 @@
 import { Activity, Beaker, Inbox, Settings2, ShieldCheck, Wrench } from "lucide-react";
+import { t } from "@/i18n";
 
 export const APP_TABS = [
-  { key: "setup", label: "Setup", icon: Settings2 },
-  { key: "review", label: "Review", icon: Inbox },
-  { key: "permissions", label: "Permissions", icon: ShieldCheck },
-  { key: "activity", label: "Activity", icon: Activity },
-  { key: "test", label: "Test", icon: Beaker },
-  { key: "advanced", label: "Advanced", icon: Wrench },
+  { key: "setup", get label() { return t("apps.tabs.setup"); }, icon: Settings2 },
+  { key: "review", get label() { return t("apps.tabs.review"); }, icon: Inbox },
+  { key: "permissions", get label() { return t("apps.tabs.permissions"); }, icon: ShieldCheck },
+  { key: "activity", get label() { return t("apps.tabs.activity"); }, icon: Activity },
+  { key: "test", get label() { return t("apps.tabs.test"); }, icon: Beaker },
+  { key: "advanced", get label() { return t("apps.tabs.advanced"); }, icon: Wrench },
 ] as const;
 
 export type AppTabKey = (typeof APP_TABS)[number]["key"];
@@ -31,5 +32,5 @@ export function isAppTabKey(value: string | undefined): value is AppTabKey {
 }
 
 export function appTabLabel(tabKey: AppTabKey): string {
-  return APP_TABS.find((tab) => tab.key === tabKey)?.label ?? "Setup";
+  return APP_TABS.find((tab) => tab.key === tabKey)?.label ?? t("apps.tabs.setup");
 }

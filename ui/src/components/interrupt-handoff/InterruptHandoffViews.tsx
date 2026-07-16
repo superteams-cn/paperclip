@@ -127,7 +127,7 @@ export function HandoffWakeRow({
   const info = classifyAssigneeHandoff(to, {
     agentName: to.agentId ? agentName(to.agentId, resolvers) : null,
     interruptedRunAttached,
-  });
+  }, t);
   return (
     <div
       className="flex flex-wrap items-center gap-1.5 text-xs"
@@ -155,7 +155,8 @@ export function RunStatusBadge({
   operatorInterrupted?: boolean;
   className?: string;
 }) {
-  const p = resolveRunStatusPresentation(status, { operatorInterrupted });
+  const { t } = useTranslation();
+  const p = resolveRunStatusPresentation(status, { operatorInterrupted }, t);
   return (
     <span
       className={cn("font-medium", p.className, className)}

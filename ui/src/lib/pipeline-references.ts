@@ -12,6 +12,7 @@
  * carry a tell-tale field (`url`, `issueId`, `path`). Anything we don't
  * recognise is left in the plain Details list untouched.
  */
+import type { TFunction } from "i18next";
 
 export type WorkReference =
   | { id: string; kind: "workspace"; label: string; path: string | null; branch: string | null }
@@ -114,12 +115,16 @@ function referenceFromField(key: string, value: unknown): WorkReference | null {
  * Extract every typed work reference for a case, starting with the dedicated
  * `workspaceRef` column and then any reference-shaped `fields` entries.
  */
-export function extractWorkReferences(caseItem: ReferenceCaseInput): WorkReference[] {
+export function extractWorkReferences(caseItem: ReferenceCaseInput, t?: TFunction): WorkReference[] {
   const references: WorkReference[] = [];
 
   const workspaceRef = readRecord(caseItem.workspaceRef);
   if (workspaceRef && (workspaceRef.path || workspaceRef.folder || workspaceRef.workspacePath || workspaceRef.name)) {
-    references.push(workspaceFromRecord("workspaceRef", "Workspace folder", workspaceRef));
+    references.push(workspaceFromRecord(
+      "workspaceRef",
+      t?.("pages.pipelines.references.workspaceFolder", { defaultValue: "Workspace folder" }) ?? "Workspace folder",
+      workspaceRef,
+    ));
   }
 
   for (const [key, value] of Object.entries(caseItem.fields ?? {})) {

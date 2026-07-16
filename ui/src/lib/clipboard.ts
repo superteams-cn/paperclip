@@ -1,3 +1,5 @@
+import { t as translate } from "@/i18n";
+
 export async function copyTextToClipboard(text: string): Promise<void> {
   // The async Clipboard API is only reliable in a secure context. Over plain
   // HTTP on a non-localhost host (e.g. a Tailscale name) `writeText` may resolve
@@ -14,7 +16,7 @@ export async function copyTextToClipboard(text: string): Promise<void> {
   }
 
   if (typeof document === "undefined") {
-    throw new Error("Clipboard unavailable");
+    throw new Error(translate("common.clipboardUnavailable", { defaultValue: "Clipboard unavailable" }));
   }
 
   // Mirror the proven CopyText fallback: a plain off-screen textarea. Browsers
@@ -38,7 +40,7 @@ export async function copyTextToClipboard(text: string): Promise<void> {
     textarea.select();
     textarea.setSelectionRange(0, text.length);
     const success = document.execCommand("copy");
-    if (!success) throw new Error("execCommand copy failed");
+    if (!success) throw new Error(translate("common.copyFailed", { defaultValue: "Copy failed" }));
   } finally {
     document.body.removeChild(textarea);
     if (previouslyFocused !== document.activeElement && typeof previouslyFocused?.focus === "function") {

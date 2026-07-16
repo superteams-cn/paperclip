@@ -1,5 +1,6 @@
 import type { DashboardRunActivityDay, HeartbeatRun } from "@paperclipai/shared";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 /* ---- Utilities ---- */
 
@@ -28,16 +29,16 @@ const runSegmentColors = {
 } as const;
 
 // Compact per-day tooltip that also attributes failures to their error class.
-function runDayTooltip(entry: DashboardRunActivityDay): string {
-  const lines = [`${entry.date}: ${entry.total} run${entry.total === 1 ? "" : "s"}`];
-  if (entry.succeeded > 0) lines.push(`  succeeded: ${entry.succeeded}`);
-  if (entry.recovered > 0) lines.push(`  recovered: ${entry.recovered} (retry succeeded)`);
+function runDayTooltip(entry: DashboardRunActivityDay, t: TFunction): string {
+  const lines = [t("components.activityCharts.runCount", { date: entry.date, count: entry.total, defaultValue: `${entry.date}: ${entry.total} run${entry.total === 1 ? "" : "s"}` })];
+  if (entry.succeeded > 0) lines.push(t("components.activityCharts.tooltipSucceeded", { count: entry.succeeded, defaultValue: `  succeeded: ${entry.succeeded}` }));
+  if (entry.recovered > 0) lines.push(t("components.activityCharts.tooltipRecovered", { count: entry.recovered, defaultValue: `  recovered: ${entry.recovered} (retry succeeded)` }));
   if (entry.failed > 0) {
-    lines.push(`  failed: ${entry.failed}`);
+    lines.push(t("components.activityCharts.tooltipFailed", { count: entry.failed, defaultValue: `  failed: ${entry.failed}` }));
     const codes = Object.entries(entry.failedByErrorCode ?? {}).sort((a, b) => b[1] - a[1]);
     for (const [code, count] of codes) lines.push(`    ${code}: ${count}`);
   }
-  if (entry.other > 0) lines.push(`  other: ${entry.other}`);
+  if (entry.other > 0) lines.push(t("components.activityCharts.tooltipOther", { count: entry.other, defaultValue: `  other: ${entry.other}` }));
   return lines.join("\n");
 }
 
@@ -132,10 +133,10 @@ export function RunActivityChart(props: RunChartProps) {
   if (!hasData) return <p className="text-xs text-muted-foreground">{t("components.activityCharts.noRunsYet", { defaultValue: "No runs yet" })}</p>;
 
   const legendItems = [
-    { color: runSegmentColors.succeeded, label: "Succeeded" },
-    ...(hasRecovered ? [{ color: runSegmentColors.recovered, label: "Recovered" }] : []),
-    { color: runSegmentColors.failed, label: "Failed" },
-    { color: runSegmentColors.other, label: "Other" },
+    { color: runSegmentColors.succeeded, label: t("components.activityCharts.succeeded", { defaultValue: "Succeeded" }) },
+    ...(hasRecovered ? [{ color: runSegmentColors.recovered, label: t("components.activityCharts.recovered", { defaultValue: "Recovered" }) }] : []),
+    { color: runSegmentColors.failed, label: t("components.activityCharts.failed", { defaultValue: "Failed" }) },
+    { color: runSegmentColors.other, label: t("components.activityCharts.other", { defaultValue: "Other" }) },
   ];
 
   return (
@@ -146,7 +147,7 @@ export function RunActivityChart(props: RunChartProps) {
           const total = entry.total;
           const heightPct = (total / maxValue) * 100;
           return (
-            <div key={day} className="flex-1 h-full flex flex-col justify-end" title={runDayTooltip(entry)}>
+            <div key={day} className="flex-1 h-full flex flex-col justify-end" title={runDayTooltip(entry, t)}>
               {total > 0 ? (
                 <div className="flex flex-col-reverse gap-px overflow-hidden" style={{ height: `${heightPct}%`, minHeight: 2 }}>
                   {entry.succeeded > 0 && <div style={{ flex: entry.succeeded, backgroundColor: runSegmentColors.succeeded }} />}
@@ -201,7 +202,7 @@ export function PriorityChart({ issues }: { issues: { priority: string; createdA
           const total = Object.values(entry).reduce((a, b) => a + b, 0);
           const heightPct = (total / maxValue) * 100;
           return (
-            <div key={day} className="flex-1 h-full flex flex-col justify-end" title={`${day}: ${total} issues`}>
+            <div key={day} className="flex-1 h-full flex flex-col justify-end" title={t("components.activityCharts.taskCount", { date: day, count: total, defaultValue: `${day}: ${total} tasks` })}>
               {total > 0 ? (
                 <div className="flex flex-col-reverse gap-px overflow-hidden" style={{ height: `${heightPct}%`, minHeight: 2 }}>
                   {priorityOrder.map(p => entry[p] > 0 ? (
@@ -216,7 +217,7 @@ export function PriorityChart({ issues }: { issues: { priority: string; createdA
         })}
       </div>
       <DateLabels days={days} />
-      <ChartLegend items={priorityOrder.map(p => ({ color: priorityColors[p], label: p.charAt(0).toUpperCase() + p.slice(1) }))} />
+      <ChartLegend items={priorityOrder.map(p => ({ color: priorityColors[p], label: t(`labels.priority.${p}`, { defaultValue: p.charAt(0).toUpperCase() + p.slice(1) }) }))} />
     </div>
   );
 }
@@ -266,7 +267,7 @@ export function IssueStatusChart({ issues }: { issues: { status: string; created
           const total = Object.values(entry).reduce((a, b) => a + b, 0);
           const heightPct = (total / maxValue) * 100;
           return (
-            <div key={day} className="flex-1 h-full flex flex-col justify-end" title={`${day}: ${total} issues`}>
+            <div key={day} className="flex-1 h-full flex flex-col justify-end" title={t("components.activityCharts.taskCount", { date: day, count: total, defaultValue: `${day}: ${total} tasks` })}>
               {total > 0 ? (
                 <div className="flex flex-col-reverse gap-px overflow-hidden" style={{ height: `${heightPct}%`, minHeight: 2 }}>
                   {statusOrder.map(s => (entry[s] ?? 0) > 0 ? (

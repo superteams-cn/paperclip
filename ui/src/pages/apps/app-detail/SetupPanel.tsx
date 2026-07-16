@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import type { AppDetailSectionProps } from "./types";
 import { googleSheetsConfigWithAllowlist, parseGoogleSheetIds } from "../google-sheets";
+import { useTranslation } from "@/i18n";
 
 export function SetupPanel({
   connection,
@@ -66,22 +67,25 @@ function OAuthConnectionSection({
   disabled: boolean;
   onStart: () => void;
 }) {
-  const providerName = isSmokeLabFixture ? "Smoke OAuth" : "OAuth";
+  const { t } = useTranslation();
+  const providerName = isSmokeLabFixture ? t("apps.setup.smokeOAuth") : "OAuth";
   return (
     <section className="rounded-xl border border-border bg-card px-5 py-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-sm font-bold text-foreground">
-            {connected ? `Connected with ${providerName}` : `Connect with ${providerName}`}
+            {connected
+              ? t("apps.setup.connectedWith", { provider: providerName })
+              : t("apps.setup.connectWith", { provider: providerName })}
           </h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {connected
-              ? "Sign in again to replace this connection's OAuth session."
-              : "Open the provider's consent page to finish connecting this app."}
+              ? t("apps.setup.oauthReconnectDescription")
+              : t("apps.setup.oauthConnectDescription")}
           </p>
         </div>
         <Button type="button" disabled={disabled} onClick={onStart}>
-          {connected ? "Reconnect" : `Connect with ${providerName}`}
+          {connected ? t("apps.actions.reconnect") : t("apps.setup.connectWith", { provider: providerName })}
         </Button>
       </div>
     </section>
@@ -106,6 +110,7 @@ function GoogleSheetsAllowlistSection({
   disabled: boolean;
   onUpdateConfig: (config: Record<string, unknown>) => void;
 }) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const ids = currentSpreadsheetIds(connection);
@@ -115,15 +120,15 @@ function GoogleSheetsAllowlistSection({
   return (
     <section className="rounded-xl border border-border bg-card px-5 py-4">
       <div>
-        <h2 className="text-sm font-bold text-foreground">Sheets agents can use</h2>
+        <h2 className="text-sm font-bold text-foreground">{t("apps.setup.sheets.title")}</h2>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          Agents can only use the sheets listed here.
+          {t("apps.setup.sheets.description")}
         </p>
       </div>
 
       <div className="mt-4 space-y-2">
         {ids.length === 0 ? (
-          <div className="text-sm text-muted-foreground">No sheets are connected yet.</div>
+          <div className="text-sm text-muted-foreground">{t("apps.setup.sheets.empty")}</div>
         ) : (
           ids.map((id) => {
             const sheetUrl = googleSheetsUrlForId(id);
@@ -135,7 +140,7 @@ function GoogleSheetsAllowlistSection({
                   rel="noreferrer"
                   className="min-w-0 flex-1 text-sm font-medium text-foreground underline-offset-2 hover:underline"
                 >
-                  <span className="block truncate">Open sheet</span>
+                  <span className="block truncate">{t("apps.setup.sheets.open")}</span>
                   <span className="block truncate font-mono text-xs font-normal text-muted-foreground">
                     {sheetUrl}
                   </span>
@@ -148,10 +153,10 @@ function GoogleSheetsAllowlistSection({
                   size="sm"
                   variant="outline"
                   disabled={disabled || ids.length <= 1}
-                  title={ids.length <= 1 ? "Add another sheet before removing this one." : undefined}
+                  title={ids.length <= 1 ? t("apps.setup.sheets.removeLastHint") : undefined}
                   onClick={() => saveIds(ids.filter((current) => current !== id))}
                 >
-                  Remove
+                  {t("common.remove")}
                 </Button>
               </div>
             );
@@ -176,18 +181,18 @@ function GoogleSheetsAllowlistSection({
           onClick={() => {
             const parsed = parseGoogleSheetIds(draft);
             if (parsed.ids.length === 0) {
-              setError("Paste a Google Sheets link.");
+              setError(t("apps.connect.googleSheets.linkRequired"));
               return;
             }
             if (parsed.invalidCount > 0) {
-              setError("That doesn't look like a Google Sheets link.");
+              setError(t("apps.connect.googleSheets.invalidLink"));
               return;
             }
             saveIds(Array.from(new Set([...ids, ...parsed.ids])));
             setDraft("");
           }}
         >
-          Add sheet
+          {t("apps.setup.sheets.add")}
         </Button>
       </div>
       {error && <div className="mt-2 text-xs text-destructive">{error}</div>}
@@ -204,22 +209,23 @@ export function AppLifecycleSection({
   disabled: boolean;
   onToggle: () => void;
 }) {
+  const { t } = useTranslation();
   const enabled = connection.enabled !== false && connection.status !== "disabled";
   return (
     <section className="rounded-xl border border-border bg-card px-5 py-4">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-sm font-bold text-foreground">
-            {enabled ? "Agents can use this app" : "This app is paused"}
+            {enabled ? t("apps.setup.lifecycle.enabled") : t("apps.setup.lifecycle.paused")}
           </h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {enabled
-              ? "Pause it to stop every agent from using its actions."
-              : "Resume it when agents should be able to use its actions again."}
+              ? t("apps.setup.lifecycle.pauseDescription")
+              : t("apps.setup.lifecycle.resumeDescription")}
           </p>
         </div>
         <ToggleSwitch
-          aria-label={enabled ? "Pause this app" : "Resume this app"}
+          aria-label={enabled ? t("apps.setup.lifecycle.pauseAria") : t("apps.setup.lifecycle.resumeAria")}
           checked={enabled}
           disabled={disabled}
           onCheckedChange={onToggle}
@@ -241,24 +247,25 @@ export function QuarantinePill({
   disabled: boolean;
   onTurnOn: (ids: string[]) => void;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   return (
     <div className="rounded-xl border border-amber-500/40 bg-amber-500/[0.08] p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm font-semibold text-amber-800 dark:text-amber-200">
-          {count} new {count === 1 ? "action" : "actions"} to review
+          {t("apps.setup.quarantine.title", { count })}
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => setOpen((v) => !v)}>
-            {open ? "Hide" : "Review"}
+            {open ? t("common.hide") : t("apps.nav.review")}
           </Button>
           <Button size="sm" disabled={disabled} onClick={() => onTurnOn(entries.map((e) => e.id))}>
-            Turn on all
+            {t("apps.setup.quarantine.turnOnAll")}
           </Button>
         </div>
       </div>
       <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-        This app added actions since you set it up. They stay off until you turn them on.
+        {t("apps.setup.quarantine.description")}
       </p>
       {open && (
         <div className="mt-3 divide-y divide-amber-500/25 rounded-lg border border-amber-500/40 bg-background">
@@ -271,7 +278,7 @@ export function QuarantinePill({
                 )}
               </div>
               <Button size="sm" variant="outline" disabled={disabled} onClick={() => onTurnOn([entry.id])}>
-                Turn on
+                {t("apps.setup.quarantine.turnOn")}
               </Button>
             </div>
           ))}

@@ -1,4 +1,5 @@
 import type { HeartbeatRun } from "@paperclipai/shared";
+import type { TFunction } from "i18next";
 
 export type SourceResolvedFoldCleanupOutcome =
   | "terminated"
@@ -113,19 +114,34 @@ const CLEANUP_OUTCOME_LABELS: Record<string, string> = {
   skipped_non_local_adapter: "skipped (non-local adapter)",
 };
 
-export function formatCleanupOutcome(outcome: string): string {
-  return CLEANUP_OUTCOME_LABELS[outcome] ?? outcome.replace(/_/g, " ");
+export function formatCleanupOutcome(outcome: string, t?: TFunction): string {
+  const fallback = CLEANUP_OUTCOME_LABELS[outcome] ?? outcome.replace(/_/g, " ");
+  return t?.(`components.sourceResolvedFold.cleanupOutcomes.${outcome}`, { defaultValue: fallback }) ?? fallback;
 }
 
-export function formatSilenceAgeMs(ms: number | null | undefined): string | null {
+export function formatSilenceAgeMs(ms: number | null | undefined, t?: TFunction): string | null {
   if (!ms || ms <= 0) return null;
   const totalMinutes = Math.floor(ms / 60_000);
-  if (totalMinutes < 1) return "under 1 minute";
-  if (totalMinutes < 60) return `${totalMinutes} minute${totalMinutes === 1 ? "" : "s"}`;
+  if (totalMinutes < 1) return t?.("components.sourceResolvedFold.duration.underOneMinute", { defaultValue: "under 1 minute" }) ?? "under 1 minute";
+  if (totalMinutes < 60) {
+    return t?.("components.sourceResolvedFold.duration.minutes", {
+      count: totalMinutes,
+      defaultValue: `${totalMinutes} minute${totalMinutes === 1 ? "" : "s"}`,
+    }) ?? `${totalMinutes} minute${totalMinutes === 1 ? "" : "s"}`;
+  }
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  if (minutes === 0) return `${hours} hour${hours === 1 ? "" : "s"}`;
-  return `${hours}h ${minutes}m`;
+  if (minutes === 0) {
+    return t?.("components.sourceResolvedFold.duration.hours", {
+      count: hours,
+      defaultValue: `${hours} hour${hours === 1 ? "" : "s"}`,
+    }) ?? `${hours} hour${hours === 1 ? "" : "s"}`;
+  }
+  return t?.("components.sourceResolvedFold.duration.hoursMinutes", {
+    defaultValue: "{{hours}}h {{minutes}}m",
+    hours,
+    minutes,
+  }) ?? `${hours}h ${minutes}m`;
 }
 
 export function shortenEvidenceId(id: string): string {

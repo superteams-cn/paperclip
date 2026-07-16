@@ -255,7 +255,7 @@ export function NewAgent() {
                 disabled={isFirstAgent}
               >
                 <Shield className="h-3 w-3 text-muted-foreground" />
-                {roleLabels[effectiveRole] ?? effectiveRole}
+                {t(`labels.agentRole.${effectiveRole}`, { defaultValue: roleLabels[effectiveRole] ?? effectiveRole })}
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-36 p-1" align="start">
@@ -268,7 +268,7 @@ export function NewAgent() {
                   )}
                   onClick={() => { setRole(r); setRoleOpen(false); }}
                 >
-                  {roleLabels[r] ?? r}
+                  {t(`labels.agentRole.${r}`, { defaultValue: roleLabels[r] ?? r })}
                 </button>
               ))}
             </PopoverContent>

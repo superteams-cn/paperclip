@@ -22,6 +22,7 @@ interface GoalNodeProps {
 }
 
 function GoalNode({ goal, children, allGoals, depth, goalLink, onSelect }: GoalNodeProps) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
   const hasChildren = children.length > 0;
   const link = goalLink?.(goal);
@@ -36,7 +37,7 @@ function GoalNode({ goal, children, allGoals, depth, goalLink, onSelect }: GoalN
             e.stopPropagation();
             setExpanded(!expanded);
           }}
-          aria-label={`${goal.title} subtree`}
+          aria-label={t("components.goalTree.subtree", { title: goal.title, defaultValue: `${goal.title} subtree` })}
           aria-expanded={expanded}
         >
           <ChevronRight

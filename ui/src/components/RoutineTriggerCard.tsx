@@ -64,7 +64,7 @@ export function RoutineTriggerCard({
 
   const KindIcon =
     trigger.kind === "schedule" ? Clock3 : trigger.kind === "webhook" ? Webhook : Zap;
-  const humanCron = trigger.kind === "schedule" ? describeCron(draft.cronExpression) : null;
+  const humanCron = trigger.kind === "schedule" ? describeCron(draft.cronExpression, t) : null;
   const lastResultOk =
     trigger.lastResult != null &&
     /succeed|success|ok|200|delivered/i.test(String(trigger.lastResult));

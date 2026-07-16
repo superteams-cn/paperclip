@@ -1060,7 +1060,7 @@ function PluginConfigForm({ pluginId, companyId, schema, initialValues, isLoadin
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: (configJson: Record<string, unknown>) => {
-      if (!companyId) throw new Error("Select a company before saving plugin configuration.");
+      if (!companyId) throw new Error(t("pages.pluginSettings.config.selectCompanyToSave", { defaultValue: "Select a company before saving plugin configuration." }));
       return pluginsApi.saveConfig(pluginId, companyId, configJson);
     },
     onSuccess: () => {
@@ -1083,7 +1083,7 @@ function PluginConfigForm({ pluginId, companyId, schema, initialValues, isLoadin
   // Test configuration mutation
   const testMutation = useMutation({
     mutationFn: (configJson: Record<string, unknown>) => {
-      if (!companyId) throw new Error("Select a company before testing plugin configuration.");
+      if (!companyId) throw new Error(t("pages.pluginSettings.config.selectCompanyToTest", { defaultValue: "Select a company before testing plugin configuration." }));
       return pluginsApi.testConfig(pluginId, companyId, configJson);
     },
     onSuccess: (result) => {

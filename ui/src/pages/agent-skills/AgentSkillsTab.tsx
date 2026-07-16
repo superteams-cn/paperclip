@@ -160,7 +160,7 @@ export function AgentSkillsTab({ agent, companyId }: { agent: Agent; companyId?:
         },
         summary: resolveSkillSummaryText(skill, { fallbackKey: true }),
         chip: skill.categories[0] ?? null,
-        sourceMeta: buildAgentSkillSourceMeta(skill),
+        sourceMeta: buildAgentSkillSourceMeta(skill, t),
         linkTo: `/skills/${skill.id}`,
         // search haystack (mirrors the store's discoveryMatchesSearch fields)
         slug: skill.slug,
@@ -169,7 +169,7 @@ export function AgentSkillsTab({ agent, companyId }: { agent: Agent; companyId?:
         description: skill.description,
         categories: skill.categories,
       })),
-    [companySkills],
+    [companySkills, t],
   );
 
   // Adapter-detected, user-installed / unmanaged skills → read-only rows.

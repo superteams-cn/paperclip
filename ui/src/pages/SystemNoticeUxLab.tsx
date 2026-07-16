@@ -367,7 +367,7 @@ export function SystemNoticeUxLab() {
             {t("pages.uxLabs.systemNotice.notes.itAccepts")} <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">tone</code>,{" "}
             <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">label</code>,{" "}
             <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">body</code>,{" "}
-            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">metadata</code>, and{" "}
+            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">metadata</code>, {t("pages.uxLabs.systemNotice.notes.and")}{" "}
             <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">detailsDefaultOpen</code>.
           </div>
           <div className="rounded-2xl border border-border/70 bg-background/80 px-4 py-3">

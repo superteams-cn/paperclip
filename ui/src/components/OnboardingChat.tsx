@@ -9,7 +9,7 @@ import { MarkdownBody } from "./MarkdownBody";
 import { cn } from "../lib/utils";
 import { Loader2, Send, CheckCircle2, ArrowRight } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
-import { t } from "@/i18n";
+import type { TFunction } from "i18next";
 
 interface OnboardingChatProps {
   taskId: string;
@@ -35,39 +35,41 @@ function detectHiringPlan(body: string): boolean {
   return planPatterns.some((pattern) => pattern.test(body));
 }
 
-const QUEUED_MESSAGES = [
-  t("components.onboardingChat.status.queued.wakingUp", { defaultValue: "Heartbeat triggered, waking up..." }),
-  t("components.onboardingChat.status.queued.initializing", { defaultValue: "Initializing..." }),
-  t("components.onboardingChat.status.queued.gettingReady", { defaultValue: "Getting ready..." }),
+const QUEUED_MESSAGE_KEYS = [
+  "components.onboardingChat.status.queued.wakingUp",
+  "components.onboardingChat.status.queued.initializing",
+  "components.onboardingChat.status.queued.gettingReady",
 ];
 
-const RUNNING_MESSAGES = [
-  t("components.onboardingChat.status.running.working", { defaultValue: "Working on a response..." }),
-  t("components.onboardingChat.status.running.reading", { defaultValue: "Reading the conversation..." }),
-  t("components.onboardingChat.status.running.thinking", { defaultValue: "Thinking through the plan..." }),
-  t("components.onboardingChat.status.running.drafting", { defaultValue: "Drafting a response..." }),
-  t("components.onboardingChat.status.running.stillWorking", { defaultValue: "Still working..." }),
-  t("components.onboardingChat.status.running.almostThere", { defaultValue: "Almost there..." }),
+const RUNNING_MESSAGE_KEYS = [
+  "components.onboardingChat.status.running.working",
+  "components.onboardingChat.status.running.reading",
+  "components.onboardingChat.status.running.thinking",
+  "components.onboardingChat.status.running.drafting",
+  "components.onboardingChat.status.running.stillWorking",
+  "components.onboardingChat.status.running.almostThere",
 ];
 
-const WAITING_MESSAGES = [
-  t("components.onboardingChat.status.waiting.waitingToWake", { defaultValue: "Waiting to wake up..." }),
-  t("components.onboardingChat.status.waiting.heartbeatPending", { defaultValue: "Heartbeat pending..." }),
-  t("components.onboardingChat.status.waiting.shouldWakeSoon", { defaultValue: "Should wake up soon..." }),
+const WAITING_MESSAGE_KEYS = [
+  "components.onboardingChat.status.waiting.waitingToWake",
+  "components.onboardingChat.status.waiting.heartbeatPending",
+  "components.onboardingChat.status.waiting.shouldWakeSoon",
 ];
 
-function getCyclingMessage(messages: string[], elapsed: number, agentName: string): string {
+function getCyclingMessage(messageKeys: string[], elapsed: number, agentName: string, t: TFunction): string {
   // Cycle through messages every 5 seconds
-  const idx = Math.floor(elapsed / 5) % messages.length;
-  return `${agentName} · ${messages[idx]}`;
+  const idx = Math.floor(elapsed / 5) % messageKeys.length;
+  return `${agentName} · ${t(messageKeys[idx]!)}`;
 }
 
-function getRunStatusMessage(status: string, agentName: string, elapsed: number): string {
+function getRunStatusMessage(status: string, agentName: string, elapsed: number, t: TFunction): string {
   switch (status) {
     case "queued":
-      return getCyclingMessage(QUEUED_MESSAGES, elapsed, agentName);
+      return getCyclingMessage(QUEUED_MESSAGE_KEYS, elapsed, agentName, t);
     case "running":
-      return getCyclingMessage(RUNNING_MESSAGES, elapsed, agentName);
+      return getCyclingMessage(RUNNING_MESSAGE_KEYS, elapsed, agentName, t);
+    case "waiting":
+      return getCyclingMessage(WAITING_MESSAGE_KEYS, elapsed, agentName, t);
     case "succeeded":
       return t("components.onboardingChat.run.finished", { defaultValue: "{{agentName}} finished", agentName });
     case "failed":
@@ -329,12 +331,12 @@ export function OnboardingChat({
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500" />
                   </span>
-                  {getRunStatusMessage(activeRun.status, agentName, elapsed)}
+                  {getRunStatusMessage(activeRun.status, agentName, elapsed, t)}
                 </>
               ) : (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
-                  {getCyclingMessage(WAITING_MESSAGES, elapsed, agentName)}
+                  {getCyclingMessage(WAITING_MESSAGE_KEYS, elapsed, agentName, t)}
                 </>
               )}
             </div>

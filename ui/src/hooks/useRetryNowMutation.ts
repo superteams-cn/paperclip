@@ -1,31 +1,18 @@
 import { useCallback } from "react";
 import { useMutation, useQueryClient, type UseMutationResult } from "@tanstack/react-query";
-import type { IssueRetryNowOutcome, IssueRetryNowResponse } from "@paperclipai/shared";
+import type { IssueRetryNowResponse } from "@paperclipai/shared";
+import { useTranslation } from "react-i18next";
 import { ApiError } from "../api/client";
 import { issuesApi } from "../api/issues";
 import { useToastActions } from "../context/ToastContext";
+import { formatApiError } from "../lib/api-error";
+import { formatIssueRetryNowMessage } from "../lib/api-feedback-format";
 import { queryKeys } from "../lib/queryKeys";
 
 export type RetryNowError = {
   message: string;
   outcomeMessage: string | null;
   status: number | null;
-};
-
-function readErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (typeof error.message === "string" && error.message.trim().length > 0) return error.message;
-    return `Request failed (${error.status})`;
-  }
-  if (error instanceof Error && error.message) return error.message;
-  return "The request failed. Try again in a moment.";
-}
-
-export const RETRY_NOW_OUTCOME_HEADLINE: Record<IssueRetryNowOutcome, string> = {
-  promoted: "Retry promoted",
-  already_promoted: "Retry already running",
-  no_scheduled_retry: "No scheduled retry",
-  gate_suppressed: "Couldn't retry now",
 };
 
 export function useRetryNowMutation(
@@ -35,10 +22,21 @@ export function useRetryNowMutation(
 } {
   const queryClient = useQueryClient();
   const { pushToast } = useToastActions();
+  const { t } = useTranslation();
+
+  const readErrorMessage = (error: unknown) => formatApiError(
+    error,
+    t,
+    t("common.requestFailedTryAgain", { defaultValue: "The request failed. Try again in a moment." }),
+  );
 
   const mutation = useMutation({
     mutationFn: () => {
-      if (!issueId) throw new Error("Missing issue id");
+      if (!issueId) {
+        throw new Error(t("common.apiErrors.missingRequiredField", {
+          defaultValue: "A required field is missing or invalid.",
+        }));
+      }
       return issuesApi.retryScheduledRetryNow(issueId);
     },
     onSuccess: (response) => {
@@ -51,21 +49,21 @@ export function useRetryNowMutation(
       }
       if (response.outcome === "promoted") {
         pushToast({
-          title: RETRY_NOW_OUTCOME_HEADLINE.promoted,
-          body: response.message,
+          title: t("pages.issues.scheduledRetry.retryPromoted", { defaultValue: "Retry promoted" }),
+          body: formatIssueRetryNowMessage(response, t),
           tone: "success",
         });
       } else if (response.outcome === "gate_suppressed") {
         pushToast({
-          title: RETRY_NOW_OUTCOME_HEADLINE.gate_suppressed,
-          body: response.message,
+          title: t("pages.issues.scheduledRetry.couldNotRetry", { defaultValue: "Couldn't retry now" }),
+          body: formatIssueRetryNowMessage(response, t),
           tone: "error",
         });
       }
     },
     onError: (error) => {
       pushToast({
-        title: "Couldn't retry now",
+        title: t("pages.issues.scheduledRetry.couldNotRetry", { defaultValue: "Couldn't retry now" }),
         body: readErrorMessage(error),
         tone: "error",
       });
@@ -85,9 +83,10 @@ export function useRetryNowMutation(
       };
     }
     if (mutation.data && mutation.data.outcome === "gate_suppressed") {
+      const message = formatIssueRetryNowMessage(mutation.data, t);
       return {
-        message: mutation.data.message,
-        outcomeMessage: mutation.data.message,
+        message,
+        outcomeMessage: message,
         status: null,
       };
     }

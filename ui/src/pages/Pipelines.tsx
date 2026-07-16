@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { t } from "@/i18n";
+import { i18n, t } from "@/i18n";
 import { groupWarningsByStage, LOW_TRUST_REVIEW_PRESET } from "@paperclipai/shared";
 import type {
   Agent,
@@ -591,7 +591,7 @@ function formatPipelineActivity(value: string | Date | null) {
   if (diffDays < 7) return t("pages.pipelines.activity.daysAgo", { defaultValue: "{{count}} days ago", count: diffDays });
   if (diffDays < 14) return t("pages.pipelines.activity.lastWeek", { defaultValue: "last week" });
   if (diffDays < 30) return t("pages.pipelines.activity.weeksAgo", { defaultValue: "{{count}} weeks ago", count: Math.round(diffDays / 7) });
-  return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return new Date(value).toLocaleDateString(i18n.resolvedLanguage ?? i18n.language, { month: "short", day: "numeric" });
 }
 
 function PipelineStatusChip({ archivedAt }: { archivedAt: Date | string | null }) {
@@ -2204,10 +2204,10 @@ export function PipelineItemDetailView({ pipelineId, caseId }: { pipelineId: str
       options.push({ id: `agent:${agent.id}`, label: agent.name });
     }
     if (currentUserId) {
-      options.push({ id: `user:${currentUserId}`, label: "Me" });
+      options.push({ id: `user:${currentUserId}`, label: t("common.me", { defaultValue: "Me" }) });
     }
     return options;
-  }, [agents, companyMembers?.users, currentUserId]);
+  }, [agents, companyMembers?.users, currentUserId, t]);
   const actualAssigneeValue = useMemo(
     () => assigneeValueFromSelection(activeConversationIssue ?? {}),
     [activeConversationIssue],
@@ -2442,18 +2442,18 @@ export function PipelineItemDetailView({ pipelineId, caseId }: { pipelineId: str
 
   const handleConversationImageUpload = useCallback(async (file: File) => {
     if (!conversationIssueId || !conversationCompanyId) {
-      throw new Error("No active conversation issue is available for image uploads.");
+      throw new Error(t("pages.pipelines.errors.noConversationForImageUpload", { defaultValue: "No active conversation task is available for image uploads." }));
     }
     const attachment = await issuesApi.uploadAttachment(conversationCompanyId, conversationIssueId, file);
     return attachment.contentPath;
-  }, [conversationCompanyId, conversationIssueId]);
+  }, [conversationCompanyId, conversationIssueId, t]);
 
   const handleConversationAttachImage = useCallback(async (file: File) => {
     if (!conversationIssueId || !conversationCompanyId) {
-      throw new Error("No active conversation issue is available for image attachments.");
+      throw new Error(t("pages.pipelines.errors.noConversationForImageAttachment", { defaultValue: "No active conversation task is available for image attachments." }));
     }
     return issuesApi.uploadAttachment(conversationCompanyId, conversationIssueId, file);
-  }, [conversationCompanyId, conversationIssueId]);
+  }, [conversationCompanyId, conversationIssueId, t]);
 
   const handleDeleteConversationComment = useCallback(async (commentId: string) => {
     if (!conversationIssueId) return;
@@ -2680,11 +2680,11 @@ export function PipelineItemDetailView({ pipelineId, caseId }: { pipelineId: str
   );
   const moveItemToStage = useMutation({
     mutationFn: () => {
-      if (!selectedMoveStage || !detail?.case.version) throw new Error("Missing target stage");
+      if (!selectedMoveStage || !detail?.case.version) throw new Error(t("pages.pipelines.errors.missingTargetStage", { defaultValue: "Missing target stage" }));
       return pipelinesApi.transitionCase(caseId, {
         toStageKey: selectedMoveStage.key,
         expectedVersion: detail.case.version,
-        reason: `Manual board override from item page: moved from ${detail.stage.name} to ${selectedMoveStage.name}.`,
+        reason: t("pages.pipelines.reasons.manualMove", { from: detail.stage.name, to: selectedMoveStage.name, defaultValue: `Manual board override from item page: moved from ${detail.stage.name} to ${selectedMoveStage.name}.` }),
         force: true,
       });
     },
@@ -2698,11 +2698,11 @@ export function PipelineItemDetailView({ pipelineId, caseId }: { pipelineId: str
   });
   const removeItem = useMutation({
     mutationFn: () => {
-      if (!removeStage || !detail?.case.version) throw new Error("Missing removal stage");
+      if (!removeStage || !detail?.case.version) throw new Error(t("pages.pipelines.errors.missingRemovalStage", { defaultValue: "Missing removal stage" }));
       return pipelinesApi.transitionCase(caseId, {
         toStageKey: removeStage.key,
         expectedVersion: detail.case.version,
-        reason: "Removed from the item detail page.",
+        reason: t("pages.pipelines.reasons.removedFromDetail", { defaultValue: "Removed from the item detail page." }),
       });
     },
     onSuccess: async () => {
@@ -2734,7 +2734,7 @@ export function PipelineItemDetailView({ pipelineId, caseId }: { pipelineId: str
   }, [caseId, reviewQueueItems.data]);
   const decideReview = useMutation({
     mutationFn: ({ decision }: { decision: PipelineReviewDecision }) => {
-      if (!detail?.case.version) throw new Error("Missing item version");
+      if (!detail?.case.version) throw new Error(t("pages.pipelines.errors.missingItemVersion", { defaultValue: "Missing item version" }));
       return pipelinesApi.reviewCase(caseId, {
         decision,
         reason: reviewDecisionNote.trim() || null,
@@ -2777,7 +2777,7 @@ export function PipelineItemDetailView({ pipelineId, caseId }: { pipelineId: str
     return <div className="mx-auto max-w-3xl py-10 text-sm text-muted-foreground">{t("pages.pipelines.itemNotFound", { defaultValue: "Item not found." })}</div>;
   }
 
-  const workReferences = extractWorkReferences(detail.case);
+  const workReferences = extractWorkReferences(detail.case, t);
   const referenceKeys = referenceFieldKeys(detail.case.fields);
   const { shortFields: itemFields, longFields: mainPaneFields } = splitPipelineItemFields(
     displayPipelineItemFields(detail.case.fields).filter((field) => !referenceKeys.has(field.key)),
@@ -4992,7 +4992,7 @@ export function ReviewQueue() {
   const decideRow = useMutation({
     mutationFn: async ({ row, decision, note }: { row: ReviewQueueRow; decision: "approve" | "decline" | "request_changes"; note?: string }) => {
       if (row.kind === "suggestion") {
-        if (!row.suggestionId) throw new Error("This item is not ready for a decision.");
+        if (!row.suggestionId) throw new Error(t("pages.pipelines.errors.itemNotReady", { defaultValue: "This item is not ready for a decision." }));
         await pipelinesApi.resolveSuggestion(row.caseId, {
           suggestionId: row.suggestionId,
           resolution: decision === "approve" ? "accept" : "dismiss",
@@ -5001,7 +5001,7 @@ export function ReviewQueue() {
         });
         return;
       }
-      if (row.expectedVersion === null) throw new Error("This item is not ready for a decision.");
+      if (row.expectedVersion === null) throw new Error(t("pages.pipelines.errors.itemNotReady", { defaultValue: "This item is not ready for a decision." }));
       await pipelinesApi.reviewCase(row.caseId, {
         decision: decision === "request_changes" ? "request_changes" : "approve",
         reason: note || null,
@@ -5042,20 +5042,20 @@ export function ReviewQueue() {
 
   const bulkApprove = useMutation({
     mutationFn: async (targetRows: ReviewQueueRow[]) => {
-      if (!selectedCompanyId) throw new Error("Select a company first.");
+      if (!selectedCompanyId) throw new Error(t("common.selectCompanyFirst", { defaultValue: "Select a company first." }));
       const reviewRows = targetRows.filter((row) => row.kind === "review");
       const suggestionRows = targetRows.filter((row) => row.kind === "suggestion" && row.suggestionId);
       const tasks: Promise<unknown>[] = [];
       if (reviewRows.length > 0) {
         const items = reviewRows.map((row) => {
-          if (row.expectedVersion === null) throw new Error("This item is not ready for a decision.");
+          if (row.expectedVersion === null) throw new Error(t("pages.pipelines.errors.itemNotReady", { defaultValue: "This item is not ready for a decision." }));
           return { caseId: row.caseId, decision: "approve" as const, expectedVersion: row.expectedVersion };
         });
         tasks.push(
           pipelinesApi.bulkReviewCases(selectedCompanyId, { items }).then((response) => {
             const failures = (response.results ?? []).filter((result) => !result.ok);
             if (failures.length > 0) {
-              throw new Error("Some items could not be approved.");
+              throw new Error(t("pages.pipelines.errors.someItemsNotApproved", { defaultValue: "Some items could not be approved." }));
             }
           }),
         );
@@ -5285,7 +5285,7 @@ export function Learnings() {
 
   const events = learningsQuery.data?.items ?? [];
   const pagination = learningsQuery.data?.pagination;
-  const groups = groupLearningEventsByDay(events);
+  const groups = groupLearningEventsByDay(events, t);
   const firstVisible = events.length === 0 ? 0 : offset + 1;
   const lastVisible = offset + events.length;
   const canGoPrevious = offset > 0;
@@ -5323,7 +5323,7 @@ export function Learnings() {
               </h2>
               <div className="overflow-hidden rounded-md border border-border">
                 {group.events.map((event) => {
-                  const presentation = formatLearningEvent(event);
+                  const presentation = formatLearningEvent(event, t);
                   const forcedMove = presentation.kind === "forced_move";
                   return (
                     <div

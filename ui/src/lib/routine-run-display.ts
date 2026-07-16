@@ -1,4 +1,5 @@
 import type { RoutineRunSummary, RoutineVariable } from "@paperclipai/shared";
+import type { TFunction } from "i18next";
 
 /**
  * Format a single resolved variable value for the runs-row subtitle (§3.6).
@@ -39,9 +40,10 @@ export function dedupedTriggerLabel(
 export function runRowSubtitle(
   run: Pick<RoutineRunSummary, "status" | "failureReason" | "triggerPayload">,
   variables: readonly RoutineVariable[] | null | undefined,
+  t?: TFunction,
 ): string {
   if (run.status === "failed") {
-    return run.failureReason?.trim() || "Run failed";
+    return run.failureReason?.trim() || t?.("components.routineSections.operateSections.runs.runFailed", { defaultValue: "Run failed" }) || "Run failed";
   }
   const payload = run.triggerPayload;
   if (!payload || typeof payload !== "object") return "";

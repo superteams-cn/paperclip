@@ -7,7 +7,8 @@
  * fields against wall-clock parts in the trigger's timezone via `Intl.DateTimeFormat`.
  *
  * This is preview-only — the authoritative `nextRunAt` is still computed server-side.
- */
+*/
+import type { TFunction } from "i18next";
 
 const WEEKDAY_INDEX: Record<string, number> = {
   Sun: 0,
@@ -239,14 +240,15 @@ const DISPOSITION_LABEL: Record<FireDisposition, string> = {
 export function previewFirePolicies(
   fires: Date[],
   concurrencyPolicy: string,
+  t?: TFunction,
 ): FirePreviewEntry[] {
   return fires.map((at, index) => {
     if (index === 0) {
       return {
         at,
         disposition: "queued",
-        label: DISPOSITION_LABEL.queued,
-        note: "runs immediately",
+        label: t?.("components.routineSections.editableSections.nextFires.dispositions.queued", { defaultValue: DISPOSITION_LABEL.queued }) ?? DISPOSITION_LABEL.queued,
+        note: t?.("components.routineSections.editableSections.nextFires.runsImmediately", { defaultValue: "runs immediately" }) ?? "runs immediately",
       };
     }
     let disposition: FireDisposition;
@@ -265,8 +267,10 @@ export function previewFirePolicies(
     return {
       at,
       disposition,
-      label: DISPOSITION_LABEL[disposition],
-      note: disposition === "queued" ? null : "if the previous run is still active",
+      label: t?.(`components.routineSections.editableSections.nextFires.dispositions.${disposition}`, { defaultValue: DISPOSITION_LABEL[disposition] }) ?? DISPOSITION_LABEL[disposition],
+      note: disposition === "queued"
+        ? null
+        : t?.("components.routineSections.editableSections.nextFires.previousRunActive", { defaultValue: "if the previous run is still active" }) ?? "if the previous run is still active",
     };
   });
 }

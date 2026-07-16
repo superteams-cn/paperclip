@@ -10,7 +10,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { t } from "@/i18n";
+import { i18n, t } from "@/i18n";
 import { useLocation } from "@/lib/router";
 import type { WorkTimelineActor, WorkTimelineResult } from "@paperclipai/shared";
 import { applyCompanyPrefix, extractCompanyPrefixFromPath } from "@/lib/company-routes";
@@ -122,16 +122,15 @@ interface DragSelectionState {
 function fmtClock(ms: number): string {
   const d = new Date(ms);
   const hasMinutes = d.getMinutes() !== 0;
-  return d.toLocaleTimeString("en-US", {
+  return d.toLocaleTimeString(i18n.resolvedLanguage ?? i18n.language, {
     hour: "numeric",
     minute: hasMinutes ? "2-digit" : undefined,
-    hour12: true,
   });
 }
 
 function fmtTick(ms: number, stepMs: number): string {
   const d = new Date(ms);
-  const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const date = d.toLocaleDateString(i18n.resolvedLanguage ?? i18n.language, { month: "short", day: "numeric" });
   if (stepMs >= 24 * 60 * 60 * 1000) {
     return date;
   }

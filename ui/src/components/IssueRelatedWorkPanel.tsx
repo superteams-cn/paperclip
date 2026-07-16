@@ -115,25 +115,31 @@ function ExternalObjectsSection({
       <div className="space-y-1">
         <h3 className="text-sm font-semibold">{t("components.issueRelatedWork.externalObjects", { defaultValue: "External objects" })}</h3>
         <p className="text-xs text-muted-foreground">
-          Remote work referenced from this issue — pull requests, deployments, tickets in other systems, and more.
+          {t("components.issueRelatedWork.externalObjectsDescription", {
+            defaultValue: "Remote work referenced from this task — pull requests, deployments, tickets in other systems, and more.",
+          })}
         </p>
       </div>
 
       {isError ? (
         <p className="text-xs text-muted-foreground">
-          Couldn't load external objects.{" "}
+          {t("components.issueRelatedWork.externalObjectsError", {
+            defaultValue: "Couldn't load external objects.",
+          })}{" "}
           {onRetry ? (
             <button
               type="button"
               onClick={onRetry}
               className="text-primary underline-offset-2 hover:underline"
             >
-              Retry
+              {t("common.retry", { defaultValue: "Retry" })}
             </button>
           ) : null}
         </p>
       ) : isLoading ? (
-        <p className="text-xs text-muted-foreground">Loading external objects…</p>
+        <p className="text-xs text-muted-foreground">
+          {t("components.issueRelatedWork.externalObjectsLoading", { defaultValue: "Loading external objects…" })}
+        </p>
       ) : sorted.length === 0 ? (
         <p className="text-xs text-muted-foreground">
           {t("components.issueRelatedWork.externalObjectsEmpty", { defaultValue: "This issue does not reference any external objects yet." })}

@@ -388,6 +388,16 @@ const ANCESTRY_BADGE: Record<
   },
 };
 
+function ancestryBadge(verdict: GitWorktreeBranchAncestryVerdict, t: TFunction) {
+  const badge = ANCESTRY_BADGE[verdict];
+  return {
+    ...badge,
+    label: t(`pages.issues.recovery.ancestryVerdicts.${verdict}`, {
+      defaultValue: badge.label,
+    }),
+  };
+}
+
 function BranchFacet({
   label,
   branch,
@@ -427,7 +437,7 @@ function DivergenceDiagnosis({
   dividerClass: string;
 }) {
   const { t } = useTranslation();
-  const badge = ANCESTRY_BADGE[divergence.ancestryVerdict ?? "unknown"];
+  const badge = ancestryBadge(divergence.ancestryVerdict ?? "unknown", t);
   return (
     <div
       data-testid="recovery-divergence-diagnosis"
@@ -452,12 +462,12 @@ function DivergenceDiagnosis({
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         <BranchFacet
-          label="Expected · recorded"
+          label={t("pages.issues.recovery.expectedRecorded", { defaultValue: "Expected · recorded" })}
           branch={divergence.expectedBranch}
           sha={divergence.expectedHeadSha}
         />
         <BranchFacet
-          label="Live · checked out"
+          label={t("pages.issues.recovery.liveCheckedOut", { defaultValue: "Live · checked out" })}
           branch={divergence.liveBranch}
           sha={divergence.liveHeadSha}
         />
@@ -472,10 +482,14 @@ function DivergenceDiagnosis({
         >
           <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
           <span>
-            Worktree claimed by{" "}
-            <code className="font-mono text-foreground/90">{contentionLabel(divergence.contention)}</code>{" "}
-            {divergence.contention.hasActiveRun ? "(active run)" : "(claim held)"} — the lossless repair
-            can&apos;t run while another workspace holds the live branch.
+            {t("pages.issues.recovery.contention.claimedBy", { defaultValue: "Worktree claimed by" })}{" "}
+            <code className="font-mono text-foreground/90">{contentionLabel(divergence.contention, t)}</code>{" "}
+            {divergence.contention.hasActiveRun
+              ? t("pages.issues.recovery.contention.activeRun", { defaultValue: "(active run)" })
+              : t("pages.issues.recovery.contention.claimHeld", { defaultValue: "(claim held)" })}{" "}
+            {t("pages.issues.recovery.contention.repairUnavailable", {
+              defaultValue: "— the lossless repair can't run while another workspace holds the live branch.",
+            })}
           </span>
         </p>
       ) : null}
@@ -483,10 +497,15 @@ function DivergenceDiagnosis({
   );
 }
 
-function contentionLabel(contention: WorkspaceContention): string {
+function contentionLabel(contention: WorkspaceContention, t?: TFunction): string {
   return (
     contention.claimedByIssueIdentifier ??
-    (contention.claimedByIssueId ? `issue ${contention.claimedByIssueId.slice(0, 8)}` : "another task")
+    (contention.claimedByIssueId
+      ? t?.("pages.issues.recovery.contention.taskReference", {
+        defaultValue: "task {{id}}",
+        id: contention.claimedByIssueId.slice(0, 8),
+      }) ?? `task ${contention.claimedByIssueId.slice(0, 8)}`
+      : t?.("pages.issues.recovery.contention.anotherTask", { defaultValue: "another task" }) ?? "another task")
   );
 }
 
@@ -510,7 +529,7 @@ function BreakGlassOverride({
   const [reason, setReason] = useState("");
   const trimmedReason = reason.trim();
   const canSubmit = trimmedReason.length > 0 && !pending;
-  const verdictBadge = ANCESTRY_BADGE[divergence.ancestryVerdict ?? "unknown"];
+  const verdictBadge = ancestryBadge(divergence.ancestryVerdict ?? "unknown", t);
   const expectedSha = formatShortSha(divergence.expectedHeadSha);
   const liveSha = formatShortSha(divergence.liveHeadSha);
   return (
@@ -525,7 +544,9 @@ function BreakGlassOverride({
           className="border-red-400/60 text-red-700 hover:bg-red-500/10 dark:border-red-500/40 dark:text-red-300"
         >
           <OctagonAlert className="h-3.5 w-3.5" aria-hidden />
-          I&apos;ve verified this — reconcile anyway
+          {t("pages.issues.recovery.breakGlass.trigger", {
+            defaultValue: "I've verified this — reconcile anyway",
+          })}
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -543,10 +564,10 @@ function BreakGlassOverride({
             {t("pages.issues.recovery.breakGlass.title", { defaultValue: "Break-glass reconciliation" })}
           </div>
           <p className="text-xs leading-5 text-muted-foreground">
-            This overrides Paperclip&apos;s safety check and points the recorded workspace at the live
-            branch{" "}
-            <span className="font-medium text-foreground/80">{t("pages.issues.recovery.withoutAncestryProof", { defaultValue: "without an ancestry proof" })}</span>. Confirm
-            the divergence below and record why before continuing.
+            {t("pages.issues.recovery.breakGlass.description", {
+              defaultValue:
+                "This overrides Paperclip's safety check and points the recorded workspace at the live branch without an ancestry proof. Confirm the divergence below and record why before continuing.",
+            })}
           </p>
         </div>
         <dl
@@ -554,16 +575,20 @@ function BreakGlassOverride({
           className="space-y-1.5 rounded-md border border-red-400/40 bg-red-500/5 px-2.5 py-2 text-(length:--text-micro)"
         >
           <div className="flex items-center justify-between gap-2">
-            <dt className="shrink-0 text-muted-foreground">Recorded · expected</dt>
+            <dt className="shrink-0 text-muted-foreground">
+              {t("pages.issues.recovery.recordedExpected", { defaultValue: "Recorded · expected" })}
+            </dt>
             <dd className="min-w-0 truncate font-mono text-foreground/90">
-              {divergence.expectedBranch ?? "detached"}
+              {divergence.expectedBranch ?? t("pages.issues.recovery.detached", { defaultValue: "detached" })}
               {expectedSha ? ` @ ${expectedSha}` : ""}
             </dd>
           </div>
           <div className="flex items-center justify-between gap-2">
-            <dt className="shrink-0 text-muted-foreground">Live · checked out</dt>
+            <dt className="shrink-0 text-muted-foreground">
+              {t("pages.issues.recovery.liveCheckedOut", { defaultValue: "Live · checked out" })}
+            </dt>
             <dd className="min-w-0 truncate font-mono text-foreground/90">
-              {divergence.liveBranch ?? "detached"}
+              {divergence.liveBranch ?? t("pages.issues.recovery.detached", { defaultValue: "detached" })}
               {liveSha ? ` @ ${liveSha}` : ""}
             </dd>
           </div>
@@ -574,13 +599,20 @@ function BreakGlassOverride({
         </dl>
         <div className="space-y-1">
           <Label htmlFor="recovery-breakglass-reason" className="text-(length:--text-micro) text-muted-foreground">
-            Reason <span className="text-red-600 dark:text-red-400">(required — recorded in the audit log)</span>
+            {t("pages.issues.recovery.breakGlass.reason", { defaultValue: "Reason" })}{" "}
+            <span className="text-red-600 dark:text-red-400">
+              {t("pages.issues.recovery.breakGlass.reasonRequired", {
+                defaultValue: "(required — recorded in the audit log)",
+              })}
+            </span>
           </Label>
           <Textarea
             id="recovery-breakglass-reason"
             value={reason}
             onChange={(event) => setReason(event.target.value)}
-            placeholder="e.g. Verified the live branch carries only the intended follow-up commits; safe to adopt."
+            placeholder={t("pages.issues.recovery.breakGlass.reasonPlaceholder", {
+              defaultValue: "e.g. Verified the live branch carries only the intended follow-up commits; safe to adopt.",
+            })}
             className="min-h-20 text-xs"
             data-testid="recovery-breakglass-reason"
             aria-required="true"
@@ -598,7 +630,9 @@ function BreakGlassOverride({
             onConfirm(trimmedReason);
           }}
         >
-          {pending ? "Reconciling…" : "Reconcile anyway (break-glass)"}
+          {pending
+            ? t("pages.issues.recovery.breakGlass.reconciling", { defaultValue: "Reconciling…" })
+            : t("pages.issues.recovery.breakGlass.confirm", { defaultValue: "Reconcile anyway (break-glass)" })}
         </Button>
       </PopoverContent>
     </Popover>
@@ -630,8 +664,11 @@ function RepairWorkspace({
   const dirtyCount = divergence.dirtyFileCount;
   const dirtyLabel =
     dirtyCount === null
-      ? "Uncommitted changes"
-      : `${dirtyCount} uncommitted ${dirtyCount === 1 ? "change" : "changes"}`;
+      ? t("pages.issues.recovery.repairWorkspace.uncommittedChanges", { defaultValue: "Uncommitted changes" })
+      : t("pages.issues.recovery.repairWorkspace.uncommittedChangeCount", {
+        defaultValue: "{{count}} uncommitted change",
+        count: dirtyCount,
+      });
   const trigger = (
     <Button
       type="button"
@@ -646,7 +683,9 @@ function RepairWorkspace({
       ) : (
         <Wrench className="h-3.5 w-3.5" aria-hidden />
       )}
-      Repair workspace — quarantine changes &amp; restore branch
+      {t("pages.issues.recovery.repairWorkspace.trigger", {
+        defaultValue: "Repair workspace — quarantine changes & restore branch",
+      })}
     </Button>
   );
   if (disabled) {
@@ -681,9 +720,10 @@ function RepairWorkspace({
             {t("pages.issues.recovery.repairWorkspace.title", { defaultValue: "Repair workspace" })}
           </div>
           <p className="text-xs leading-5 text-muted-foreground">
-            This is lossless — no reason required. Your uncommitted changes are committed onto a fresh
-            rescue branch, then the recorded branch is restored so the task can resume. The live branch
-            is left exactly as it is.
+            {t("pages.issues.recovery.repairWorkspace.description", {
+              defaultValue:
+                "This is lossless — no reason required. Your uncommitted changes are committed onto a fresh rescue branch, then the recorded branch is restored so the task can resume. The live branch is left exactly as it is.",
+            })}
           </p>
         </div>
         <dl
@@ -699,8 +739,10 @@ function RepairWorkspace({
           <div className="flex items-center justify-between gap-2">
             <dt className="shrink-0 text-muted-foreground">{t("pages.issues.recovery.liveBranch", { defaultValue: "Live branch" })}</dt>
             <dd className="min-w-0 truncate font-mono text-foreground/90">
-              {divergence.liveBranch ?? "detached"}
-              <span className="ml-1 font-sans text-muted-foreground">(left untouched)</span>
+              {divergence.liveBranch ?? t("pages.issues.recovery.detached", { defaultValue: "detached" })}
+              <span className="ml-1 font-sans text-muted-foreground">
+                {t("pages.issues.recovery.repairWorkspace.leftUntouched", { defaultValue: "(left untouched)" })}
+              </span>
             </dd>
           </div>
           <div className="flex items-center justify-between gap-2">
@@ -710,13 +752,15 @@ function RepairWorkspace({
               className="min-w-0 truncate font-mono text-foreground/90"
             >
               {divergence.rescueBranchPreview}
-              <span className="text-muted-foreground">&lt;timestamp&gt;</span>
+              <span className="text-muted-foreground">
+                {t("pages.issues.recovery.repairWorkspace.timestampPlaceholder", { defaultValue: "<timestamp>" })}
+              </span>
             </dd>
           </div>
           <div className="flex items-center justify-between gap-2">
             <dt className="shrink-0 text-muted-foreground">{t("pages.issues.recovery.restoreTo", { defaultValue: "Restore to" })}</dt>
             <dd className="min-w-0 truncate font-mono text-foreground/90">
-              {divergence.expectedBranch ?? "recorded branch"}
+              {divergence.expectedBranch ?? t("pages.issues.recovery.repairWorkspace.recordedBranch", { defaultValue: "recorded branch" })}
             </dd>
           </div>
         </dl>
@@ -731,7 +775,11 @@ function RepairWorkspace({
             onConfirm();
           }}
         >
-          {pending ? "Repairing…" : "Quarantine changes & restore branch"}
+          {pending
+            ? t("pages.issues.recovery.repairWorkspace.repairing", { defaultValue: "Repairing…" })
+            : t("pages.issues.recovery.repairWorkspace.confirm", {
+              defaultValue: "Quarantine changes & restore branch",
+            })}
         </Button>
       </PopoverContent>
     </Popover>
@@ -1001,7 +1049,7 @@ export function IssueRecoveryActionCard({
     divergence !== null &&
     reissueBaseRef !== null;
   const reissueVerdictBadge = divergence
-    ? ANCESTRY_BADGE[divergence.ancestryVerdict ?? "unknown"]
+    ? ancestryBadge(divergence.ancestryVerdict ?? "unknown", t)
     : null;
   // Action 1 — the ancestry-proven safe path. Only offered when the server-computed verdict is
   // "ancestor"; the server re-verifies before mutating, so this gate mirrors (not replaces) it.
@@ -1027,7 +1075,10 @@ export function IssueRecoveryActionCard({
     divergence !== null &&
     divergence.cleanliness === "dirty";
   const repairDisabledReason = repairContention
-    ? `Held by ${contentionLabel(repairContention)} — re-issue on an isolated workspace instead.`
+    ? t("pages.issues.recovery.contention.heldBy", {
+      defaultValue: "Held by {{claimant}} — re-issue on an isolated workspace instead.",
+      claimant: contentionLabel(repairContention, t),
+    })
     : null;
   // When contended, the re-issue is the recommended path, so it takes the primary emphasis and a
   // "Recommended" hint while the repair button is disabled.
@@ -1239,7 +1290,7 @@ export function IssueRecoveryActionCard({
               ) : (
                 <RefreshCw className="h-3.5 w-3.5" aria-hidden />
               )}
-              Reconcile forward &amp; continue
+              {t("pages.issues.recovery.reconcileForward", { defaultValue: "Reconcile forward & continue" })}
             </Button>
           ) : null}
           {showRepairAction && divergence ? (
@@ -1273,7 +1324,7 @@ export function IssueRecoveryActionCard({
                       data-testid="recovery-reissue-recommended"
                       className="ml-1 rounded-sm bg-background/25 px-1.5 py-0.5 text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-label)"
                     >
-                      Recommended
+                      {t("pages.issues.recovery.recommended", { defaultValue: "Recommended" })}
                     </span>
                   ) : null}
                 </Button>
@@ -1284,8 +1335,10 @@ export function IssueRecoveryActionCard({
                     {t("pages.issues.recovery.reissueIsolated", { defaultValue: "Re-issue on isolated workspace" })}
                   </div>
                   <p className="text-xs leading-5 text-muted-foreground">
-                    Creates a fresh copy of this task on an isolated git worktree based on the live
-                    branch. Your current workspace and its commits are left untouched.
+                    {t("pages.issues.recovery.reissueDescription", {
+                      defaultValue:
+                        "Creates a fresh copy of this task on an isolated git worktree based on the live branch. Your current workspace and its commits are left untouched.",
+                    })}
                   </p>
                 </div>
                 <dl className="space-y-1 rounded-md border border-border/70 bg-muted/30 px-2.5 py-2 text-(length:--text-micro)">
@@ -1294,14 +1347,18 @@ export function IssueRecoveryActionCard({
                     <dd className="min-w-0 truncate font-mono text-foreground/90">{reissueBaseRef}</dd>
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <dt className="text-muted-foreground">Recorded</dt>
+                    <dt className="text-muted-foreground">
+                      {t("pages.issues.recovery.recorded", { defaultValue: "Recorded" })}
+                    </dt>
                     <dd className="min-w-0 truncate font-mono text-foreground/80">
                       {divergence.expectedBranch ?? "—"}
                     </dd>
                   </div>
                   {reissueVerdictBadge ? (
                     <div className="flex items-center justify-between gap-2">
-                      <dt className="text-muted-foreground">Ancestry</dt>
+                      <dt className="text-muted-foreground">
+                        {t("pages.issues.recovery.ancestry", { defaultValue: "Ancestry" })}
+                      </dt>
                       <dd className="font-medium">{reissueVerdictBadge.label}</dd>
                     </div>
                   ) : null}
@@ -1321,7 +1378,11 @@ export function IssueRecoveryActionCard({
                     })
                   }
                 >
-                  {reissuePending ? "Creating…" : "Create isolated re-issue"}
+                  {reissuePending
+                    ? t("pages.issues.recovery.creating", { defaultValue: "Creating…" })
+                    : t("pages.issues.recovery.createIsolatedReissue", {
+                      defaultValue: "Create isolated re-issue",
+                    })}
                 </Button>
               </PopoverContent>
             </Popover>

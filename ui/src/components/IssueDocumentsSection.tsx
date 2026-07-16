@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type {
   Agent,
   DocumentRevision,
@@ -153,6 +154,7 @@ function getRevisionActor(
     agentMap?: ReadonlyMap<string, Pick<Agent, "id" | "name"> & Partial<Pick<Agent, "icon">>>;
     userProfileMap?: ReadonlyMap<string, CompanyUserProfile>;
   },
+  t: TFunction,
 ): DocumentFrameHeaderRevisionActor {
   if (revision.createdByAgentId) {
     const agent = maps.agentMap?.get(revision.createdByAgentId);
@@ -166,11 +168,13 @@ function getRevisionActor(
     const profile = maps.userProfileMap?.get(revision.createdByUserId);
     return {
       kind: "user",
-      name: profile?.label ?? (revision.createdByUserId === "local-board" ? "Board" : revision.createdByUserId.slice(0, 8)),
+      name: profile?.label ?? (revision.createdByUserId === "local-board"
+        ? t("components.issueDocuments.actors.board", { defaultValue: "Board" })
+        : revision.createdByUserId.slice(0, 8)),
       imageUrl: profile?.image ?? null,
     };
   }
-  return { kind: "system", name: "System" };
+  return { kind: "system", name: t("components.issueDocuments.actors.system", { defaultValue: "System" }) };
 }
 
 function documentHasUnsavedChanges(doc: IssueDocument, draft: DraftState | null) {
@@ -389,7 +393,9 @@ export function IssueDocumentsSection({
   const deleteDocument = useMutation({
     mutationFn: (key: string) => documentSubject.deleteDocument
       ? documentSubject.deleteDocument(key)
-      : Promise.reject(new Error("Document deletion is not available")),
+      : Promise.reject(new Error(t("components.issueDocuments.errors.deletionUnavailable", {
+        defaultValue: "Document deletion is not available",
+      }))),
     onSuccess: () => {
       setError(null);
       setConfirmDeleteKey(null);
@@ -404,7 +410,9 @@ export function IssueDocumentsSection({
     mutationFn: ({ key, revisionId }: { key: string; revisionId: string }) =>
       documentSubject.restoreDocumentRevision
         ? documentSubject.restoreDocumentRevision(key, revisionId)
-        : Promise.reject(new Error("Document revision restore is not available")),
+        : Promise.reject(new Error(t("components.issueDocuments.errors.restoreUnavailable", {
+          defaultValue: "Document revision restore is not available",
+        }))),
     onSuccess: (document, variables) => {
       syncDocumentCaches(document);
       setSelectedRevisionIds((current) => ({ ...current, [variables.key]: null }));
@@ -423,7 +431,9 @@ export function IssueDocumentsSection({
     mutationFn: ({ key, locked }: { key: string; locked: boolean }) =>
       documentSubject.setDocumentLock
         ? documentSubject.setDocumentLock(key, locked)
-        : Promise.reject(new Error("Document locking is not available")),
+        : Promise.reject(new Error(t("components.issueDocuments.errors.lockingUnavailable", {
+          defaultValue: "Document locking is not available",
+        }))),
     onSuccess: (document) => {
       syncDocumentCaches(document);
       setDraft((current) => current?.key === document.key ? null : current);
@@ -1040,7 +1050,7 @@ export function IssueDocumentsSection({
                     id: revision.id,
                     revisionNumber: revision.revisionNumber,
                     createdAt: revision.createdAt,
-                    actor: getRevisionActor(revision, { agentMap, userProfileMap }),
+                    actor: getRevisionActor(revision, { agentMap, userProfileMap }, t),
                   })),
                   selectedRevisionId,
                   currentRevisionId: currentRevision.id,

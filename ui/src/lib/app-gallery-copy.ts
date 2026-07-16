@@ -49,71 +49,37 @@ export interface AppCopy {
  * (https://happy-grove-jzyc.here.now/). Apps without an entry fall back to a
  * generic, gate-safe line.
  */
-const APP_COPY: Record<string, AppCopy> = {
-  zapier: {
-    tagline: "Reach 9,000+ apps your team already uses.",
-    short: "Reach 9,000+ apps from your agents.",
-  },
-  github: {
-    tagline: "Read code and pull requests, comment on issues.",
-    short: "Read code and pull requests, comment on issues.",
-  },
-  slack: {
-    tagline: "Send and read messages in your team's channels.",
-    short: "Send and read messages in your channels.",
-  },
-  notion: {
-    tagline: "Read and update pages in your workspace.",
-    short: "Read and update pages in your workspace.",
-  },
-  linear: {
-    tagline: "Create, update and read tickets.",
-    short: "Create, update and read tickets.",
-  },
-  "google-sheets": {
-    tagline: "Read and update selected spreadsheets.",
-    short: "Share each sheet with the robot email, then paste the links.",
-  },
-  gmail: {
-    tagline: "Read mail and send drafts for your review.",
-    short: "Read mail and send drafts for your review.",
-  },
-  hubspot: {
-    tagline: "Look up contacts and update deal stages.",
-    short: "Look up contacts and update deal stages.",
-  },
-  intercom: {
-    tagline: "Read and reply to customer conversations.",
-    short: "Read and reply to customer conversations.",
-  },
-  figma: {
-    tagline: "Read files and post comments on frames.",
-    short: "Read files and post comments on frames.",
-  },
-  stripe: {
-    tagline: "Read customers, invoices, and payouts.",
-    short: "Read customers, invoices, and payouts.",
-  },
-  context7: {
-    tagline: "Look up up-to-date docs for your libraries.",
-    short: "Look up up-to-date docs for your libraries.",
-  },
-};
-
-const GENERIC: AppCopy = {
-  tagline: "Give your agents access to this app.",
-  short: "Give your agents access to this app.",
-};
+const CURATED_APP_KEYS = new Set([
+  "zapier",
+  "github",
+  "slack",
+  "notion",
+  "linear",
+  "google-sheets",
+  "gmail",
+  "hubspot",
+  "intercom",
+  "figma",
+  "stripe",
+  "context7",
+]);
 
 /** Curated, gate-safe copy for a gallery app. */
 export function appCopyFor(key: string, fallbackTagline?: string | null): AppCopy {
-  const curated = APP_COPY[key];
-  if (curated) return curated;
+  if (CURATED_APP_KEYS.has(key)) {
+    return {
+      tagline: t(`apps.galleryCopy.${key}.tagline`),
+      short: t(`apps.galleryCopy.${key}.short`),
+    };
+  }
   if (fallbackTagline) {
     const cleaned = sanitizeProsumerCopy(fallbackTagline);
     if (cleaned) return { tagline: cleaned, short: cleaned };
   }
-  return GENERIC;
+  return {
+    tagline: t("apps.galleryCopy.generic"),
+    short: t("apps.galleryCopy.generic"),
+  };
 }
 
 /**
@@ -127,7 +93,8 @@ export function credentialFieldLabel(
   rawLabel: string,
   fieldCount: number,
 ): string {
-  if (fieldCount <= 1) return `Your ${appName} key`;
+  if (fieldCount <= 1) return t("apps.galleryCopy.credentialKey", { appName });
   const cleaned = sanitizeProsumerCopy(rawLabel);
-  return cleaned || `Your ${appName} key`;
+  return cleaned || t("apps.galleryCopy.credentialKey", { appName });
 }
+import { t } from "@/i18n";

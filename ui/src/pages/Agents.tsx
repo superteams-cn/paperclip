@@ -33,7 +33,8 @@ import {
   useResourceMemberships,
 } from "../hooks/useResourceMemberships";
 import { usePublishSharedQueryData, useSharedPollingQuery } from "../hooks/useSharedPolling";
-import { t as translate, useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n";
+import type { TFunction } from "i18next";
 
 import { getAdapterLabel } from "../adapters/adapter-display-registry";
 
@@ -68,17 +69,16 @@ interface EnvironmentDescriptor {
   title: string;
 }
 
-const localEnvironmentDescriptor: EnvironmentDescriptor = {
-  label: "Local",
-  detail: "Paperclip host",
-  title: "Local - Paperclip host",
-};
+function localEnvironmentDescriptor(t: TFunction): EnvironmentDescriptor {
+  const label = t("pages.agents.environment.local", { defaultValue: "Local" });
+  const detail = t("pages.agents.environment.paperclipHost", { defaultValue: "Paperclip host" });
+  return { label, detail, title: `${label} - ${detail}` };
+}
 
-const loadingEnvironmentDescriptor: EnvironmentDescriptor = {
-  label: "—",
-  detail: "Loading environment",
-  title: "Loading environment",
-};
+function loadingEnvironmentDescriptor(t: TFunction): EnvironmentDescriptor {
+  const loading = t("pages.agents.environment.loading", { defaultValue: "Loading environment" });
+  return { label: "—", detail: loading, title: loading };
+}
 
 // Agents in these states never appear in the agents list — `terminated` is
 // hidden like an archived company, and `pending_approval` is a hiring gate that
@@ -118,23 +118,28 @@ function formatEnvironmentDriver(driver: Environment["driver"]): string {
 
 function getSandboxProviderLabel(
   environment: Environment,
+  t: TFunction,
   capabilities?: EnvironmentCapabilities | null,
 ): string {
   const provider = typeof environment.config.provider === "string"
     ? environment.config.provider.trim()
     : "";
-  if (!provider) return "Sandbox";
+  if (!provider) return t("pages.agents.environment.sandbox", { defaultValue: "Sandbox" });
   return capabilities?.sandboxProviders?.[provider]?.displayName ?? provider;
 }
 
 function describeEnvironment(
   environment: Environment,
+  t: TFunction,
   capabilities?: EnvironmentCapabilities | null,
 ): EnvironmentDescriptor {
   const detail = environment.driver === "sandbox"
-    ? `${getSandboxProviderLabel(environment, capabilities)} sandbox provider`
+    ? t("pages.agents.environment.sandboxProvider", {
+        provider: getSandboxProviderLabel(environment, t, capabilities),
+        defaultValue: `${getSandboxProviderLabel(environment, t, capabilities)} sandbox provider`,
+      })
     : environment.driver === "local"
-      ? "Paperclip host"
+      ? t("pages.agents.environment.paperclipHost", { defaultValue: "Paperclip host" })
       : formatEnvironmentDriver(environment.driver);
 
   return {
@@ -144,11 +149,12 @@ function describeEnvironment(
   };
 }
 
-function describeMissingEnvironment(environmentId: string): EnvironmentDescriptor {
+function describeMissingEnvironment(environmentId: string, t: TFunction): EnvironmentDescriptor {
+  const label = t("pages.agents.environment.unknown", { defaultValue: "Unknown environment" });
   return {
-    label: "Unknown environment",
+    label,
     detail: environmentId.slice(0, 8),
-    title: `Unknown environment - ${environmentId}`,
+    title: `${label} - ${environmentId}`,
   };
 }
 
@@ -156,14 +162,15 @@ function resolveAgentEnvironment(
   agent: Agent,
   environmentsById: Map<string, Environment>,
   instanceDefaultEnvironmentId: string | null,
+  t: TFunction,
   capabilities?: EnvironmentCapabilities | null,
 ): EnvironmentDescriptor {
   const environmentId = agent.defaultEnvironmentId ?? instanceDefaultEnvironmentId;
-  if (!environmentId) return localEnvironmentDescriptor;
+  if (!environmentId) return localEnvironmentDescriptor(t);
   const environment = environmentsById.get(environmentId);
   return environment
-    ? describeEnvironment(environment, capabilities)
-    : describeMissingEnvironment(environmentId);
+    ? describeEnvironment(environment, t, capabilities)
+    : describeMissingEnvironment(environmentId, t);
 }
 
 function filterOrgTree(nodes: OrgNode[], tab: FilterTab, builtInAgentIds: Set<string>): OrgNode[] {
@@ -209,8 +216,10 @@ export function Agents() {
   const builtInAgentsEnabled = instanceSettings?.experimental.enableBuiltInAgents === true;
   const tab: FilterTab = requestedTab === "builtin" && !builtInAgentsEnabled ? "all" : requestedTab;
   const visibleTabItems = useMemo(
-    () => AGENT_FILTER_TAB_ITEMS.filter((item) => item.value !== "builtin" || builtInAgentsEnabled),
-    [builtInAgentsEnabled],
+    () => AGENT_FILTER_TAB_ITEMS
+      .filter((item) => item.value !== "builtin" || builtInAgentsEnabled)
+      .map((item) => ({ ...item, label: t(`pages.agents.tabs.${item.value}`, { defaultValue: item.label }) })),
+    [builtInAgentsEnabled, t],
   );
 
   const { data: builtInAgents } = useQuery({
@@ -310,12 +319,13 @@ export function Agents() {
           agent,
           environmentsById,
           instanceSettings?.defaultEnvironmentId ?? null,
+          t,
           environmentCapabilities,
         ),
       );
     }
     return map;
-  }, [agents, environmentsById, environmentCapabilities, instanceSettings?.defaultEnvironmentId]);
+  }, [agents, environmentsById, environmentCapabilities, instanceSettings?.defaultEnvironmentId, t]);
 
   useEffect(() => {
     setBreadcrumbs([{ label: t("nav.agents", { defaultValue: "Agents" }) }]);
@@ -346,8 +356,8 @@ export function Agents() {
   const showEnvironmentColumn = environmentsEnabled && (environments === undefined || environments.length > 1);
   const resolveRenderedEnvironment = (agentId: string) => (
     environmentDataLoading
-      ? loadingEnvironmentDescriptor
-      : environmentByAgentId.get(agentId) ?? localEnvironmentDescriptor
+      ? loadingEnvironmentDescriptor(t)
+      : environmentByAgentId.get(agentId) ?? localEnvironmentDescriptor(t)
   );
 
   const renderAgentRow = (agent: Agent) => {
@@ -398,7 +408,7 @@ export function Agents() {
         titleClassName="flex-1 xl:flex-none xl:w-56"
         titleTextClassName="whitespace-normal break-words xl:truncate xl:whitespace-nowrap"
         subtitleClassName="whitespace-normal break-words xl:truncate xl:whitespace-nowrap"
-        subtitle={`${roleLabels[agent.role] ?? agent.role}${agent.title ? ` - ${agent.title}` : ""}`}
+        subtitle={`${t(`labels.agentRole.${agent.role}`, { defaultValue: roleLabels[agent.role] ?? agent.role })}${agent.title ? ` - ${agent.title}` : ""}`}
         to={agentUrl(agent)}
         className={cn(
           "group",
@@ -459,7 +469,7 @@ export function Agents() {
                 <AgentActionButtons
                   agent={agent}
                   companyId={selectedCompanyId}
-                  runLabel="Run Heartbeat"
+                  runLabel={t("pages.agents.runHeartbeat", { defaultValue: "Run Heartbeat" })}
                   showStatus={false}
                 />
               </div>
@@ -654,6 +664,7 @@ function OrgTreeNode({
   builtInByAgentId: Map<string, BuiltInAgentState>;
   onConfigureBuiltIn: (state: BuiltInAgentState) => void;
 }) {
+  const { t } = useTranslation();
   const agent = agentMap.get(node.id);
   const builtInState = builtInByAgentId.get(node.id);
   const hasInvalidOrgChain = Boolean(agent && agent.orgChainHealth?.status === "invalid_org_chain");
@@ -676,7 +687,7 @@ function OrgTreeNode({
         )}
       >
         {hasInvalidOrgChain ? (
-          <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label={translate("pages.agents.invalidReportingChain", { defaultValue: "Invalid reporting chain" })} />
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label={t("pages.agents.invalidReportingChain", { defaultValue: "Invalid reporting chain" })} />
         ) : (
           <AgentStatusCapsule status={node.status} />
         )}
@@ -687,7 +698,7 @@ function OrgTreeNode({
           <div className="min-w-(--sz-7rem) truncate">
             <span className="text-sm font-medium">{node.name}</span>
             <span className="text-xs text-muted-foreground ml-2">
-              {roleLabels[node.role] ?? node.role}
+              {t(`labels.agentRole.${node.role}`, { defaultValue: roleLabels[node.role] ?? node.role })}
               {agent?.title ? ` - ${agent.title}` : ""}
             </span>
           </div>
@@ -703,7 +714,7 @@ function OrgTreeNode({
                   }}
                 >
                   <Button size="xs" variant="outline" onClick={() => onConfigureBuiltIn(builtInState)}>
-                    {translate("pages.agents.builtIn.setUp", { defaultValue: "Set up" })}
+                    {t("pages.agents.builtIn.setUp", { defaultValue: "Set up" })}
                   </Button>
                 </span>
               )}
@@ -736,8 +747,8 @@ function OrgTreeNode({
                   agent={agent}
                   environment={
                     environmentDataLoading
-                      ? loadingEnvironmentDescriptor
-                      : environmentByAgentId.get(agent.id) ?? localEnvironmentDescriptor
+                      ? loadingEnvironmentDescriptor(t)
+                      : environmentByAgentId.get(agent.id) ?? localEnvironmentDescriptor(t)
                   }
                   showEnvironment={showEnvironment}
                 />

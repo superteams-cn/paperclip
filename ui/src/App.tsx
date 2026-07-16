@@ -369,6 +369,7 @@ function legacyToolsRedirectTarget(tab?: string) {
 }
 
 function OnboardingRoutePage() {
+  const { t } = useTranslation();
   const { companies } = useCompany();
   const { openOnboarding } = useDialogActions();
   const { onboardingOpen, onboardingRouteDismissed } = useDialogState();
@@ -387,15 +388,15 @@ function OnboardingRoutePage() {
     : null;
 
   const title = matchedCompany
-    ? `Add another agent to ${matchedCompany.name}`
+    ? t("pages.onboardingRoute.addAnotherAgent", { company: matchedCompany.name, defaultValue: `Add another agent to ${matchedCompany.name}` })
     : companies.length > 0
-      ? "Create another company"
-      : "Create your first company";
+      ? t("pages.onboardingRoute.createAnotherCompany", { defaultValue: "Create another company" })
+      : t("pages.onboardingRoute.createFirstCompany", { defaultValue: "Create your first company" });
   const description = matchedCompany
-    ? "Run onboarding again to add an agent and a starter task for this company."
+    ? t("pages.onboardingRoute.addAgentDescription", { defaultValue: "Run onboarding again to add an agent and a starter task for this company." })
     : companies.length > 0
-      ? "Run onboarding again to create another company and seed its first agent."
-      : "Get started by creating a company and your first agent.";
+      ? t("pages.onboardingRoute.createAnotherDescription", { defaultValue: "Run onboarding again to create another company and seed its first agent." })
+      : t("pages.onboardingRoute.createFirstDescription", { defaultValue: "Get started by creating a company and your first agent." });
 
   return (
     <div className="mx-auto max-w-xl py-10">
@@ -410,7 +411,9 @@ function OnboardingRoutePage() {
                 : openOnboarding()
             }
           >
-            {matchedCompany ? "Add Agent" : "Start Onboarding"}
+            {matchedCompany
+              ? t("pages.onboardingRoute.addAgent", { defaultValue: "Add Agent" })
+              : t("pages.onboardingRoute.startOnboarding", { defaultValue: "Start Onboarding" })}
           </Button>
         </div>
       </div>

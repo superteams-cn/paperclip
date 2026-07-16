@@ -576,7 +576,7 @@ export function BoardChat() {
         clearTimeout(fetchTimeout);
 
         if (!res.ok || !res.body) {
-          throw new Error("Board chat stream not available");
+          throw new Error(t("pages.boardChat.error.streamUnavailable", { defaultValue: "Board chat stream not available" }));
         }
 
         setStatusText(t("pages.boardChat.status.thinking", { defaultValue: "Thinking..." }));

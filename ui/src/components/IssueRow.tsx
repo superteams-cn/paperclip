@@ -312,7 +312,7 @@ function renderRecoveryChip(action: IssueRecoveryAction, selected: boolean, t: T
   if (!state) return null;
   const tone = RECOVERY_CHIP_DEFAULT_TONE[state];
   const Icon = tone.icon;
-  const label = recoveryChipLabel(state, action.kind);
+  const label = recoveryChipLabel(state, action.kind, t);
   return (
     <Badge variant="outline"
       data-testid="issue-row-recovery-indicator"

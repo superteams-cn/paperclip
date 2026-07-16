@@ -7,19 +7,13 @@ import { useSmokeLabEnabled } from "@/hooks/useSmokeLabEnabled";
 import { advancedTabHref } from "@/pages/tools/tool-tabs";
 import { cn } from "@/lib/utils";
 import { failingPaths, runHealth, type SmokeHealth } from "@/pages/tools/smoke-lab-matrix";
+import { useTranslation } from "@/i18n";
 
 const HEALTH_DOT: Record<SmokeHealth, string> = {
   green: "bg-emerald-500",
   amber: "bg-amber-500",
   red: "bg-destructive",
   unknown: "bg-muted-foreground/40",
-};
-
-const HEALTH_LABEL: Record<SmokeHealth, string> = {
-  green: "All paths passing",
-  amber: "Needs a run",
-  red: "Failing paths",
-  unknown: "No runs yet",
 };
 
 function formatTime(value: string | Date | null | undefined): string {
@@ -37,6 +31,7 @@ function formatTime(value: string | Date | null | undefined): string {
  * the Developer › Smoke Lab tab.
  */
 export function SmokeLabDashboardCard({ companyId }: { companyId: string }) {
+  const { t } = useTranslation();
   const { enabled, loaded } = useSmokeLabEnabled();
 
   const runsQuery = useQuery({
@@ -72,14 +67,16 @@ export function SmokeLabDashboardCard({ companyId }: { companyId: string }) {
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", HEALTH_DOT[health])} />
-            <p className="truncate text-sm font-semibold text-foreground">Integration smoke</p>
+            <p className="truncate text-sm font-semibold text-foreground">{t("tools.smokeLab.dashboardTitle")}</p>
           </div>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {HEALTH_LABEL[health]}
+            {t(`tools.smokeLab.health.${health}`)}
             {failing.length > 0 && `: ${failing.join(", ")}`}
           </p>
           <p className="mt-0.5 truncate text-(length:--text-micro) text-muted-foreground/80">
-            {latestRun ? `Last run ${formatTime(latestRun.startedAt)}` : "Run one from the Smoke Lab tab"}
+            {latestRun
+              ? t("tools.smokeLab.lastRun", { time: formatTime(latestRun.startedAt) })
+              : t("tools.smokeLab.runFromTab")}
           </p>
         </div>
       </div>

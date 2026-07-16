@@ -850,9 +850,9 @@ function NextFiresPreview({
     if (!schedule) return null;
     return {
       timeZone: schedule.trigger.timezone ?? "UTC",
-      entries: previewFirePolicies(schedule.fires, concurrencyPolicy),
+      entries: previewFirePolicies(schedule.fires, concurrencyPolicy, t),
     };
-  }, [triggers, concurrencyPolicy]);
+  }, [triggers, concurrencyPolicy, t]);
 
   return (
     <div className="space-y-3">

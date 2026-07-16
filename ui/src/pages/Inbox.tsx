@@ -2131,7 +2131,7 @@ export function Inbox() {
   }, [selectedIndex]);
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={InboxIcon} message="Select a company to view inbox." />;
+    return <EmptyState icon={InboxIcon} message={t("pages.inbox.selectCompany", { defaultValue: "Select a company to view inbox." })} />;
   }
 
   const hasRunFailures = failedRuns.length > 0;
@@ -2727,6 +2727,26 @@ export function Inbox() {
                 let previousTimestamp = Number.POSITIVE_INFINITY;
                 return groupedSections.flatMap((group, groupIndex) => {
                   const elements: ReactNode[] = [];
+                  const baseGroupKey = group.key
+                    .replace(/^archived-search:/, "")
+                    .replace(/^other-search:/, "");
+                  const localizedGroupLabel = baseGroupKey === "issue"
+                    ? t("pages.inbox.categories.issues", { defaultValue: "Tasks" })
+                    : baseGroupKey === "approval"
+                      ? t("pages.inbox.categories.approvals", { defaultValue: "Approvals" })
+                      : baseGroupKey === "failed_run"
+                        ? t("pages.inbox.categories.failedRuns", { defaultValue: "Failed runs" })
+                        : baseGroupKey === "join_request"
+                          ? t("pages.inbox.categories.joinRequests", { defaultValue: "Join requests" })
+                          : baseGroupKey === "workspace:none"
+                            ? t("pages.inbox.groupLabels.noWorkspace", { defaultValue: "No workspace" })
+                            : baseGroupKey === "assignee:none"
+                              ? t("pages.inbox.groupLabels.unassigned", { defaultValue: "Unassigned" })
+                              : baseGroupKey === "project:none"
+                                ? t("pages.inbox.groupLabels.noProject", { defaultValue: "No project" })
+                                : baseGroupKey.startsWith("assignee:user:") && group.label === "User"
+                                  ? t("common.user", { defaultValue: "User" })
+                                  : group.label ?? "";
                   const isGroupCollapsed = collapsedGroupKeys.has(group.key);
                   if (
                     group.searchSection !== "none"
@@ -2769,7 +2789,7 @@ export function Inbox() {
                             their chevron — same as the tasks list. */}
                         <div className={cn("rounded-lg px-3 sm:pl-0 sm:pr-4", isGroupSelected ? "bg-accent/50" : "hover:bg-accent/50")}>
                         <IssueGroupHeader
-                          label={group.label}
+                          label={localizedGroupLabel}
                           collapsible
                           collapsed={isGroupCollapsed}
                           onToggle={() => toggleGroupCollapse(group.key)}
@@ -2780,11 +2800,11 @@ export function Inbox() {
                               className="-mr-2 text-muted-foreground"
                               title={t("pages.inbox.newIssueIn", {
                                 defaultValue: "New task in {{group}}",
-                                group: group.label,
+                                group: localizedGroupLabel,
                               })}
                               aria-label={t("pages.inbox.newIssueIn", {
                                 defaultValue: "New task in {{group}}",
-                                group: group.label,
+                                group: localizedGroupLabel,
                               })}
                               onClick={(event) => {
                                 event.stopPropagation();

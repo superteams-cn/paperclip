@@ -363,10 +363,16 @@ function KanbanCard({
           {!isLive && subtreeLiveCount > 0 && (
             <Badge variant="outline"
               className="border-border px-1.5 text-(length:--text-nano) text-muted-foreground"
-              title={`${subtreeLiveCount} sub-task${subtreeLiveCount === 1 ? "" : "s"} running below`}
+              title={t("components.issueColumns.subtasksRunningBelow", {
+                count: subtreeLiveCount,
+                defaultValue: `${subtreeLiveCount} sub-task${subtreeLiveCount === 1 ? "" : "s"} running below`,
+              })}
             >
               <span className="h-2 w-2 shrink-0 rounded-full border border-muted-foreground/60" aria-hidden="true" />
-              {subtreeLiveCount} live below
+              {t("components.issueColumns.liveBelow", {
+                count: subtreeLiveCount,
+                defaultValue: `${subtreeLiveCount} live below`,
+              })}
             </Badge>
           )}
         </div>

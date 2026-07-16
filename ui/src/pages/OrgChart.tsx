@@ -600,7 +600,7 @@ export function OrgChart() {
                       {node.name}
                     </span>
                     <span className="text-(length:--text-micro) text-muted-foreground leading-tight mt-0.5">
-                      {agent?.title ?? roleLabel(node.role)}
+                      {agent?.title ?? t(`labels.agentRole.${node.role}`, { defaultValue: roleLabels[node.role] ?? node.role })}
                     </span>
                     {agent && (
                       <span className="text-(length:--text-nano) text-muted-foreground/60 font-mono leading-tight mt-1">
@@ -624,7 +624,3 @@ export function OrgChart() {
 }
 
 const roleLabels: Record<string, string> = AGENT_ROLE_LABELS;
-
-function roleLabel(role: string): string {
-  return roleLabels[role] ?? role;
-}

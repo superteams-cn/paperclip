@@ -805,7 +805,11 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
     const imageHandler = hasImageUpload
       ? async (file: File) => {
           const handler = imageUploadHandlerRef.current;
-          if (!handler) throw new Error("No image upload handler");
+          if (!handler) {
+            throw new Error(t("components.markdownEditor.noImageUploadHandler", {
+              defaultValue: "No image upload handler",
+            }));
+          }
           try {
             const src = await handler(file);
             setUploadError(null);
@@ -861,7 +865,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
       all.push(imagePlugin({ imageUploadHandler: imageHandler }));
     }
     return all;
-  }, [hasImageUpload]);
+  }, [hasImageUpload, t]);
 
   useEffect(() => {
     if (editorValue !== latestValueRef.current) {
@@ -1424,27 +1428,27 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
                 )}
                 {option.kind === "issue" && (
                   <span className="ml-auto text-(length:--text-nano) uppercase tracking-wide text-muted-foreground">
-                    Task
+                    {t("components.markdownEditor.mentionKinds.task", { defaultValue: "Task" })}
                   </span>
                 )}
                 {option.kind === "project" && option.projectId && (
                   <span className="ml-auto text-(length:--text-nano) uppercase tracking-wide text-muted-foreground">
-                    Project
+                    {t("components.markdownEditor.mentionKinds.project", { defaultValue: "Project" })}
                   </span>
                 )}
                 {option.kind === "user" && (
                   <span className="ml-auto text-(length:--text-nano) uppercase tracking-wide text-muted-foreground">
-                    User
+                    {t("components.markdownEditor.mentionKinds.user", { defaultValue: "User" })}
                   </span>
                 )}
                 {option.kind === "skill" && (
                   <span className="ml-auto text-(length:--text-nano) uppercase tracking-wide text-muted-foreground">
-                    Skill
+                    {t("components.markdownEditor.mentionKinds.skill", { defaultValue: "Skill" })}
                   </span>
                 )}
                 {option.kind === "routine" && (
                   <span className="ml-auto text-(length:--text-nano) uppercase tracking-wide text-muted-foreground">
-                    Routine
+                    {t("components.markdownEditor.mentionKinds.routine", { defaultValue: "Routine" })}
                   </span>
                 )}
               </button>
@@ -1460,7 +1464,9 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
             !bordered && "inset-0 rounded-sm",
           )}
         >
-          Drop {onDropFile ? "file" : "image"} to upload
+          {onDropFile
+            ? t("components.markdownEditor.dropFile", { defaultValue: "Drop file to upload" })
+            : t("components.markdownEditor.dropImage", { defaultValue: "Drop image to upload" })}
         </div>
       )}
       {uploadError && (

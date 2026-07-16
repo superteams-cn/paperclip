@@ -559,11 +559,11 @@ function SubIssueProgressSummaryStrip({
               <>
                 <span
                   className="text-muted-foreground tabular-nums"
-                  title={`${costSummary.runCount.toLocaleString()} run${
-                    costSummary.runCount === 1 ? "" : "s"
-                  } across ${costSummary.issueCount} sub-task${
-                    costSummary.issueCount === 1 ? "" : "s"
-                  }`}
+                  title={t("pages.issues.costSummaryTitle", {
+                    runs: t("pages.issues.costSummaryRuns", { count: costSummary.runCount, formattedCount: costSummary.runCount.toLocaleString(), defaultValue: `${costSummary.runCount.toLocaleString()} run${costSummary.runCount === 1 ? "" : "s"}` }),
+                    tasks: t("pages.issues.costSummarySubtasks", { count: costSummary.issueCount, defaultValue: `${costSummary.issueCount} sub-task${costSummary.issueCount === 1 ? "" : "s"}` }),
+                    defaultValue: `${costSummary.runCount.toLocaleString()} run${costSummary.runCount === 1 ? "" : "s"} across ${costSummary.issueCount} sub-task${costSummary.issueCount === 1 ? "" : "s"}`,
+                  })}
                 >
                   {t("pages.issues.tokens", {
                     count: formatTokens(totalTokens),

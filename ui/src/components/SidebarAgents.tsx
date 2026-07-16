@@ -153,7 +153,12 @@ function SidebarAgentItem({
         ? t("sidebar.agents.invalidOrgChain", { defaultValue: "Invalid org chain" })
       : pauseResumeLabel;
   const trailingLabel = [
-    builtInStatus ? `Built-in agent ${builtInStatus.replace(/_/g, " ")}` : null,
+    builtInStatus ? t("sidebar.agents.builtInStatus", {
+      defaultValue: "Built-in agent {{status}}",
+      status: t(`components.builtInAgentBadges.status.${builtInStatus}`, {
+        defaultValue: builtInStatus.replace(/_/g, " "),
+      }),
+    }) : null,
     hasInvalidOrgChain ? t("sidebar.agents.invalidReportingChain", { defaultValue: "Invalid reporting chain" }) : null,
   ].filter(Boolean).join(", ") || undefined;
 
@@ -253,7 +258,9 @@ function SidebarAgentItem({
                 ) : (
                   <Star className={cn("size-4", starred && "fill-amber-500 text-amber-500")} />
                 )}
-                <span>{starred ? "Remove from starred" : "Star agent"}</span>
+                <span>{starred
+                  ? t("sidebar.agents.removeFromStarred", { defaultValue: "Remove from starred" })
+                  : t("sidebar.agents.starAgent", { defaultValue: "Star agent" })}</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
             </>
@@ -290,7 +297,9 @@ function SidebarAgentItem({
             disabled={leaving}
           >
             {leaving ? <Loader2 className="size-4 motion-safe:animate-spin" /> : <LogOut className="size-4" />}
-            <span>{leaving ? "Leaving..." : "Leave agent"}</span>
+            <span>{leaving
+              ? t("sidebar.agents.leaving", { defaultValue: "Leaving..." })
+              : t("sidebar.agents.leaveAgent", { defaultValue: "Leave agent" })}</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

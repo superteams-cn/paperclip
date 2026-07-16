@@ -38,7 +38,15 @@ export function ReusableExecutionWorkspaceSelect<TWorkspace extends ReusableExec
   disablePortal,
 }: ReusableExecutionWorkspaceSelectProps<TWorkspace>) {
   const { t } = useTranslation();
-  const groups = useMemo(() => buildReusableExecutionWorkspaceOptionGroups(workspaces), [workspaces]);
+  const groups = useMemo(
+    () => buildReusableExecutionWorkspaceOptionGroups(workspaces).map((group) => ({
+      ...group,
+      label: group.id === "recent"
+        ? t("components.reusableExecutionWorkspaceSelect.groups.recent", { defaultValue: "Recent" })
+        : t("components.reusableExecutionWorkspaceSelect.groups.all", { defaultValue: "All workspaces" }),
+    })),
+    [t, workspaces],
+  );
   const resolvedPlaceholder =
     placeholder ??
     t("components.reusableExecutionWorkspaceSelect.placeholder", {
@@ -77,7 +85,11 @@ export function ReusableExecutionWorkspaceSelect<TWorkspace extends ReusableExec
         <span className="flex min-w-0 flex-col">
           <span className={cn("truncate", selected && "font-medium")}>{option.label}</span>
           <span className="truncate text-(length:--text-micro) text-muted-foreground">
-            {option.workspace.status ? `${option.workspace.status} - ` : ""}
+            {option.workspace.status
+              ? `${t(`components.reusableExecutionWorkspaceSelect.statuses.${option.workspace.status}`, {
+                  defaultValue: option.workspace.status.replace(/_/g, " "),
+                })} - `
+              : ""}
             {option.description}
           </span>
         </span>

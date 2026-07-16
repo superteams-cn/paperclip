@@ -31,7 +31,7 @@ function BlockerRecoveryIndicator({ action }: { action: IssueRecoveryAction }) {
   if (!state) return null;
   const tone = RECOVERY_CHIP_DEFAULT_TONE[state];
   const Icon = tone.icon;
-  const label = recoveryChipLabel(state, action.kind);
+  const label = recoveryChipLabel(state, action.kind, t);
   return (
     <Badge variant="outline"
       data-testid="issue-blocked-notice-recovery-indicator"
@@ -159,7 +159,11 @@ function WaitingChipLink({
   blocker: IssueRelationIssueSummary;
   running?: boolean;
 }) {
+  const { t } = useTranslation();
   const issuePathId = blocker.identifier ?? blocker.id;
+  const statusLabel = t(`labels.status.${blocker.status}`, {
+    defaultValue: waitingTaskStatusLabel(blocker.status),
+  });
   return (
     <IssueLinkQuicklook
       issuePathId={issuePathId}
@@ -169,7 +173,10 @@ function WaitingChipLink({
       <StatusGlyph
         status={blocker.status}
         size="sm"
-        title={`${waitingTaskStatusLabel(blocker.status)} status`}
+        title={t("pages.issues.blockedNotice.statusTitle", {
+          defaultValue: "{{status}} status",
+          status: statusLabel,
+        })}
       />
       <span>{blocker.identifier ?? blocker.id.slice(0, 8)}</span>
       <span className="max-w-(--sz-18rem) truncate font-sans text-(length:--text-micro) text-blue-800 dark:text-blue-200">
@@ -177,7 +184,7 @@ function WaitingChipLink({
       </span>
       {running ? (
         <span className="ml-0.5 rounded-full bg-blue-500/15 px-1.5 py-0.5 text-(length:--text-nano) font-medium uppercase tracking-wide text-blue-700 dark:bg-blue-400/20 dark:text-blue-200">
-          running
+          {t("labels.status.running", { defaultValue: "running" })}
         </span>
       ) : null}
     </IssueLinkQuicklook>
@@ -245,8 +252,6 @@ function WaitingOnLiveWorkNotice({
     nowRunning.push(blocker);
   }
 
-  const queuedNoun = total === 1 ? "task" : "tasks";
-
   return (
     <div
       data-blocker-attention-state={blockerAttentionState}
@@ -261,16 +266,26 @@ function WaitingOnLiveWorkNotice({
           <div className="space-y-1">
             <p className="font-medium leading-5">{t("pages.issues.blockedNotice.waitingOnLiveWork", { defaultValue: "Waiting on live work" })}</p>
             <p className="leading-5">
-              Queued behind {total} {queuedNoun} being worked in order. This task
-              resumes automatically when the chain is done. Comments still wake the
-              responsible agent.
+              {t("pages.issues.blockedNotice.queuedBehind", {
+                defaultValue: "Queued behind {{count}} task being worked in order. This task resumes automatically when the chain is done. Comments still wake the responsible agent.",
+                count: total,
+              })}
             </p>
           </div>
 
           <div className="space-y-1" data-testid="issue-blocked-notice-progress">
             <div className="text-xs font-medium text-blue-800 dark:text-blue-200">
-              {doneCount} of {total} done
-              {runningCount > 0 ? ` · ${runningCount} running` : null}
+              {t("pages.issues.blockedNotice.progressDone", {
+                defaultValue: "{{done}} of {{total}} done",
+                done: doneCount,
+                total,
+              })}
+              {runningCount > 0
+                ? t("pages.issues.blockedNotice.progressRunning", {
+                  defaultValue: " · {{count}} running",
+                  count: runningCount,
+                })
+                : null}
             </div>
             <div
               role="progressbar"
@@ -292,7 +307,11 @@ function WaitingOnLiveWorkNotice({
                         : "bg-blue-200 dark:bg-blue-500/30",
                   )}
                   style={{ width: `${100 / total}%` }}
-                  title={`${blocker.identifier ?? blocker.id.slice(0, 8)}: ${status}`}
+                  title={t("pages.issues.blockedNotice.stepStatus", {
+                    defaultValue: "{{identifier}}: {{status}}",
+                    identifier: blocker.identifier ?? blocker.id.slice(0, 8),
+                    status: t(`labels.status.${status}`, { defaultValue: status }),
+                  })}
                   aria-hidden
                 />
               ))}
@@ -325,7 +344,9 @@ function WaitingOnLiveWorkNotice({
               </div>
               <div className="min-w-0 pb-0.5">
                 <span className="inline-block rounded-md border border-dashed border-blue-300/70 px-2 py-1 text-xs text-blue-800 dark:border-blue-500/40 dark:text-blue-200">
-                  This task — resumes automatically when the chain is done
+                  {t("pages.issues.blockedNotice.currentTaskResume", {
+                    defaultValue: "This task — resumes automatically when the chain is done",
+                  })}
                 </span>
               </div>
             </div>

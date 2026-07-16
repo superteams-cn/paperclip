@@ -1,4 +1,5 @@
 import type { IssueRecoveryAction, IssueRecoveryActionKind } from "@paperclipai/shared";
+import type { TFunction } from "i18next";
 import { Eye, OctagonAlert, RefreshCw, TriangleAlert } from "lucide-react";
 
 export type RecoveryDisplayState =
@@ -59,9 +60,13 @@ export function deriveActiveRecoveryDisplayState(
 export function recoveryChipLabel(
   state: ActiveRecoveryDisplayState,
   kind: IssueRecoveryActionKind,
+  t?: TFunction,
 ): string {
   if (kind === "workspace_validation" && state === "needed") {
-    return "Workspace recovery needed";
+    return t?.("pages.issues.recovery.workspaceRecoveryNeeded", {
+      defaultValue: "Workspace recovery needed",
+    }) ?? "Workspace recovery needed";
   }
-  return RECOVERY_CHIP_DEFAULT_TONE[state].label;
+  const fallback = RECOVERY_CHIP_DEFAULT_TONE[state].label;
+  return t?.(`pages.issues.recovery.chipStates.${state}`, { defaultValue: fallback }) ?? fallback;
 }

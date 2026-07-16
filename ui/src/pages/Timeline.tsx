@@ -30,7 +30,7 @@ import {
 } from "@/components/timeline/WorkTimelineChart";
 import { formatDuration, TIMELINE_COLORS } from "@/lib/timeline/layout";
 import { cn } from "@/lib/utils";
-import { t, useTranslation } from "@/i18n";
+import { i18n, t, useTranslation } from "@/i18n";
 
 type RangePreset = "today" | "7d" | "30d" | "custom";
 interface DateRangeState {
@@ -73,11 +73,11 @@ function rangeError(range: DateRangeState): string | null {
 }
 
 function formatInteger(value: number): string {
-  return new Intl.NumberFormat("en-US").format(value);
+  return new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language).format(value);
 }
 
 function formatCompactInteger(value: number): string {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language, {
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(value);

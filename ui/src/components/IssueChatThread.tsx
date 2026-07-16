@@ -1204,8 +1204,8 @@ function CopyablePreBlock({ children, className }: { children: string; className
             setTimeout(() => setCopied(false), 2000);
           }).catch((error) => {
             toastActions?.pushToast({
-              title: "Copy failed",
-              body: error instanceof Error ? error.message : "Unable to copy text",
+              title: t("pages.issues.chat.copyFailed", { defaultValue: "Copy failed" }),
+              body: error instanceof Error ? error.message : t("pages.issues.chat.unableToCopyText", { defaultValue: "Unable to copy text" }),
               tone: "error",
             });
           });
@@ -1662,7 +1662,7 @@ function IssueChatUserMessage({
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
+              {t("common.cancel", { defaultValue: "Cancel" })}
             </Button>
             <Button variant="destructive" onClick={confirmDeleteComment}>
               {t("pages.issues.chat.deleteComment", { defaultValue: "Delete comment" })}
@@ -1790,8 +1790,8 @@ function IssueChatAssistantMessage({
             setTimeout(() => setCopied(false), 2000);
           }).catch((error) => {
             toastActions?.pushToast({
-              title: "Copy failed",
-              body: error instanceof Error ? error.message : "Unable to copy message",
+              title: t("pages.issues.chat.copyFailed", { defaultValue: "Copy failed" }),
+              body: error instanceof Error ? error.message : t("pages.issues.chat.copyFailedBody", { defaultValue: "Unable to copy message" }),
               tone: "error",
             });
           });
@@ -1837,8 +1837,8 @@ function IssueChatAssistantMessage({
             onClick={() => {
               void copyTextToClipboard(copyText).catch((error) => {
                 toastActions?.pushToast({
-                  title: "Copy failed",
-                  body: error instanceof Error ? error.message : "Unable to copy message",
+                  title: t("pages.issues.chat.copyFailed", { defaultValue: "Copy failed" }),
+                  body: error instanceof Error ? error.message : t("pages.issues.chat.copyFailedBody", { defaultValue: "Unable to copy message" }),
                   tone: "error",
                 });
               });
@@ -2296,7 +2296,7 @@ function ExpiredRequestConfirmationActivity({
   const actorIcon = actorAgentId ? agentMap?.get(actorAgentId)?.icon : undefined;
   const isCurrentUser = Boolean(actorUserId && currentUserId && actorUserId === currentUserId);
   const detailsId = anchorId ? `${anchorId}-details` : `${interaction.id}-details`;
-  const summary = buildIssueThreadInteractionSummary(interaction);
+  const summary = buildIssueThreadInteractionSummary(interaction, t);
 
   const rowContent = (
     <div className="min-w-0 flex-1">
@@ -2674,8 +2674,8 @@ function SystemNoticeCommentRow({
       setTimeout(() => setCopied(false), 2000);
     }).catch((error) => {
       toastActions?.pushToast({
-        title: "Copy failed",
-        body: error instanceof Error ? error.message : "Unable to copy system notice",
+        title: t("pages.issues.chat.copyFailed", { defaultValue: "Copy failed" }),
+        body: error instanceof Error ? error.message : t("pages.issues.chat.unableToCopySystemNotice", { defaultValue: "Unable to copy system notice" }),
         tone: "error",
       });
     });
@@ -2689,8 +2689,8 @@ function SystemNoticeCommentRow({
       setTimeout(() => setCopiedLink(false), 2000);
     }).catch((error) => {
       toastActions?.pushToast({
-        title: "Copy failed",
-        body: error instanceof Error ? error.message : "Unable to copy system notice link",
+        title: t("pages.issues.chat.copyFailed", { defaultValue: "Copy failed" }),
+        body: error instanceof Error ? error.message : t("pages.issues.chat.unableToCopySystemNoticeLink", { defaultValue: "Unable to copy system notice link" }),
         tone: "error",
       });
     });
@@ -3891,8 +3891,8 @@ const IssueChatComposer = forwardRef<IssueChatComposerHandle, IssueChatComposerP
         bodyHasAgentMention: mentionedAgentIds.length > 0,
         mentionedAgentId: mentionedAgentIds[0] ?? null,
         plainNameCandidate,
-      }),
-    [reassignTarget, currentAssigneeValue, hasActiveRun, mentionedAgentIds, plainNameCandidate],
+      }, t),
+    [reassignTarget, currentAssigneeValue, hasActiveRun, mentionedAgentIds, plainNameCandidate, t],
   );
   const coachVisible = Boolean(
     plainNameCandidate && plainNameCandidate.matchedText !== dismissedCoachToken,
@@ -4137,7 +4137,9 @@ const IssueChatComposer = forwardRef<IssueChatComposerHandle, IssueChatComposerP
                   );
                 })}
                 <div className="mt-1 border-t px-2 py-1.5 text-(length:--text-nano) text-muted-foreground">
-                  Cmd/Ctrl+. cycles modes
+                  {t("pages.issues.chat.cycleModesHint", {
+                    defaultValue: "Cmd/Ctrl+. cycles modes",
+                  })}
                 </div>
               </PopoverContent>
             </Popover>
@@ -4203,8 +4205,10 @@ const IssueChatComposer = forwardRef<IssueChatComposerHandle, IssueChatComposerP
           <AlertDialogHeader>
             <AlertDialogTitle>{t("pages.issues.chat.noResponsibleSelectedTitle", { defaultValue: "No responsible selected" })}</AlertDialogTitle>
             <AlertDialogDescription>
-              This comment will be posted without an assignee, so no agent will be woken
-              to act on it. Go back to pick a responsible, or send anyway.
+              {t("pages.issues.chat.noResponsibleSelectedBody", {
+                defaultValue:
+                  "This comment will be posted without an assignee, so no agent will be woken to act on it. Go back to pick a responsible, or send anyway.",
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
