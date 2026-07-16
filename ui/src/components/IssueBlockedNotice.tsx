@@ -471,6 +471,45 @@ export function IssueBlockedNotice({
   })();
   const showStalledRow = isStalled && stalledLeafBlockers.length > 0;
 
+  // Rule C (PAP-13554 / plan §Rule C): when the issue is `blocked` and a
+  // blocker edge is genuinely not done, a human comment does NOT reopen it —
+  // the reopen gate keeps it blocked. `blockers` here is the *unresolved* set
+  // (status ≠ done/cancelled), so a non-empty list on a `blocked` issue is
+  // exactly the case the human's message can't move to todo. Done-but-pending-
+  // finalize blockers are `done`, so they fall out of this set and into the
+  // Rule B reopen path — we must not claim "a message won't reopen" for those.
+  // Name the deepest unresolved leaf (prefer terminal leaves) with its status
+  // so "I sent a message and nothing happened" can't recur silently.
+  const responsibleName = agentName ?? t("pages.issues.blockedNotice.responsibleAgent", {
+    defaultValue: "the responsible agent",
+  });
+  const reopenSuppressed = issueStatus === "blocked" && !isStalled && blockers.length > 0;
+  const unresolvedLeafBlockers = (() => {
+    if (!reopenSuppressed) return [] as IssueRelationIssueSummary[];
+    const seen = new Set<string>();
+    const collected: IssueRelationIssueSummary[] = [];
+    for (const blocker of blockers) {
+      const terminals = (blocker.terminalBlockers ?? []).filter(
+        (leaf) => leaf.status !== "done" && leaf.status !== "cancelled",
+      );
+      const leaves = terminals.length > 0 ? terminals : [blocker];
+      for (const leaf of leaves) {
+        if (seen.has(leaf.id)) continue;
+        seen.add(leaf.id);
+        collected.push(leaf);
+      }
+    }
+    return collected;
+  })();
+  const reopenSuppressedLeaf = unresolvedLeafBlockers[0] ?? null;
+  const reopenSuppressedLeafId = reopenSuppressedLeaf
+    ? reopenSuppressedLeaf.identifier ?? reopenSuppressedLeaf.id.slice(0, 8)
+    : null;
+  const reopenSuppressedLeafStatus = reopenSuppressedLeaf
+    ? reopenSuppressedLeaf.status.replace(/_/g, " ")
+    : null;
+  const reopenSuppressedOtherCount = Math.max(unresolvedLeafBlockers.length - 1, 0);
+
   const renderBlockerChip = (blocker: IssueRelationIssueSummary) => {
     const issuePathId = blocker.identifier ?? blocker.id;
     const recoveryAction = blocker.activeRecoveryAction ?? null;
@@ -609,17 +648,49 @@ export function IssueBlockedNotice({
                         defaultValue: "Work on this task is blocked by {{blockerLabel}}, but the chain is stalled in review without a clear next step. Resolve the stalled review below or remove it as a blocker.",
                         blockerLabel,
                       })
-                    : t("pages.issues.blockedNotice.blockedByLinked", {
-                      defaultValue: "Work on this task is blocked by {{blockerLabel}} until {{pronoun}} complete. Comments still wake the responsible for questions or triage.",
-                      blockerLabel,
-                      pronoun: blockers.length === 1
-                        ? t("pages.issues.blockedNotice.itIs", { defaultValue: "it is" })
-                        : t("pages.issues.blockedNotice.theyAre", { defaultValue: "they are" }),
-                    })
+                    : reopenSuppressed
+                      ? t("pages.issues.blockedNotice.reopenSuppressed", {
+                        defaultValue: "A message won’t move this back to todo yet — it stays blocked by {{blockerLabel}} until {{pronoun}} done, then it reopens automatically. Comments still wake {{responsibleName}} for questions or triage in the meantime.",
+                        blockerLabel,
+                        pronoun: blockers.length === 1
+                          ? t("pages.issues.blockedNotice.itIs", { defaultValue: "it is" })
+                          : t("pages.issues.blockedNotice.theyAre", { defaultValue: "they are" }),
+                        responsibleName,
+                      })
+                      : t("pages.issues.blockedNotice.blockedByLinked", {
+                        defaultValue: "Work on this task is blocked by {{blockerLabel}} until {{pronoun}} complete. Comments still wake the responsible for questions or triage.",
+                        blockerLabel,
+                        pronoun: blockers.length === 1
+                          ? t("pages.issues.blockedNotice.itIs", { defaultValue: "it is" })
+                          : t("pages.issues.blockedNotice.theyAre", { defaultValue: "they are" }),
+                      })
                   : t("pages.issues.blockedNotice.blockedUntilTodo", {
                     defaultValue: "Work on this task is blocked until it is moved back to todo. Comments still wake the responsible for questions or triage.",
                   })}
               </p>
+              {reopenSuppressed && reopenSuppressedLeafId ? (
+                <p
+                  data-testid="issue-blocked-notice-reopen-suppressed"
+                  className="text-xs font-medium leading-5 text-amber-900 dark:text-amber-100"
+                >
+                  {t("pages.issues.blockedNotice.stillBlockedBy", {
+                    defaultValue: "Still blocked by",
+                  })}{" "}
+                  <span className="font-mono">{reopenSuppressedLeafId}</span>
+                  {reopenSuppressedLeafStatus ? (
+                    <> ({t(`labels.status.${reopenSuppressedLeafStatus.replace(/ /g, "_")}`, {
+                      defaultValue: reopenSuppressedLeafStatus,
+                    })})</>
+                  ) : null}
+                  {reopenSuppressedOtherCount > 0
+                    ? t("pages.issues.blockedNotice.otherBlockedTasks", {
+                      defaultValue: " and {{count}} other task",
+                      count: reopenSuppressedOtherCount,
+                    })
+                    : null}
+                  {t("pages.issues.blockedNotice.sentenceEnd", { defaultValue: "." })}
+                </p>
+              ) : null}
               {blockers.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
                   {blockers.map(renderBlockerChip)}
