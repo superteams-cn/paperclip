@@ -1,4 +1,39 @@
+import { PROVIDER_QUOTA_MONITOR_SERVICE_NAME } from "@paperclipai/shared";
+import type { TFunction } from "i18next";
 import { t } from "@/i18n";
+
+export function formatMonitorServiceName(
+  serviceName: string,
+  translate?: TFunction,
+): string {
+  if (serviceName !== PROVIDER_QUOTA_MONITOR_SERVICE_NAME) return serviceName;
+  return translate?.("components.issueMonitor.serviceNames.providerQuota", {
+    defaultValue: PROVIDER_QUOTA_MONITOR_SERVICE_NAME,
+  }) ?? PROVIDER_QUOTA_MONITOR_SERVICE_NAME;
+}
+
+export function formatMonitorNotes(
+  notes: string,
+  serviceName: string | null,
+  translate?: TFunction,
+): string {
+  if (serviceName !== PROVIDER_QUOTA_MONITOR_SERVICE_NAME || !translate) return notes;
+  const match = notes.match(
+    /^Provider usage quota reached; retry (the active review participant|the original assignee) (at the provider reset time|after the default recovery backoff)\.$/,
+  );
+  if (!match) return notes;
+  const targetKey = match[1] === "the active review participant"
+    ? "activeReviewParticipant"
+    : "originalAssignee";
+  const timingKey = match[2] === "at the provider reset time"
+    ? "providerResetTime"
+    : "defaultRecoveryBackoff";
+  return translate?.("components.issueMonitor.serviceDescriptions.providerQuota", {
+    target: translate(`components.issueMonitor.providerQuotaTargets.${targetKey}`),
+    timing: translate(`components.issueMonitor.providerQuotaTimings.${timingKey}`),
+    defaultValue: notes,
+  });
+}
 
 export function formatMonitorOffset(nextCheckAt: Date | string): string {
   const deltaMs = new Date(nextCheckAt).getTime() - Date.now();

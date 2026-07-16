@@ -2295,7 +2295,21 @@
       "nextCheck": "Next check {{time}} ({{offset}})",
       "attempt": "Attempt {{count}}",
       "checking": "Checking...",
-      "checkNow": "Check now"
+      "checkNow": "Check now",
+      "serviceNames": {
+        "providerQuota": "AI provider quota"
+      },
+      "serviceDescriptions": {
+        "providerQuota": "Provider usage quota reached; retry {{target}} {{timing}}."
+      },
+      "providerQuotaTargets": {
+        "originalAssignee": "the original assignee",
+        "activeReviewParticipant": "the active review participant"
+      },
+      "providerQuotaTimings": {
+        "providerResetTime": "at the provider reset time",
+        "defaultRecoveryBackoff": "after the default recovery backoff"
+      }
     },
     "documentDiff": {
       "title": "Diff",
@@ -10243,7 +10257,7 @@
         "couldNotRetry": "Couldn't retry now"
       },
       "blockedNotice": {
-        "recoveryChipTitle": "{{label}} — open the source issue to act.",
+        "recoveryChipTitle": "{{label}} — open the source task to act.",
         "dueNow": "due now",
         "scheduledRelative": "scheduled {{relative}}",
         "scheduled": "scheduled",
@@ -10252,10 +10266,10 @@
         "alreadyPromoted": "Already promoted",
         "promoted": "Promoted",
         "retryNow": "Retry now",
-        "linkedIssue": "the linked issue",
-        "linkedIssues": "the linked issues",
-        "nextStepTitle": "This issue still needs a next step.",
-        "successfulRunOpenBeforeStatus": "A run finished successfully, but this issue is still open in",
+        "linkedIssue": "the linked task",
+        "linkedIssues": "the linked tasks",
+        "nextStepTitle": "This task still needs a next step.",
+        "successfulRunOpenBeforeStatus": "A run finished successfully, but this task is still open in",
         "successfulRunOpenAfterStatus": "with no clear owner for the next action.",
         "nextSteps": {
           "doneOrCancelled": "Mark it done or cancelled.",
@@ -10275,6 +10289,13 @@
         "theyAre": "they are",
         "blockedUntilTodo": "Work on this task is blocked until it is moved back to todo. Comments still wake the responsible for questions or triage.",
         "stillBlockedBy": "Still blocked by",
+        "blockerStatuses": {
+          "backlog": "backlog",
+          "todo": "todo",
+          "in_progress": "in progress",
+          "in_review": "in review",
+          "blocked": "blocked"
+        },
         "otherBlockedTasks_one": " and {{count}} other task",
         "otherBlockedTasks_other": " and {{count}} other tasks",
         "sentenceEnd": ".",

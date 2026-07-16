@@ -2295,7 +2295,21 @@
       "nextCheck": "下次检查 {{time}}（{{offset}}）",
       "attempt": "第 {{count}} 次尝试",
       "checking": "正在检查...",
-      "checkNow": "立即检查"
+      "checkNow": "立即检查",
+      "serviceNames": {
+        "providerQuota": "AI 提供商配额"
+      },
+      "serviceDescriptions": {
+        "providerQuota": "已达到提供商用量配额；请{{timing}}重试{{target}}。"
+      },
+      "providerQuotaTargets": {
+        "originalAssignee": "原负责人",
+        "activeReviewParticipant": "当前评审参与者"
+      },
+      "providerQuotaTimings": {
+        "providerResetTime": "在提供商配额重置时",
+        "defaultRecoveryBackoff": "在默认恢复退避结束后"
+      }
     },
     "documentDiff": {
       "title": "差异",
@@ -10275,6 +10289,13 @@
         "theyAre": "它们",
         "blockedUntilTodo": "此任务会一直阻塞，直到移回待办。评论仍会为了问题或分诊唤醒负责人。",
         "stillBlockedBy": "仍被以下任务阻塞：",
+        "blockerStatuses": {
+          "backlog": "积压中",
+          "todo": "待办",
+          "in_progress": "进行中",
+          "in_review": "复核中",
+          "blocked": "已阻塞"
+        },
         "otherBlockedTasks_one": "，另有 {{count}} 个任务",
         "otherBlockedTasks_other": "，另有 {{count}} 个任务",
         "sentenceEnd": "。",

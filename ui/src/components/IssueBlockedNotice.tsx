@@ -678,7 +678,7 @@ export function IssueBlockedNotice({
                   })}{" "}
                   <span className="font-mono">{reopenSuppressedLeafId}</span>
                   {reopenSuppressedLeafStatus ? (
-                    <> ({t(`labels.status.${reopenSuppressedLeafStatus.replace(/ /g, "_")}`, {
+                    <> ({t(`pages.issues.blockedNotice.blockerStatuses.${reopenSuppressedLeafStatus.replace(/ /g, "_")}`, {
                       defaultValue: reopenSuppressedLeafStatus,
                     })})</>
                   ) : null}

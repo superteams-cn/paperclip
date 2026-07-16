@@ -1,6 +1,7 @@
 import type { TFunction } from "i18next";
 import type { Agent } from "@paperclipai/shared";
 import type { CompanyUserProfile } from "./company-members";
+import { formatMonitorServiceName } from "./issue-monitor";
 
 type ActivityDetails = Record<string, unknown> | null | undefined;
 
@@ -415,7 +416,7 @@ export function formatIssueActivityAction(
 
   if (action.startsWith("issue.monitor_") && details) {
     const serviceName = typeof details.serviceName === "string" && details.serviceName.trim()
-      ? details.serviceName.trim()
+      ? formatMonitorServiceName(details.serviceName.trim(), options.t)
       : null;
     const base = localizeActivity(ISSUE_ACTIVITY_LABELS, "activity.issueLabels", action, options);
     return serviceName ? activityText(options, "pages.activity.format.issueDynamic.forService", `${base} for ${serviceName}`, { base, service: serviceName }) : base;

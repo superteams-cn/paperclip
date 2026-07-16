@@ -1,7 +1,11 @@
 import type { Issue } from "@paperclipai/shared";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { formatMonitorOffset } from "@/lib/issue-monitor";
+import {
+  formatMonitorNotes,
+  formatMonitorOffset,
+  formatMonitorServiceName,
+} from "@/lib/issue-monitor";
 import { formatDateTime } from "@/lib/utils";
 
 function resolveScheduledMonitor(issue: Issue) {
@@ -47,11 +51,13 @@ export function IssueMonitorActivityCard({
             })}
           </div>
           {monitor.notes ? (
-            <div className="mt-1 text-xs text-muted-foreground">{monitor.notes}</div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              {formatMonitorNotes(monitor.notes, monitor.serviceName, t)}
+            </div>
           ) : null}
           {monitor.serviceName ? (
             <div className="mt-1 text-xs text-muted-foreground">
-              {monitor.serviceName}
+              {formatMonitorServiceName(monitor.serviceName, t)}
             </div>
           ) : null}
           {monitor.attemptCount > 0 ? (
